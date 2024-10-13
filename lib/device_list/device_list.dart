@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:web_socket_channel/web_socket_channel.dart';
-import 'dart:convert';
 import "package:attempt_two/nodes/node_panels/node_preview.dart"; // Import the NodePreview widget
+import "/websocket_connection.dart";
+import "/websocket_datatypes.dart";
 
 class DeviceScanner extends StatefulWidget {
   @override
@@ -10,108 +10,37 @@ class DeviceScanner extends StatefulWidget {
 }
 
 class _DeviceScannerState extends State<DeviceScanner> {
-  List<String> ipScanList = ["192.168.16"];
-  bool scanning = false;
-  List<Map<String, dynamic>> respondingDevices = [];
   bool showOverlay = false;
-  Map<String, dynamic>? selectedDevice; // Add a variable to hold the selected device
+  WsDevice? selectedDevice; // Add a variable to hold the selected device
+
+  late WebSocketController wsController;
+
 
   @override
   void initState() {
     super.initState();
-    fetchLocalSubnet();
+
+    wsController = WebSocketController(
+      newConnectionNotifyFunction: updateDeviceList, 
+      messageChangeNotifyFunction: newMessageHandle
+    );
+
+    //fetchLocalSubnet();
   }
 
-  Future<void> findDevicesOnSubnet(String localSubnet) async {
-      List<String> respondingIpAddresses = [];
-      for (int i = 98; i < 150; i++) {
-          final ipAddress = 'ws://$localSubnet.$i:80';
-          try {
-              final channel = WebSocketChannel.connect(Uri.parse(ipAddress)); // Replace with actual port
-              channel.sink.add('ping');
-  
-              channel.stream.listen((message) {
-                  Map<String, dynamic> decodedMessage = jsonDecode(message);
-                  if (decodedMessage["RESPONSE"] == 'ok') {
-                      respondingIpAddresses.add(ipAddress);
-                  }
-              }, onError: (error) {
-                  // Handle error
-              }, onDone: () {
-                  channel.sink.close();
-                  // Handle WebSocket connection close
-              });
-  
-          } catch (e) {
-              // Handle error
-          }
-          await Future.delayed(Duration(milliseconds: 200));
-  
-          while (respondingIpAddresses.isNotEmpty) {
-              String newDevice = respondingIpAddresses.removeAt(0);
-              WebSocketChannel ws = WebSocketChannel.connect(Uri.parse(newDevice));
-              ws.sink.add("introduce");
-  
-              bool responseReceived = false; // Flag to track if the response has been received
-  
-              ws.stream.listen((rawDevInfo) {
-                  Map<String, dynamic> devInfo = jsonDecode(rawDevInfo);
-                  if (!responseReceived) { // Only process if the response hasn't been received    
-                    setState(() {
-                        respondingDevices.add({
-                            "ip": newDevice,
-                            "devinfo": devInfo["RESPONSE"], // Ensure this key matches your response structure
-                            "ws": ws
-                        });
-                    });
-                    responseReceived = true; // Mark response as received
-                  }
-                  else{
-                    print("response: ${devInfo["RESPONSE"]}");
-                  }
-              }, onError: (error) {
-                  // Handle error
-              }, onDone: () {
-                //none
-              });
-          }
-      }
-  }
-
-
-  Future<void> sendPingToScanList(List<String> subnets) async {
+  Future<void> updateDeviceList() async {
+    
     setState(() {
-      scanning = true;
-    });
-    for (var subnet in subnets) {
-      await findDevicesOnSubnet(subnet);
-    }
-    setState(() {
-      scanning = false;
+      wsController.deviceList;
     });
   }
 
-  Future<void> fetchLocalSubnet() async {
-    print("fetchLocalSubnet");
-    try {
-      final localIP = await fetchIpAddress().timeout(
-        const Duration(milliseconds: 400),
-        onTimeout: () => 'Timeout: Unable to fetch IP address within 400ms',
-      );
-      print("Local IP: $localIP");
-      await sendPingToScanList(ipScanList);
-    } catch (e) {
-      print("Error: $e");
-    }
-    print("fetch_done");
+  void newMessageHandle(WsMessage message){
+    print(message.message);
   }
 
-  Future<String> fetchIpAddress() async {
-    // Mock implementation, replace with actual IP fetching logic
-    return '192.168.16.1';
-  }
 
-  void _handleDeviceTap(Map<String, dynamic> device) {
+  void _handleDeviceTap(WsDevice device) {
     setState(() {
       showOverlay = true; // Show the overlay when a device is tapped
       selectedDevice = device; // Store the selected device
@@ -141,7 +70,7 @@ class _DeviceScannerState extends State<DeviceScanner> {
               children: [
                 Expanded(
                   child: ListView.builder(
-                    itemCount: respondingDevices.length,
+                    itemCount: wsController.deviceList.devices.length,
                     itemBuilder: (context, index) {
                       return Card(
                         margin: EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0), // Adjust margins
@@ -150,7 +79,7 @@ class _DeviceScannerState extends State<DeviceScanner> {
                           contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0), // Reduced padding
                           tileColor: Colors.blueGrey[50], // Background color
                           title: Text(
-                            respondingDevices[index]['devinfo']['DEVICE_NAME'],
+                            wsController.deviceList.devices[index].deviceInfo?['DEVICE_NAME'],
                             style: TextStyle(color: Colors.black87, fontSize: 14.0), // Smaller font size
                           ),
                           leading: Icon(
@@ -158,7 +87,7 @@ class _DeviceScannerState extends State<DeviceScanner> {
                             color: Colors.blue, // Icon color
                             size: 20.0, // Smaller icon size
                           ),
-                          onTap: () => _handleDeviceTap(respondingDevices[index]), // Pass the clicked device
+                          onTap: () => _handleDeviceTap(wsController.deviceList.devices[index]), // Pass the clicked device
                         ),
                       );
                     },
@@ -174,7 +103,7 @@ class _DeviceScannerState extends State<DeviceScanner> {
                 // Pass the selected device's data to NodePreview if needed
               ),
             // Loading indicator
-            if (scanning)
+            if (wsController.scanning)
               Positioned(
                 bottom: 3.0,
                 left: 3.0,

@@ -33,9 +33,9 @@ class MyApp extends StatelessWidget {
   }
 }
 
-todo: create file websocket_connection.dart where all of the connection stuff is handled
-      create ip_scanner.dart file.
-
+//todo: create file websocket_connection.dart where all of the connection stuff is handled
+//      create ip_scanner.dart file.
+//
 //      +----+         +-----------+        +---------------------+
 //      | App|         | IP Scanner| -----> | WebSocket Connection|
 //      +----+         +-----------+        +---------------------+

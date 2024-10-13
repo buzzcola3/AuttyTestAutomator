@@ -83,6 +83,9 @@ class IPScanner {
       await scanSubnet(subnet, port);
     }
 
+    scanning = false;
+    deviceChangeNotifyFunction({"": ""}); //trugger ui update
+
     return;
   }
 }

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:attempt_two/nodes/basic_nodes.dart';
+import "/websocket_datatypes.dart";
 
 class NodePreview extends StatefulWidget {
   final VoidCallback onClose;
-  final Map<String, dynamic>? deviceData;
+  final WsDevice? deviceData;
 
   const NodePreview({required this.onClose, this.deviceData, super.key});
 
@@ -34,7 +35,7 @@ class _NodePreviewState extends State<NodePreview> {
               children: [
                 // Thin text above the buttons, with reduced vertical space
                 Text(
-                  widget.deviceData != null ? widget.deviceData!['devinfo']['DEVICE_NAME'] : 'Control Bar',
+                  widget.deviceData != null ? widget.deviceData!.deviceInfo!['DEVICE_NAME'] : 'Control Bar',
                   style: TextStyle(
                     fontSize: 12.0, // Reduced font size
                     color: Colors.black54,
@@ -113,9 +114,9 @@ class _NodePreviewState extends State<NodePreview> {
       return Center(child: Text('No device data available.'));
     }
     
-    String description = widget.deviceData!['devinfo']['DEVICE_DESCRIPTION'] ?? 'No description available';
-    String ipAddress = widget.deviceData!['ip'] ?? 'No IP address available';
-    String uniqueId = widget.deviceData!['devinfo']['UNIQUE_ID'] ?? 'No UNIQUE_ID available';
+    String description = widget.deviceData!.deviceInfo!['DEVICE_DESCRIPTION'] ?? 'No description available';
+    String ipAddress = widget.deviceData!.ipAddress['ip'] ?? 'No IP address available';
+    String uniqueId = widget.deviceData!.deviceInfo!['UNIQUE_ID'] ?? 'No UNIQUE_ID available';
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -132,11 +133,11 @@ class _NodePreviewState extends State<NodePreview> {
 
   // Builds the command list from device data
   Widget _buildCommandList() {
-    if (widget.deviceData == null || widget.deviceData!['devinfo']['DEVICE_AVAILABLE_COMMANDS'] == null) {
+    if (widget.deviceData == null || widget.deviceData!.deviceInfo!['DEVICE_AVAILABLE_COMMANDS'] == null) {
       return Center(child: Text('No commands available.'));
     }
 
-    List<String> commands = List<String>.from(widget.deviceData!['devinfo']['DEVICE_AVAILABLE_COMMANDS']);
+    List<String> commands = List<String>.from(widget.deviceData!.deviceInfo!['DEVICE_AVAILABLE_COMMANDS']);
     
     return ListView.builder(
       itemCount: commands.length,
@@ -146,7 +147,7 @@ class _NodePreviewState extends State<NodePreview> {
           child: ElevatedButton(
             onPressed: () {
               // Handle the command action here
-              widget.deviceData!['ws'].sink.add(commands[index]);
+              widget.deviceData!.channel.sink.add(commands[index]);
               print("Executing command: ${commands[index]}"); // Replace with actual command execution logic
             },
             child: Text(commands[index]), // Display the command
