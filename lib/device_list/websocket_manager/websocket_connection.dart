@@ -1,7 +1,7 @@
-import 'ip_scanner.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'ip_scanner/ip_scanner.dart';
+import 'dart:io';
 import 'dart:convert';
-import 'websocket_datatypes.dart';
+import 'headers/websocket_datatypes.dart';
 
 
 
@@ -19,8 +19,11 @@ class WebSocketController {
 
   WebSocketController({required this.newConnectionNotifyFunction, required this.messageChangeNotifyFunction}) {
     IPScanner ipScanner = IPScanner(deviceChangeNotifyFunction: updateWebsocketConnections);
+    ipScanner.ipResponding("127.0.0.1", "80");
+    ipScanner.ipResponding("127.0.0.1", "81");
+    ipScanner.ipResponding("127.0.0.1", "82");
     ipScanner.fullScan();
-    //ipScanner.ipResponding("192.168.16.110", "80");
+    
     
   }
 
@@ -49,41 +52,44 @@ class WebSocketController {
   }
   
   
-  Future<void> updateWebsocketConnections(Map<String, String> ipAddress) async {
-    if(ipAddress['ip'] == "" && ipAddress['port'] == ""){
-      scanning = ipScanner.scanning;
-      newConnectionNotifyFunction(); //update ui (scanning finished)
-      return;
+  Future<void> updateWebsocketConnections(Map<String, String> ipAddress) async {  
+    try {
+      // Establish WebSocket connection using dart:io
+      final WebSocket socket = await WebSocket.connect('ws://${ipAddress['ip']}:${ipAddress['port']}');
+      print('WebSocket connected to ${ipAddress['ip']} on port ${ipAddress['port']}');
+  
+      socket.listen(
+        (incomingMessage) {
+          // Handle incoming message
+          receiveMessage(ipAddress, incomingMessage);
+        },
+        onDone: () {
+          // Handle when the WebSocket connection is closed
+          print('WebSocket connection closed for ${ipAddress['ip']} on port ${ipAddress['port']}');
+          deviceList.removeDevice(ipAddress);
+        },
+        onError: (error) {
+          // Handle any error that occurs during WebSocket communication
+          print('Error occurred on WebSocket connection: $error');
+          deviceList.removeDevice(ipAddress); // Remove device on error
+        },
+        cancelOnError: true, // Automatically cancel the subscription if an error occurs
+      );
+  
+      // Add the WebSocket to your list of devices
+      WsDevice newDevice = WsDevice(ipAddress: ipAddress, socket: socket, messageList: wsCommunication);
+      deviceList.addDevice(newDevice);
+  
+      // Wait until the WebSocket is ready (or some condition is met)
+      while (!newDevice.ready) {
+        await Future.delayed(Duration(milliseconds: 300)); // Avoid busy-waiting
+      }
+  
+      newConnectionNotifyFunction(); // Notify that a new connection has been made
+    } catch (e) {
+      // Handle connection errors
+      print('Failed to connect to WebSocket at ${ipAddress['ip']} on port ${ipAddress['port']}: $e');
     }
-
-    final channel = WebSocketChannel.connect(Uri.parse('ws://${ipAddress['ip']}:${ipAddress['port']}'));
-
-    channel.stream.listen(
-      (incomingMessage) {
-        // Handle incoming message
-        receiveMessage(ipAddress, incomingMessage);
-      },
-      onDone: () {
-        // Handle when the channel closes
-        print('WebSocket connection closed for ${ipAddress['ip']} on port ${ipAddress['port']}');
-        // You can also remove the closed WebSocket from your list if needed
-        deviceList.removeDevice(ipAddress);
-      },
-      onError: (error) {
-        // Handle any error that occurs during the WebSocket communication
-        print('Error occurred on WebSocket connection: $error');
-      },
-      cancelOnError: true, // Automatically cancel the subscription if an error occurs
-    );
-
-    WsDevice newDevice = WsDevice(ipAddress: ipAddress, channel: channel, messageList: wsCommunication);
-    deviceList.addDevice(newDevice);
-
-    while (!newDevice.ready) {
-      await Future.delayed(Duration(milliseconds: 100)); // Delay to avoid busy-waiting
-    }
-
-    newConnectionNotifyFunction();
   }
 
   void receiveMessage(Map<String, String> messageSource, String incommingMessage) {

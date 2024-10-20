@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'device_list/device_list.dart';
-import 'nodes/node_panels/playground.dart';
-import 'package:attempt_two/nodes/basic_nodes.dart';
+import 'node_playground/playground.dart';
+import 'package:attempt_two/node_generation/node_generator.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key, required this.title});

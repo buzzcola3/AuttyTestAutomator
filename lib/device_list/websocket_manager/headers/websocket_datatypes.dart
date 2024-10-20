@@ -1,4 +1,4 @@
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'dart:io';
 
 class WsMessage {
   // Properties
@@ -75,7 +75,7 @@ class WsMessageList {
 class WsDevice {
   // Properties
   final Map<String, String> ipAddress;
-  final WebSocketChannel channel;
+  final WebSocket? socket;
 
   Map<String, dynamic>? deviceInfo;
   WsMessageList messageList;
@@ -84,24 +84,28 @@ class WsDevice {
   
 
   // Constructor
-  WsDevice({required this.ipAddress, required this.channel, required this.messageList}){
+  WsDevice({required this.ipAddress, this.socket, required this.messageList, this.deviceInfo}){
     _fetchDeviceInfo();
   }
 
   // Method to fetch device info by sending "devinfo"
   Future<void> _fetchDeviceInfo() async {
     // Send "devinfo" message
-    channel.sink.add("devinfo");
+    
 
     // Listen for the response
-    deviceInfo = await _waitForIntroduceMessage(messageList);
+    while(deviceInfo == null){
+      socket?.add("devinfo");
+      deviceInfo = await _waitForIntroduceMessage(messageList);
+    }
+    
     ready = true;
   }
 
   // Private method to wait for "devinfo" response
   Future<Map<String, dynamic>?> _waitForIntroduceMessage(WsMessageList messageList) async {
-    // Try every 50ms for 40 seconds to find the devinfo message in the message list
-    const int maxRetries = 40 * 1000 ~/ 50; // 40 seconds with 50ms interval
+    // Try every 50ms for 4 seconds to find the devinfo message in the message list
+    const int maxRetries = 4 * 1000 ~/ 50; // 4 seconds with 50ms interval
     const Duration retryInterval = Duration(milliseconds: 50);
   
     for (int attempt = 0; attempt < maxRetries; attempt++) {
