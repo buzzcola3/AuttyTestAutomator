@@ -167,36 +167,60 @@ Widget _buildNodeList() {
     return Center(child: Text('No commands available.'));
   }
 
-  // Retrieve the available commands from device data
-  List<String> commands = List<String>.from(widget.deviceData!.deviceInfo!['DEVICE_AVAILABLE_COMMANDS']);
+  // Retrieve the available nodes from device data
+  List<Map<String, dynamic>> nodes = widget.deviceData!.deviceInfo!['DEVICE_AVAILABLE_NODES'];
 
   return ListView.builder(
-    itemCount: commands.length, // Set the item count based on the number of commands
+    itemCount: nodes.length, // Set the item count based on the number of nodes
     itemBuilder: (context, index) {
       // Get the command name to display
-      String commandName = commands[index];
+      Map<String, dynamic> singleNode = nodes[index];
+
+      Widget? fabricatedDummyNode = fabricateNode(
+          nodeName: singleNode["Name"],
+          nodeColor: singleNode["Color"],
+          nodeType: singleNode["Type"],
+          nodeCommand: singleNode["Command"],
+          deviceUniqueId: widget.deviceData!.deviceInfo!["UNIQUE_ID"],
+          inPorts: singleNode["InPorts"],
+          outPorts: singleNode["OutPorts"],
+          svgIconString: singleNode["SvgIcon"],
+          isDummy: true
+        );
+
+      Widget? fabricatedNode = fabricateNode(
+          nodeName: singleNode["Name"],
+          nodeColor: singleNode["Color"],
+          nodeType: singleNode["Type"],
+          nodeCommand: singleNode["Command"],
+          deviceUniqueId: widget.deviceData!.deviceInfo!["UNIQUE_ID"],
+          inPorts: singleNode["InPorts"],
+          outPorts: singleNode["OutPorts"],
+          svgIconString: singleNode["SvgIcon"],
+          isDummy: false
+        );
 
       return Padding(
         padding: const EdgeInsets.only(top: 4.0),
         child: Center(  // Wrap each node in a Center to avoid stretching
           child: SizedBox(
             child: Draggable<Widget>(
-              data: basicNode(isDummy: false, command: commandName, deviceUniqueId: widget.deviceData!.deviceInfo!["UNIQUE_ID"]), // Use command name as data for drag-and-drop
+              data: fabricatedNode, // Use command name as data for drag-and-drop
               feedback: Material(
                 color: Colors.transparent,
                 child: Opacity(
                   opacity: 0.7,
-                  child: generatePreviewNode(nodeType: basicNode(isDummy: true, command: commandName)), // Pass command name
+                  child: generatePreviewNode(nodeType: fabricatedDummyNode),
                 ),
               ),
               childWhenDragging: Opacity(
                 opacity: 0.5,
-                child: generatePreviewNode(nodeType: basicNode(isDummy: true, command: commandName)), // Pass command name
+                child: generatePreviewNode(nodeType: fabricatedDummyNode),
               ),
-              child: generatePreviewNode(nodeType: basicNode(isDummy: true, command: commandName)), // Pass command name
+              child: generatePreviewNode(nodeType: fabricatedDummyNode),
             ),
           ),
-        ),
+        )
       );
     },
   );

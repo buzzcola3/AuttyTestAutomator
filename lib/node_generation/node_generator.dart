@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:node_editor/node_editor.dart';
+import 'package:attempt_two/node_playground/playground_execution.dart';
 
 double _DEFAULT_WIDTH = 180;
 const double _DEFAULT_NODE_PADDING = 0; // Keep 0
@@ -30,7 +32,7 @@ NodeWidgetBase generateNode({
 
 
 Container generatePreviewNode({
-  required Widget nodeType,
+  required Widget? nodeType,
 }) {
   return Container(
     decoration: BoxDecoration(
@@ -184,14 +186,80 @@ Widget generateOutPort({ bool isDummy = false, required String name }) {
   }
 }
 
+Color getNodeAccentColor(String colorName) {
+  // Map of base colors to their accent equivalents
+  Map<String, Color> colorMap = {
+    'red': Colors.redAccent,
+    'blue': Colors.blueAccent,
+    'green': Colors.greenAccent,
+    'yellow': Colors.yellowAccent,
+    'purple': Colors.purpleAccent,
+    'orange': Colors.orangeAccent,
+    'pink': Colors.pinkAccent,
+    'teal': Colors.tealAccent,
+    'indigo': Colors.indigoAccent,
+    'cyan': Colors.cyanAccent,
+  };
+
+  // Normalize the input (convert to lowercase to handle case-insensitive input)
+  String normalizedColorName = colorName.toLowerCase();
+
+  // Return the accent color if it's found in the map, or a default accent color if not found
+  return colorMap[normalizedColorName] ?? Colors.blueAccent; // Default to blueAccent if not found
+}
+
+Color getNodeColor(String colorName) {
+  // Map of color names to their base Color equivalents
+  Map<String, Color> colorMap = {
+    'red': Colors.red,
+    'blue': Colors.blue,
+    'green': Colors.green,
+    'yellow': Colors.yellow,
+    'purple': Colors.purple,
+    'orange': Colors.orange,
+    'pink': Colors.pink,
+    'teal': Colors.teal,
+    'indigo': Colors.indigo,
+    'cyan': Colors.cyan,
+  };
+
+  // Normalize the input (convert to lowercase to handle case-insensitive input)
+  String normalizedColorName = colorName.toLowerCase();
+
+  // Return the color if found in the map, or a default color if not found
+  return colorMap[normalizedColorName] ?? Colors.blue; // Default to blue if not found
+}
+
+Widget? fabricateNode({
+    nodeName = "",
+    nodeColor = "",
+    nodeType = "",
+    nodeCommand = "",
+    deviceUniqueId = "",
+    inPorts = null,
+    outPorts = null,
+    isDummy = false,
+    svgIconString = ""
+  })
+  {
+    switch(nodeType){
+      case "basicNode":
+        return basicNode(isDummy: isDummy, nodeName: nodeName, nodeCommand: nodeCommand, deviceUniqueId: deviceUniqueId, color: getNodeColor(nodeColor), accentColor: getNodeAccentColor(nodeColor), inPorts: inPorts, outPorts: outPorts);
+
+      case "buttonNode":
+        return buttonNode(isDummy: isDummy, nodeName: nodeName, nodeCommand: nodeCommand, deviceUniqueId: deviceUniqueId, color: getNodeColor(nodeColor), accentColor: getNodeAccentColor(nodeColor), outPorts: outPorts, svgIconString: svgIconString);
+    }
+  }
 
 
 Widget basicNode({
   bool isDummy = false,
   Color accentColor = Colors.lightBlue,
   Color color = Colors.lightBlueAccent,
-  String? command, // New parameter for node text
+  String? nodeName, // New parameter for node text
   String? deviceUniqueId,
+  String? nodeCommand,
+  String? svgIconString, // SVG string for the icon
   List<String>? inPorts, // Nullable lists
   List<String>? outPorts,
 }) {
@@ -214,7 +282,7 @@ Widget basicNode({
             height: calculatedHeight - 3, // Set the calculated height for the entire node
             decoration: BoxDecoration(
               color: color, // Apply the main color to the node
-              border: Border.all(color: _NODE_CONNECTION_COLOR, width: 1), // Thin border
+              border: Border.all(color: Colors.grey, width: 1), // Thin border
               borderRadius: BorderRadius.circular(5), // Rounded corners for both sides
             ),
             child: Row(
@@ -227,13 +295,24 @@ Widget basicNode({
                     borderRadius: BorderRadius.horizontal(left: Radius.circular(5)), // Rounded corners for the left side
                   ),
                   child: Center(
-                    child: Icon(Icons.safety_divider, color: Colors.white), // Move the icon here
+                    child: svgIconString != null
+                        ? SvgPicture.string(
+                            svgIconString, // Use the SVG string
+                            color: Colors.white, // Adjust color if necessary
+                            width: 16.0, // Adjust the size of the SVG
+                            height: 16.0,
+                          )
+                        : Icon(
+                            Icons.warning, // Fallback icon if SVG string is null
+                            color: Colors.white,
+                            size: 16.0, // Adjust the icon size
+                          ),
                   ),
                 ),
                 // Vertical divider where the blue meets the accent blue
                 Container(
                   width: 0.7, // Thin width for the divider
-                  color: _NODE_CONNECTION_COLOR, // Same color as the border
+                  color: Colors.grey, // Same color as the border
                 ),
                 // Right side main section for the node content
                 Expanded(
@@ -241,7 +320,7 @@ Widget basicNode({
                     color: Colors.transparent, // Keep transparent to let the border show
                     child: Center(
                       child: Text(
-                        command ?? '', // Display the node text, default to empty string if null
+                        nodeName ?? '', // Display the node text, default to empty string if null
                         style: TextStyle(color: Colors.black), // Customize the text style as needed
                       ),
                     ),
@@ -285,16 +364,16 @@ Widget buttonNode({
   bool isDummy = false,
   Color accentColor = Colors.lightBlue,
   Color color = Colors.lightBlueAccent,
-  String? command, // New parameter for node text
+  String? nodeName, // Parameter for node text
   String? deviceUniqueId,
-  List<String>? inPorts, // Nullable lists
-  List<String>? outPorts,
+  String? nodeCommand,
+  String? svgIconString, // SVG string for the icon
+  List<String>? outPorts, // Nullable list for outPorts
 }) {
-  inPorts ??= ["inPort0"]; // Default value if not provided
   outPorts ??= ["outPort0"]; // Default value if not provided
 
-  // Calculate the height based on the number of inPorts and outPorts
-  int numberOfPorts = (inPorts.length > outPorts.length) ? inPorts.length : outPorts.length;
+  // Calculate the height based on the number of outPorts
+  int numberOfPorts = outPorts.length;
   double calculatedHeight = 20 * numberOfPorts + 20;
 
   return Container(
@@ -309,35 +388,44 @@ Widget buttonNode({
             height: calculatedHeight - 3, // Set the calculated height for the entire node
             decoration: BoxDecoration(
               color: color, // Apply the main color to the node
-              border: Border.all(color: _NODE_CONNECTION_COLOR, width: 1), // Thin border
-              borderRadius: BorderRadius.circular(5), // Rounded corners for both sides
+              border: Border.all(color: Colors.grey, width: 1), // Thin border
+              borderRadius: BorderRadius.circular(5), // Rounded corners for the node
             ),
             child: Row(
               children: [
-                // Left side accent color section with rounded corners
+                // Left side button with accent color and rounded square edges
                 Container(
-                  width: 40, // Fixed width for accent color section
+                  width: 40, // Fixed width for the button section
                   decoration: BoxDecoration(
-                    color: accentColor, // Apply the accent color to the left side
+                    color: accentColor, // Apply the accent color to the button section
                     borderRadius: BorderRadius.horizontal(left: Radius.circular(5)), // Rounded corners for the left side
                   ),
                   child: Center(
                     child: SizedBox(
                       width: 24.0,
-                      height: 24.0,
+                      height: 24.0, // Make the button a square
                       child: ElevatedButton(
                         onPressed: () {
-                          // Add button logic here
+                          nodeExecutor(nodeCommand, deviceUniqueId);
                         },
                         style: ElevatedButton.styleFrom(
                           padding: EdgeInsets.zero, // Remove default padding
-                          shape: CircleBorder() // Make the button circular
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(5), // Rounded edges for the square
+                          ),
                         ),
-                        child: Icon(
-                          Icons.safety_divider, // Keep the icon inside the button
-                          color: Colors.white,
-                          size: 18.0, // Adjust the icon size
-                        ),
+                        child: svgIconString != null
+                          ? SvgPicture.string(
+                              svgIconString, // Use the SVG string
+                              color: color, // Adjust color if necessary
+                              width: 16.0, // Adjust the size of the SVG
+                              height: 16.0,
+                            )
+                          : Icon(
+                              Icons.warning, // Fallback icon if SVG string is null
+                              color: color,
+                              size: 16.0, // Adjust the icon size
+                            ),
                       ),
                     ),
                   ),
@@ -345,7 +433,7 @@ Widget buttonNode({
                 // Vertical divider where the blue meets the accent blue
                 Container(
                   width: 0.7, // Thin width for the divider
-                  color: _NODE_CONNECTION_COLOR, // Same color as the border
+                  color: Colors.grey, // Same color as the border
                 ),
                 // Right side main section for the node content
                 Expanded(
@@ -353,7 +441,7 @@ Widget buttonNode({
                     color: Colors.transparent, // Keep transparent to let the border show
                     child: Center(
                       child: Text(
-                        command ?? '', // Display the node text, default to empty string if null
+                        nodeName ?? '', // Display the node text, default to empty string if null
                         style: TextStyle(color: Colors.black), // Customize the text style as needed
                       ),
                     ),
@@ -363,21 +451,9 @@ Widget buttonNode({
             ),
           ),
         ),
-        // Overlay for in-ports (left side)
-        Positioned(
-          left: -9.5, // Stick out by 9.5px (half of port size)
-          top: 0,
-          bottom: 0,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly, // Evenly space in-ports vertically
-            children: inPorts.map((portName) {
-              return generateInPort(isDummy: isDummy, name: portName);
-            }).toList(),
-          ),
-        ),
         // Overlay for out-ports (right side)
         Positioned(
-          right: -9.5, // Stick out by -9.5px (half of port size)
+          right: -9.5, // Stick out by 9.5px (half of port size)
           top: 0,
           bottom: 0,
           child: Column(
