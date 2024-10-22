@@ -231,25 +231,48 @@ Color getNodeColor(String colorName) {
 }
 
 Widget? fabricateNode({
-    nodeName = "",
-    nodeColor = "",
-    nodeType = "",
-    nodeCommand = "",
-    deviceUniqueId = "",
-    inPorts = null,
-    outPorts = null,
-    isDummy = false,
-    svgIconString = ""
-  })
-  {
-    switch(nodeType){
-      case "basicNode":
-        return basicNode(isDummy: isDummy, nodeName: nodeName, nodeCommand: nodeCommand, deviceUniqueId: deviceUniqueId, color: getNodeColor(nodeColor), accentColor: getNodeAccentColor(nodeColor), inPorts: inPorts, outPorts: outPorts);
+  String nodeName = "",
+  String nodeColor = "",
+  String nodeType = "",
+  String nodeCommand = "",
+  String deviceUniqueId = "",
+  dynamic inPorts = null,  // Initially dynamic to accept any type
+  dynamic outPorts = null, // Initially dynamic to accept any type
+  bool isDummy = false,
+  String svgIconString = ""
+}) {
+  // Ensure inPorts and outPorts are cast to List<String>?
+  List<String>? inPortsCast = (inPorts as List?)?.cast<String>();
+  List<String>? outPortsCast = (outPorts as List?)?.cast<String>();
 
-      case "buttonNode":
-        return buttonNode(isDummy: isDummy, nodeName: nodeName, nodeCommand: nodeCommand, deviceUniqueId: deviceUniqueId, color: getNodeColor(nodeColor), accentColor: getNodeAccentColor(nodeColor), outPorts: outPorts, svgIconString: svgIconString);
-    }
+  switch(nodeType) {
+    case "basicNode":
+      return basicNode(
+        isDummy: isDummy, 
+        nodeName: nodeName, 
+        nodeCommand: nodeCommand, 
+        deviceUniqueId: deviceUniqueId, 
+        color: getNodeColor(nodeColor), 
+        accentColor: getNodeAccentColor(nodeColor), 
+        inPorts: inPortsCast,  // Cast inPorts
+        outPorts: outPortsCast // Cast outPorts
+      );
+
+    case "buttonNode":
+      return buttonNode(
+        isDummy: isDummy, 
+        nodeName: nodeName, 
+        nodeCommand: nodeCommand, 
+        deviceUniqueId: deviceUniqueId, 
+        color: getNodeColor(nodeColor), 
+        accentColor: getNodeAccentColor(nodeColor), 
+        outPorts: outPortsCast,  // Cast outPorts
+        svgIconString: svgIconString
+      );
   }
+  return null;  // Handle any other cases if needed
+}
+
 
 
 Widget basicNode({

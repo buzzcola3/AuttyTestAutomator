@@ -7,8 +7,8 @@ import 'headers/websocket_datatypes.dart';
 
 
 class WebSocketController {
-  WsDeviceList deviceList = WsDeviceList();
-  WsMessageList wsCommunication = WsMessageList();
+  late WsDeviceList wsDeviceList;
+  late WsMessageList wsMessageList;
   bool scanning = true;
   late IPScanner ipScanner;
 
@@ -17,14 +17,18 @@ class WebSocketController {
   final void Function(WsMessage) messageChangeNotifyFunction;
 
 
-  WebSocketController({required this.newConnectionNotifyFunction, required this.messageChangeNotifyFunction}) {
+  WebSocketController({
+      required this.newConnectionNotifyFunction,
+      required this.messageChangeNotifyFunction,
+      required this.wsDeviceList,
+      required this.wsMessageList
+  }){
     IPScanner ipScanner = IPScanner(deviceChangeNotifyFunction: updateWebsocketConnections);
     ipScanner.ipResponding("127.0.0.1", "80");
     ipScanner.ipResponding("127.0.0.1", "81");
     ipScanner.ipResponding("127.0.0.1", "82");
-    ipScanner.fullScan();
-    
-    
+    ipScanner.ipResponding("192.168.16.102", "80");
+    //ipScanner.fullScan();
   }
 
   Future<WsMessage?> waitForIntroduceMessage(Map<String, String> ipAddress) async {
@@ -36,7 +40,7 @@ class WebSocketController {
   
     for (int i = 0; i < maxRetries; i++) {
       // Try to search for the message
-      foundMessage = wsCommunication.searchMessage(ipAddress, "introduce");
+      foundMessage = wsMessageList.searchMessage(ipAddress, "introduce");
   
       // If message is found, return it
       if (foundMessage != null) {
@@ -66,19 +70,19 @@ class WebSocketController {
         onDone: () {
           // Handle when the WebSocket connection is closed
           print('WebSocket connection closed for ${ipAddress['ip']} on port ${ipAddress['port']}');
-          deviceList.removeDevice(ipAddress);
+          wsDeviceList.removeDevice(ipAddress);
         },
         onError: (error) {
           // Handle any error that occurs during WebSocket communication
           print('Error occurred on WebSocket connection: $error');
-          deviceList.removeDevice(ipAddress); // Remove device on error
+          wsDeviceList.removeDevice(ipAddress); // Remove device on error
         },
         cancelOnError: true, // Automatically cancel the subscription if an error occurs
       );
   
       // Add the WebSocket to your list of devices
-      WsDevice newDevice = WsDevice(ipAddress: ipAddress, socket: socket, messageList: wsCommunication);
-      deviceList.addDevice(newDevice);
+      WsDevice newDevice = WsDevice(ipAddress: ipAddress, socket: socket, messageList: wsMessageList);
+      wsDeviceList.addDevice(newDevice);
   
       // Wait until the WebSocket is ready (or some condition is met)
       while (!newDevice.ready) {
@@ -97,7 +101,7 @@ class WebSocketController {
     String ogRequest = decodedMessage["FOR_REQUEST"];
     final WsMessage message = WsMessage(source: messageSource, message: decodedMessage["RESPONSE"], originalRequest: ogRequest);
 
-    wsCommunication.addMessage(message);
+    wsMessageList.addMessage(message);
 
     messageChangeNotifyFunction(message);
     // Code to establish WebSocket connection

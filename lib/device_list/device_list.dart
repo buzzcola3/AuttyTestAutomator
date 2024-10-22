@@ -8,11 +8,20 @@ import "websocket_manager/headers/websocket_datatypes.dart";
 import 'internal_device.dart';
 
 class DeviceScanner extends StatefulWidget {
+  final WsDeviceList wsDeviceList;  // Required parameter for the device list
+  final WsMessageList wsMessageList; // Required parameter for the message list
+
+  const DeviceScanner({
+    super.key,
+    required this.wsDeviceList, // Mark as required
+    required this.wsMessageList, // Mark as required
+  });
+
   @override
-  _DeviceScannerState createState() => _DeviceScannerState();
+  DeviceScannerState createState() => DeviceScannerState();
 }
 
-class _DeviceScannerState extends State<DeviceScanner> {
+class DeviceScannerState extends State<DeviceScanner> {
   bool showOverlay = false;
   WsDevice? selectedDevice; // Add a variable to hold the selected device
 
@@ -25,7 +34,9 @@ class _DeviceScannerState extends State<DeviceScanner> {
 
     wsController = WebSocketController(
       newConnectionNotifyFunction: updateDeviceList, 
-      messageChangeNotifyFunction: newMessageHandle
+      messageChangeNotifyFunction: newMessageHandle,
+      wsDeviceList: WsDeviceList(),
+      wsMessageList: WsMessageList()
     );
 
 
@@ -34,7 +45,7 @@ class _DeviceScannerState extends State<DeviceScanner> {
   Future<void> updateDeviceList() async {
     
     setState(() {
-      wsController.deviceList;
+      wsController.wsDeviceList;
     });
   }
 
@@ -83,7 +94,7 @@ Widget build(BuildContext context) {
             children: [
               Expanded(
                 child: ListView.builder(
-                  itemCount: wsController.deviceList.devices.length + 1, // +1 for the Functions item
+                  itemCount: wsController.wsDeviceList.devices.length + 1, // +1 for the Functions item
                   itemBuilder: (context, index) {
                     if (index == 0) {
                       // Functions item
@@ -115,7 +126,7 @@ Widget build(BuildContext context) {
                           contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
                           tileColor: Colors.blueGrey[50],
                           title: Text(
-                            wsController.deviceList.devices[deviceIndex].deviceInfo?['DEVICE_NAME'],
+                            wsController.wsDeviceList.devices[deviceIndex].deviceInfo?['DEVICE_NAME'],
                             style: TextStyle(color: Colors.black87, fontSize: 14.0),
                           ),
                           leading: Icon(
@@ -123,7 +134,7 @@ Widget build(BuildContext context) {
                             color: Colors.blue,
                             size: 20.0,
                           ),
-                          onTap: () => _handleDeviceTap(wsController.deviceList.devices[deviceIndex]),
+                          onTap: () => _handleDeviceTap(wsController.wsDeviceList.devices[deviceIndex]),
                         ),
                       );
                     }

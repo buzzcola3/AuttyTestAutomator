@@ -168,7 +168,9 @@ Widget _buildNodeList() {
   }
 
   // Retrieve the available nodes from device data
-  List<Map<String, dynamic>> nodes = widget.deviceData!.deviceInfo!['DEVICE_AVAILABLE_NODES'];
+  List<dynamic> dyn_nodes = widget.deviceData!.deviceInfo!['DEVICE_AVAILABLE_NODES'];
+  //cast to the correct strict datastructure
+  List<Map<String, dynamic>> nodes = dyn_nodes.cast<Map<String, dynamic>>();
 
   return ListView.builder(
     itemCount: nodes.length, // Set the item count based on the number of nodes

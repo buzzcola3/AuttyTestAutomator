@@ -3,24 +3,26 @@ import 'package:node_editor/node_editor.dart';
 import '../node_generation/node_generator.dart';
 
 class NodeEditorWidget extends StatefulWidget {
-  const NodeEditorWidget({super.key});
+  final NodeEditorController controller;
+
+  const NodeEditorWidget({super.key, required this.controller});
 
   @override
-  _NodeEditorWidgetState createState() => _NodeEditorWidgetState();
+  NodeEditorWidgetState createState() => NodeEditorWidgetState();
 }
 
-class _NodeEditorWidgetState extends State<NodeEditorWidget> {
+class NodeEditorWidgetState extends State<NodeEditorWidget> {
   late NodeEditorController _controller;
   late FocusNode _focusNode;
 
   String? _currentDraggedNodeId;
-  Offset _currentDraggedPosition = Offset(0, 0);
+  Offset _currentDraggedPosition = const Offset(0, 0);
   double dragStep = 20.0; //TODO: make this be one definition of grid size
   
   @override
   void initState() {
     super.initState();
-    _controller = NodeEditorController();
+    _controller = widget.controller;
     _focusNode = FocusNode();
   }
 
@@ -181,11 +183,6 @@ class _NodeEditorWidgetState extends State<NodeEditorWidget> {
             ],
           ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addNode, // Calls _addNode which in turn calls _addNodeAtPosition
-        child: const Icon(Icons.add),
-        tooltip: 'Add Node',
       ),
     );
   }

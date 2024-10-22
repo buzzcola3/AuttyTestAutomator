@@ -1,21 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:node_editor/node_editor.dart';
 import 'device_list/device_list.dart';
 import 'node_playground/playground.dart';
 import 'package:attempt_two/node_generation/node_generator.dart';
+import 'device_list/websocket_manager/headers/websocket_datatypes.dart';
+import 'package:attempt_two/node_playground/playground_execution.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key, required this.title});
+  MainScreen({super.key, required this.title});
 
   final String title;
+
+  final WsDeviceList wsDeviceList = WsDeviceList();
+  final WsMessageList wsMessageList = WsMessageList();
+  final NodeEditorController nodeController = NodeEditorController();
 
   @override
   State<MainScreen> createState() => _MainScreen();
 }
 
 class _MainScreen extends State<MainScreen> {
+  late PlaygroundExecutor playgroundExecutor;
+
   @override
-    void initState(){
+  void initState() {
     super.initState();
+
+    // Initialize PlaygroundExecutor
+    playgroundExecutor = PlaygroundExecutor(
+      wsDeviceList: widget.wsDeviceList,
+      wsMessageList: widget.wsMessageList,
+      controller: widget.nodeController,
+    );
   }
 
   @override
@@ -52,7 +68,10 @@ class _MainScreen extends State<MainScreen> {
                     borderRadius: BorderRadius.circular(10),
                     color: const Color.fromARGB(255, 208, 211, 204),
                   ),
-                  child: DeviceScanner(),
+                  child: DeviceScanner(
+                    wsDeviceList: widget.wsDeviceList, // Pass wsDeviceList from widget
+                    wsMessageList: widget.wsMessageList, // Pass wsMessageList from widget
+                  ),
                 ),
               ),
               // NodeBox added from separate file with non-normalized constraints
@@ -61,12 +80,27 @@ class _MainScreen extends State<MainScreen> {
                 left: widgetWidth + 20, // 10px padding on both sides
                 width: remainingWidth - 10,
                 height: widgetHeight,
-                child: NodeEditorWidget(),
+                child: Stack(
+                  children: [
+                    NodeEditorWidget(controller: widget.nodeController),
+                    // Overlay button to execute PlaygroundExecutor
+                    Positioned(
+                      right: 10,
+                      bottom: 10,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          playgroundExecutor.execute(); // Call execute method
+                        },
+                        child: const Text("Run"),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               Positioned(
                 top: 400,
                 child: generatePreviewNode(nodeType: basicNode(isDummy: true)),
-              )
+              ),
             ],
           );
         },
