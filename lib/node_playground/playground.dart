@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:node_editor/node_editor.dart';
 import '../node_generation/node_generator.dart';
@@ -33,13 +35,6 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
     super.dispose();
   }
 
-  void _addNode() {
-    // Example: Add node at a specific position on the screen
-    _addNodeAtPosition(
-      const Offset(200, 200), 
-      basicNode(isDummy: false)
-    );
-  }
 
   void _playground_scroll_handle(Offset offset){
     double hor_pos = _controller.horizontalScrollController.offset;
@@ -89,16 +84,19 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
     return Offset(snapDragDeltaX, snapDragDeltaY);
   }
 
-  void _addNodeAtPosition(Offset position, Widget node) {
-    int nodeId = _controller.nodes.length + 1;
-    String nodeName = 'node_$nodeId';
+  int _nodeUniqueIndex = 0;
+  void _addNodeAtPosition(Offset position, Map<String, dynamic> nodeData) {
+
+    nodeData["encodedFunction"]["unique_index"] = _nodeUniqueIndex;
+    _nodeUniqueIndex++;
+    String uniqueNodeName = jsonEncode(nodeData["encodedFunction"]);
 
     _controller.addNode(
       generateNode(
-        nodeType: node,
-        name: nodeName,
+        nodeType: nodeData["node"],
+        nodeEncodedFunction: uniqueNodeName,
         onPanStart: (details) {
-          _currentDraggedNodeId = nodeName;
+          _currentDraggedNodeId = uniqueNodeName;
           _currentDraggedPosition = details.globalPosition;
           print('Pan started at: ${details.globalPosition}');
         },
@@ -144,7 +142,7 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
           },
           child: Stack(
             children: [
-              DragTarget<Widget>(
+              DragTarget<Map<String, dynamic>>(
                 onAcceptWithDetails: (details) {     
                   // Calculate absolute position of the drop on the playground
                   Offset playgroundAbsPos = details.offset - (_controller.stackPos ?? Offset.zero);
@@ -165,6 +163,7 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
                     snappedPos.dy < 0 ? 0 : snappedPos.dy,
                   );
                 
+
                   // Trigger the node addition at the calculated drop position
                   _addNodeAtPosition(finalPos, details.data);
                 },

@@ -1,5 +1,6 @@
 import 'package:node_editor/node_editor.dart';
 import 'package:attempt_two/device_list/websocket_manager/headers/websocket_datatypes.dart';
+import 'dart:convert';
 
 void nodeExecutor(String? command, String? uniqueId){
   //fetch device websocket
@@ -20,11 +21,40 @@ class PlaygroundExecutor {
 
   void execute() {
     print("ATYAYAYAYAY");
-    // Example function where you can add logic
-    // Use wsDeviceList, wsMessageList, and controller as needed
+    List<Map<String, dynamic>> playgroundNodes = decodeNodes(controller.nodes);
+
+    //find startNode
+    //loop:
+    //  find outnodes
+    //  execute
+    
   }
+
+  List<Map<String, dynamic>> decodeNodes(Map nodes) {
+    List<Map<String, dynamic>> decodedList = [];
+  
+    for (var key in nodes.keys) {
+      try {
+        // Decode the key as JSON
+        Map<String, dynamic> decodedKey = jsonDecode(key);
+  
+        // Create a new map that includes both the original key and its decoded content
+        Map<String, dynamic> resultEntry = {
+          'originalKey': key,
+          'decodedKey': decodedKey,
+        };
+  
+        decodedList.add(resultEntry);
+      } catch (e) {
+        print('Error decoding key: $key - $e');
+      }
+    }
+
+    return decodedList;
 }
 
+  //getNodeOutNode
+}
 
 // I think I need the _controller
 // use the controller to create a tree-like structure for execution

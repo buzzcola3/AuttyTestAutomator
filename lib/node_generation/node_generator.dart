@@ -2,21 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:node_editor/node_editor.dart';
 import 'package:attempt_two/node_playground/playground_execution.dart';
+import 'dart:convert';
 
 double _DEFAULT_WIDTH = 180;
 const double _DEFAULT_NODE_PADDING = 0; // Keep 0
 Color _NODE_CONNECTION_COLOR = Color.fromARGB(255, 109, 109, 109);
 
 NodeWidgetBase generateNode({
-  required String name,
   required Widget nodeType,
+
+  required String nodeEncodedFunction,
+
   required void Function(DragStartDetails) onPanStart,
   required void Function(DragUpdateDetails) onPanUpdate,
   required void Function(DragEndDetails) onPanEnd,
 }) {
+
+  
   return ContainerNodeWidget(
-    name: name,
-    typeName: 'node_3',
+    name: nodeEncodedFunction,
+    typeName: 'node',
     backgroundColor: Colors.transparent, // Transparent background
     width: _DEFAULT_WIDTH, // Width is fixed
     contentPadding: const EdgeInsets.all(_DEFAULT_NODE_PADDING),
@@ -28,8 +33,19 @@ NodeWidgetBase generateNode({
     ),
   );
 }
-
-
+// Static counter to track generated nodes
+Map<String, dynamic> encodeNodeFunction({
+  required String deviceUniqueId,
+  required String nodeCommand,
+}) {
+  // Create a map to hold the node data
+  Map<String, dynamic> nodeData = {
+    'deviceUniqueId': deviceUniqueId,
+    'nodeCommand': nodeCommand,
+    'unique_index': null, // Use the incremented counter as the index
+  };
+  return nodeData;
+}
 
 Container generatePreviewNode({
   required Widget? nodeType,
@@ -234,8 +250,6 @@ Widget? fabricateNode({
   String nodeName = "",
   String nodeColor = "",
   String nodeType = "",
-  String nodeCommand = "",
-  String deviceUniqueId = "",
   dynamic inPorts = null,  // Initially dynamic to accept any type
   dynamic outPorts = null, // Initially dynamic to accept any type
   bool isDummy = false,
@@ -249,9 +263,7 @@ Widget? fabricateNode({
     case "basicNode":
       return basicNode(
         isDummy: isDummy, 
-        nodeName: nodeName, 
-        nodeCommand: nodeCommand, 
-        deviceUniqueId: deviceUniqueId, 
+        nodeName: nodeName,  
         color: getNodeColor(nodeColor), 
         accentColor: getNodeAccentColor(nodeColor), 
         inPorts: inPortsCast,  // Cast inPorts
@@ -262,8 +274,6 @@ Widget? fabricateNode({
       return buttonNode(
         isDummy: isDummy, 
         nodeName: nodeName, 
-        nodeCommand: nodeCommand, 
-        deviceUniqueId: deviceUniqueId, 
         color: getNodeColor(nodeColor), 
         accentColor: getNodeAccentColor(nodeColor), 
         outPorts: outPortsCast,  // Cast outPorts
@@ -280,8 +290,6 @@ Widget basicNode({
   Color accentColor = Colors.lightBlue,
   Color color = Colors.lightBlueAccent,
   String? nodeName, // New parameter for node text
-  String? deviceUniqueId,
-  String? nodeCommand,
   String? svgIconString, // SVG string for the icon
   List<String>? inPorts, // Nullable lists
   List<String>? outPorts,
@@ -388,8 +396,6 @@ Widget buttonNode({
   Color accentColor = Colors.lightBlue,
   Color color = Colors.lightBlueAccent,
   String? nodeName, // Parameter for node text
-  String? deviceUniqueId,
-  String? nodeCommand,
   String? svgIconString, // SVG string for the icon
   List<String>? outPorts, // Nullable list for outPorts
 }) {
@@ -429,7 +435,7 @@ Widget buttonNode({
                       height: 24.0, // Make the button a square
                       child: ElevatedButton(
                         onPressed: () {
-                          nodeExecutor(nodeCommand, deviceUniqueId);
+                          //nodeExecutor(nodeCommand, deviceUniqueId);
                         },
                         style: ElevatedButton.styleFrom(
                           padding: EdgeInsets.zero, // Remove default padding
