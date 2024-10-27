@@ -192,6 +192,13 @@ Widget _buildNodeList() {
       Map<String, dynamic> encodedNodeIdentifier = encodeNodeFunction(
         deviceUniqueId: widget.deviceData!.deviceInfo!["UNIQUE_ID"],
         nodeCommand: singleNode["Command"],
+        nodeParameters: singleNode["Parameters"],
+        nodeName: singleNode["Name"],
+        nodeColor: singleNode["Color"],
+        nodeType: singleNode["Type"],
+        inPorts: singleNode["InPorts"],
+        outPorts: singleNode["OutPorts"],
+        svgIconString: singleNode["SvgIcon"],
         );
 
       Widget? fabricatedDummyNode = fabricateNode(

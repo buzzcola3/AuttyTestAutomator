@@ -28,14 +28,40 @@ Map<String, dynamic> internalDevice = {
   "DEVICE_AVAILABLE_COMMANDS": [],
   "DEVICE_AVAILABLE_NODES": [
     {
-      "Name": "Start button",
+      "Name": "Start",
       "Type": "buttonNode",
-      "Command": "{RUN}",
+      "Command": "RUN",
+      "Parameters": [],
       "Color": "green",
       "InPorts": [],
       "OutPorts": ["start_outport"],
+      "SvgIcon": startNodeIcon
+    },
+    {
+      "Name": "Delay",
+      "Type": "basicNode",
+      "Command": "DELAY",
+      "Parameters": 
+      [
+        {
+          "Name": "Delay(ms)",
+          "Type": "int",
+          "Value": "1000",
+        }
+      ],
+      "Color": "blue",
+      "InPorts": ["delay_inport"],
+      "OutPorts": ["delay_outport"],
       "SvgIcon": startNodeIcon
     }
   ],
 };
 
+Future<void> internalDeviceCommandProcessor(String command, List<dynamic> params) async {
+  print(command);
+  print(params);
+
+  if(command == "DELAY"){
+    await Future.delayed(Duration(milliseconds: int.parse(params[0])));
+  }
+}

@@ -1,13 +1,18 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:node_editor/node_editor.dart';
 import '../device_list/node_generation/node_generator.dart';
 
 class NodeEditorWidget extends StatefulWidget {
   final NodeEditorController controller;
+  final List<Map<String, dynamic>> nodeParameterValues;
+  
 
-  const NodeEditorWidget({super.key, required this.controller});
+  const NodeEditorWidget({
+    super.key,
+    required this.controller,
+    required this.nodeParameterValues
+    });
 
   @override
   NodeEditorWidgetState createState() => NodeEditorWidgetState();
@@ -16,11 +21,14 @@ class NodeEditorWidget extends StatefulWidget {
 class NodeEditorWidgetState extends State<NodeEditorWidget> {
   late NodeEditorController _controller;
   late FocusNode _focusNode;
-
   String? _currentDraggedNodeId;
   Offset _currentDraggedPosition = const Offset(0, 0);
-  double dragStep = 20.0; //TODO: make this be one definition of grid size
-  
+  String? _selectedNodeName; // Store the unique name of the clicked node
+  double dragStep = 20.0;
+
+  // Store controllers for TextFields
+  List<TextEditingController> _controllers = [];
+
   @override
   void initState() {
     super.initState();
@@ -35,16 +43,15 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
     super.dispose();
   }
 
+  void _playgroundScrollHandle(Offset offset) {
+    double horPos = _controller.horizontalScrollController.offset;
+    double verPos = _controller.verticalScrollController.offset;
 
-  void _playground_scroll_handle(Offset offset){
-    double hor_pos = _controller.horizontalScrollController.offset;
-    double ver_pos = _controller.verticalScrollController.offset;
+    horPos -= offset.dx;
+    verPos -= offset.dy;
 
-    hor_pos -= offset.dx;
-    ver_pos -= offset.dy;
-
-    _controller.horizontalScrollController.jumpTo(hor_pos);
-    _controller.verticalScrollController.jumpTo(ver_pos);
+    _controller.horizontalScrollController.jumpTo(horPos);
+    _controller.verticalScrollController.jumpTo(verPos);
   }
 
   Offset _dragGridSnap(Offset draggingPosition) {
@@ -85,11 +92,13 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
   }
 
   int _nodeUniqueIndex = 0;
-  void _addNodeAtPosition(Offset position, Map<String, dynamic> nodeData) {
 
+  void _addNodeAtPosition(Offset position, Map<String, dynamic> nodeData) {
     nodeData["encodedFunction"]["unique_index"] = _nodeUniqueIndex;
     _nodeUniqueIndex++;
     String uniqueNodeName = jsonEncode(nodeData["encodedFunction"]);
+
+    widget.nodeParameterValues.add({uniqueNodeName: nodeData["encodedFunction"]['nodeParameters']});
 
     _controller.addNode(
       generateNode(
@@ -111,15 +120,57 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
           _currentDraggedNodeId = null;
           print('Pan ended');
         },
+        onTap: () {
+          setState(() {
+            _selectedNodeName = uniqueNodeName; // Show overlay with the node's unique name
+          });
+        }
       ),
       NodePosition.custom(position),
     );
-
   }
 
-    double _snapToGrid(double value) {
-      return (value / 20).round() * 20; //TODO grid size
+  Offset _calculateDropPosition(DragTargetDetails details) {
+    Offset playgroundAbsPos = details.offset - (_controller.stackPos ?? Offset.zero);
+    Offset playgroundRelPos = Offset(
+      playgroundAbsPos.dx + _controller.horizontalScrollController.offset,
+      playgroundAbsPos.dy + _controller.verticalScrollController.offset,
+    );
+
+    Offset snappedPos = Offset(
+      _snapToGrid(playgroundRelPos.dx),
+      _snapToGrid(playgroundRelPos.dy),
+    );
+
+    return Offset(
+      snappedPos.dx < 0 ? 0 : snappedPos.dx,
+      snappedPos.dy < 0 ? 0 : snappedPos.dy,
+    );
+  }
+
+  double _snapToGrid(double value) {
+    return (value / 20).round() * 20;
+  }
+
+  List<Map<String, dynamic>> getNodeParameters(String encodedNodeFunction) {
+    Map<String, dynamic> decodedFunction = jsonDecode(encodedNodeFunction);
+    return List<Map<String, dynamic>>.from(decodedFunction['nodeParameters'] ?? []); // Return an empty list if "Parameters" is not found
+  }
+
+
+  void _updateParameters(String encodedNodeFunction, String parameterName) {
+
+    for (var nodeParameters in widget.nodeParameterValues) {
+      if(nodeParameters[encodedNodeFunction] != null){
+        for (var parameter in nodeParameters[encodedNodeFunction]) {
+          if(parameter["Name"] == parameterName){
+            parameter["Value"] = _controllers[0].text; 
+          } 
+        }
+      }
     }
+
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -130,44 +181,17 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
           borderRadius: BorderRadius.circular(10),
           color: Colors.green,
         ),
-        child: GestureDetector(
-          onPanUpdate: (details) {
-            // Handle pan (drag) gesture
-            _playground_scroll_handle(details.delta);
-            // You can implement custom behavior for dragging here
-          },
-          onTap: () {
-            // Handle tap gesture
-            print('NodeEditorWidget tapped');
-          },
-          child: Stack(
-            children: [
-              DragTarget<Map<String, dynamic>>(
-                onAcceptWithDetails: (details) {     
-                  // Calculate absolute position of the drop on the playground
-                  Offset playgroundAbsPos = details.offset - (_controller.stackPos ?? Offset.zero);
-                
-                  // Calculate relative position by adding scroll offsets
-                  Offset playgroundRelPos = Offset(
-                    playgroundAbsPos.dx + _controller.horizontalScrollController.offset,
-                    playgroundAbsPos.dy + _controller.verticalScrollController.offset,
-                  );
-        
-                  Offset snappedPos = Offset(
-                    _snapToGrid(playgroundRelPos.dx),
-                    _snapToGrid(playgroundRelPos.dy),
-                  );
-        
-                  Offset finalPos = Offset(
-                    snappedPos.dx < 0 ? 0 : snappedPos.dx,
-                    snappedPos.dy < 0 ? 0 : snappedPos.dy,
-                  );
-                
-
-                  // Trigger the node addition at the calculated drop position
+        child: Stack(
+          children: [
+            GestureDetector(
+              onPanUpdate: (details) {
+                _playgroundScrollHandle(details.delta);
+              },
+              child: DragTarget<Map<String, dynamic>>(
+                onAcceptWithDetails: (details) {
+                  Offset finalPos = _calculateDropPosition(details);
                   _addNodeAtPosition(finalPos, details.data);
                 },
-        
                 builder: (context, candidateData, rejectedData) {
                   return MouseRegion(
                     child: NodeEditor(
@@ -179,8 +203,80 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
                   );
                 },
               ),
-            ],
-          ),
+            ),
+            if (_selectedNodeName != null)
+              Positioned(
+                top: 20,
+                right: 20,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10), // Rounded edges
+                  ),
+                  width: 200,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedNodeName = null; // Close the overlay
+                              _controllers.clear(); // Clear controllers on close
+                            });
+                          },
+                          child: const Text(
+                            "Close",
+                            style: TextStyle(fontSize: 12, color: Colors.black54),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Build a list of parameters from getNodeParameters
+                      ...getNodeParameters(_selectedNodeName!).asMap().entries.map((entry) {
+                        int index = entry.key;
+                        var parameter = entry.value;
+                        String parameterName = parameter["Name"] ?? '';
+                        String initialValue = parameter["Value"] ?? '';
+
+                        // Initialize a controller for each parameter
+                        if (_controllers.length <= index) {
+                          _controllers.add(TextEditingController(text: initialValue));
+                        }
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(parameterName),
+                              ),
+                              Expanded(
+                                child: TextField(
+                                  decoration: InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    hintText: initialValue,
+                                  ),
+                                  controller: _controllers[index],
+                                  onSubmitted: (value) {
+                                    // Update the parameter value here and call update function
+                                    parameter["Value"] = value;
+                                    _updateParameters(_selectedNodeName!, parameterName); // Call update function on submit
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ],
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

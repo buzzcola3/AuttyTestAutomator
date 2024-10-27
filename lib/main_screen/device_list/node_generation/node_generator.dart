@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:node_editor/node_editor.dart';
-import 'package:attempt_two/main_screen/node_playground/playground_execution.dart';
-import 'dart:convert';
+
 
 double _DEFAULT_WIDTH = 180;
 const double _DEFAULT_NODE_PADDING = 0; // Keep 0
@@ -16,6 +15,7 @@ NodeWidgetBase generateNode({
   required void Function(DragStartDetails) onPanStart,
   required void Function(DragUpdateDetails) onPanUpdate,
   required void Function(DragEndDetails) onPanEnd,
+  required GestureTapCallback onTap,
 }) {
 
   
@@ -26,6 +26,7 @@ NodeWidgetBase generateNode({
     width: _DEFAULT_WIDTH, // Width is fixed
     contentPadding: const EdgeInsets.all(_DEFAULT_NODE_PADDING),
     child: GestureDetector(
+      onTap: onTap,
       onPanStart: onPanStart,
       onPanUpdate: onPanUpdate,
       onPanEnd: onPanEnd,
@@ -37,13 +38,32 @@ NodeWidgetBase generateNode({
 Map<String, dynamic> encodeNodeFunction({
   required String deviceUniqueId,
   required String nodeCommand,
+  required String nodeName,
+  required String nodeColor,
+  required String nodeType,
+  required List inPorts,
+  required List outPorts,
+  required String svgIconString,
+  List<dynamic>? nodeParameters,
+
 }) {
+  // If nodeParameters is null, initialize it as an empty list
+  nodeParameters ??= []; // Set to empty list if null
+
   // Create a map to hold the node data
   Map<String, dynamic> nodeData = {
     'deviceUniqueId': deviceUniqueId,
     'nodeCommand': nodeCommand,
+    'nodeName': nodeName,
+    'nodeColor': nodeColor,
+    'nodeType': nodeType,
+    'inPorts': inPorts,
+    'outPorts': outPorts,
+    'svgIconString': svgIconString,
+    'nodeParameters': nodeParameters,
     'unique_index': null, // Use the incremented counter as the index
   };
+
   return nodeData;
 }
 

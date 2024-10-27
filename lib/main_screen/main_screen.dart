@@ -23,24 +23,31 @@ class MainScreen extends StatefulWidget {
 class _MainScreen extends State<MainScreen> {
   late PlaygroundExecutor playgroundExecutor;
   late WebSocketController wsController;
+  late List<Map<String, dynamic>> nodeParameterValues;
   late DebugConsoleController debugConsoleController;
 
   @override
   void initState() {
     super.initState();
 
-    wsController = WebSocketController(wsDeviceList: widget.wsDeviceList, wsMessageList: widget.wsMessageList);
-
-    // Initialize PlaygroundExecutor
-    playgroundExecutor = PlaygroundExecutor(
+    wsController = WebSocketController(
       wsDeviceList: widget.wsDeviceList,
       wsMessageList: widget.wsMessageList,
+    );
+
+    nodeParameterValues = [];
+    
+    // Initialize PlaygroundExecutor
+    playgroundExecutor = PlaygroundExecutor(
+      wsDeviceList: widget.wsDeviceList, //TODO remove, use wsController to access it
+      wsMessageList: widget.wsMessageList, //TODO remove, use wsController to access it
       wsController: wsController,
       controller: widget.nodeController,
+      nodeParameterValues: nodeParameterValues
     );
 
 
-
+    
     debugConsoleController = DebugConsoleController();
 
     wsController.messageChangeNotifyFunction = debugConsoleController.addMessage;
@@ -88,7 +95,7 @@ class _MainScreen extends State<MainScreen> {
                 height: widgetHeight,
                 child: Stack(
                   children: [
-                    NodeEditorWidget(controller: widget.nodeController),
+                    NodeEditorWidget(controller: widget.nodeController, nodeParameterValues: nodeParameterValues),
                     Positioned(
                       right: 10,
                       bottom: 10,

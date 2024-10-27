@@ -1,3 +1,4 @@
+import 'package:attempt_two/main_screen/device_list/internal_device.dart';
 import 'package:attempt_two/main_screen/device_list/websocket_manager/websocket_connection.dart';
 import 'package:node_editor/node_editor.dart';
 import 'package:attempt_two/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
@@ -34,17 +35,19 @@ class PlaygroundExecutor {
   final WsMessageList wsMessageList;
   final WebSocketController wsController;
   final NodeEditorController controller;
+  final List<Map<String, dynamic>> nodeParameterValues;
 
   PlaygroundExecutor({
     required this.wsDeviceList,
     required this.wsMessageList,
     required this.wsController,
     required this.controller,
+    required this.nodeParameterValues
   });
 
   ExecutableNode? findStartNode(List<ExecutableNode> decodedList) {
     for (var node in decodedList) {
-      if (node.deviceUniqueId == 'internal' && node.command == '{RUN}') {
+      if (node.deviceUniqueId == 'internal' && node.command == 'RUN') {
         return node;
       }
     }
@@ -70,9 +73,9 @@ class PlaygroundExecutor {
     executeNodeTree(execNodeTree, startNode, playgroundNodes);
   }
 
-  void executeNodeTree(Map<String, List<ExecutableNode>> execNodeTree, ExecutableNode startNode, List<ExecutableNode> playgroundNodes) {
+  void executeNodeTree(Map<String, List<ExecutableNode>> execNodeTree, ExecutableNode startNode, List<ExecutableNode> playgroundNodes) async {
     if (dependentNodesAlreadyExecuted(startNode, execNodeTree, playgroundNodes)) {
-      executeNode(startNode, playgroundNodes);
+      await executeNode(startNode, playgroundNodes);
     } else {
       return;
     }
@@ -82,13 +85,26 @@ class PlaygroundExecutor {
     }
   }
 
-  void executeNode(ExecutableNode node, List<ExecutableNode> playgroundNodes) {
+  Future<void> executeNode(ExecutableNode node, List<ExecutableNode> playgroundNodes) async {
     for (var playgroundNode in playgroundNodes) {
       if(playgroundNode.name == node.name){
+
+        List parameters = [];
+
+        nodeParameterValues;
+        for (var parameterValues in nodeParameterValues) {
+          if(parameterValues[node.name] != null){
+            for (var parameter in parameterValues[node.name]) {
+              parameters.add(parameter['Value']);
+            }
+          }
+        }
 
         if(node.deviceUniqueId != 'internal'){
           final deviceIp = wsController.getDeviceIp(node.deviceUniqueId);
           wsController.awaitRequest(deviceIp!, node.command);
+        }else{
+          await internalDeviceCommandProcessor(node.command, parameters);
         }
         //TODO execute internal
         playgroundNode.executed = true;
