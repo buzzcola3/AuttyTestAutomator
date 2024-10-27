@@ -2,19 +2,17 @@ import "dart:io";
 
 import 'package:flutter/material.dart';
 import 'dart:async';
-import "package:attempt_two/device_list/node_preview.dart"; // Import the NodePreview widget
+import "package:attempt_two/main_screen/device_list/node_preview.dart"; // Import the NodePreview widget
 import "websocket_manager/websocket_connection.dart";
 import "websocket_manager/headers/websocket_datatypes.dart";
 import 'internal_device.dart';
 
 class DeviceScanner extends StatefulWidget {
-  final WsDeviceList wsDeviceList;  // Required parameter for the device list
-  final WsMessageList wsMessageList; // Required parameter for the message list
+  final WebSocketController wsController; // Required parameter 
 
   const DeviceScanner({
     super.key,
-    required this.wsDeviceList, // Mark as required
-    required this.wsMessageList, // Mark as required
+    required this.wsController,
   });
 
   @override
@@ -25,19 +23,12 @@ class DeviceScannerState extends State<DeviceScanner> {
   bool showOverlay = false;
   WsDevice? selectedDevice; // Add a variable to hold the selected device
 
-  late WebSocketController wsController;
-
 
   @override
   void initState() {
     super.initState();
 
-    wsController = WebSocketController(
-      newConnectionNotifyFunction: updateDeviceList, 
-      messageChangeNotifyFunction: newMessageHandle,
-      wsDeviceList: WsDeviceList(),
-      wsMessageList: WsMessageList()
-    );
+    widget.wsController.newConnectionNotifyFunction = updateDeviceList;
 
 
   }
@@ -45,13 +36,10 @@ class DeviceScannerState extends State<DeviceScanner> {
   Future<void> updateDeviceList() async {
     
     setState(() {
-      wsController.wsDeviceList;
+      widget.wsController.wsDeviceList;
     });
   }
 
-  void newMessageHandle(WsMessage message){
-    print(message.message);
-  }
 
 
   void _handleDeviceTap(WsDevice device) {
@@ -94,7 +82,7 @@ Widget build(BuildContext context) {
             children: [
               Expanded(
                 child: ListView.builder(
-                  itemCount: wsController.wsDeviceList.devices.length + 1, // +1 for the Functions item
+                  itemCount: widget.wsController.wsDeviceList.devices.length + 1, // +1 for the Functions item
                   itemBuilder: (context, index) {
                     if (index == 0) {
                       // Functions item
@@ -126,7 +114,7 @@ Widget build(BuildContext context) {
                           contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
                           tileColor: Colors.blueGrey[50],
                           title: Text(
-                            wsController.wsDeviceList.devices[deviceIndex].deviceInfo?['DEVICE_NAME'],
+                            widget.wsController.wsDeviceList.devices[deviceIndex].deviceInfo?['DEVICE_NAME'],
                             style: TextStyle(color: Colors.black87, fontSize: 14.0),
                           ),
                           leading: Icon(
@@ -134,7 +122,7 @@ Widget build(BuildContext context) {
                             color: Colors.blue,
                             size: 20.0,
                           ),
-                          onTap: () => _handleDeviceTap(wsController.wsDeviceList.devices[deviceIndex]),
+                          onTap: () => _handleDeviceTap(widget.wsController.wsDeviceList.devices[deviceIndex]),
                         ),
                       );
                     }
@@ -148,9 +136,11 @@ Widget build(BuildContext context) {
             NodePreview(
               onClose: _closeOverlay,
               deviceData: selectedDevice,
+              wsMessageList: widget.wsController.wsMessageList,
+              wsController: widget.wsController,
             ),
           // Loading indicator
-          if (wsController.scanning)
+          if (true)
             Positioned(
               bottom: 3.0,
               left: 3.0,

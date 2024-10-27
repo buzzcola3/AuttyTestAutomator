@@ -4,12 +4,12 @@ import 'dart:async';
 
 class IPScanner {
   // Properties
-  bool scanning = false;
   String lastScanned = "";
   final void Function(Map<String, String>) deviceChangeNotifyFunction; // Function to notify device changes
+  final void Function(bool)? scanDoneNotifyFunction;
 
   // Constructor that takes in a function
-  IPScanner({required this.deviceChangeNotifyFunction});
+  IPScanner({required this.deviceChangeNotifyFunction, required this.scanDoneNotifyFunction});
 
   void discoverSubnets() {
     // TODO: Implement subnet discovery logic
@@ -18,7 +18,7 @@ class IPScanner {
   Future<void> scanSubnet(String subnet, String port) async {
     List<Future> futures = [];
 
-    scanning = true;
+    scanDoneNotifyFunction!(true);
 
     for (int i = 0; i < 255; i++) {
       final String ipAddress = '$subnet.$i';
@@ -32,7 +32,7 @@ class IPScanner {
 
     // Wait for all ipResponding instances to complete
     await Future.wait(futures);
-    scanning = false;
+    scanDoneNotifyFunction!(false);
 
     return;
   }
@@ -82,11 +82,13 @@ Future<void> ipResponding(String ip, String port) async {
   Future<void> fullScan({String port = "80"}) async {
     final List<String> subnets = ["192.168.0", "192.168.1", "192.168.4", "192.168.16"]; //TODO discover subnets
 
+    scanDoneNotifyFunction!(true);
+
     for (String subnet in subnets) {
       await scanSubnet(subnet, port);
     }
 
-    scanning = false;
+    scanDoneNotifyFunction!(false);
 
     return;
   }

@@ -1,5 +1,6 @@
+import 'package:attempt_two/main_screen/device_list/websocket_manager/websocket_connection.dart';
 import 'package:node_editor/node_editor.dart';
-import 'package:attempt_two/device_list/websocket_manager/headers/websocket_datatypes.dart';
+import 'package:attempt_two/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
 import 'dart:convert';
 
 class ExecutableNode {
@@ -31,11 +32,13 @@ class ExecutableNode {
 class PlaygroundExecutor {
   final WsDeviceList wsDeviceList;
   final WsMessageList wsMessageList;
+  final WebSocketController wsController;
   final NodeEditorController controller;
 
   PlaygroundExecutor({
     required this.wsDeviceList,
     required this.wsMessageList,
+    required this.wsController,
     required this.controller,
   });
 
@@ -82,6 +85,12 @@ class PlaygroundExecutor {
   void executeNode(ExecutableNode node, List<ExecutableNode> playgroundNodes) {
     for (var playgroundNode in playgroundNodes) {
       if(playgroundNode.name == node.name){
+
+        if(node.deviceUniqueId != 'internal'){
+          final deviceIp = wsController.getDeviceIp(node.deviceUniqueId);
+          wsController.awaitRequest(deviceIp!, node.command);
+        }
+        //TODO execute internal
         playgroundNode.executed = true;
       }
     }

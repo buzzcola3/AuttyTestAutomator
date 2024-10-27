@@ -1,12 +1,21 @@
+import 'package:attempt_two/main_screen/device_list/websocket_manager/websocket_connection.dart';
 import 'package:flutter/material.dart';
-import 'package:attempt_two/node_generation/node_generator.dart';
+import 'package:attempt_two/main_screen/device_list/node_generation/node_generator.dart';
 import "websocket_manager/headers/websocket_datatypes.dart";
 
 class NodePreview extends StatefulWidget {
   final VoidCallback onClose;
   final WsDevice? deviceData;
+  final WsMessageList wsMessageList;
+  final WebSocketController wsController;
 
-  const NodePreview({required this.onClose, this.deviceData, super.key});
+  const NodePreview({
+    required this.onClose,
+    this.deviceData,
+    required this.wsMessageList, // Mark wsMessageList as required
+    required this.wsController,
+    super.key,
+  });
 
   @override
   _NodePreviewState createState() => _NodePreviewState();
@@ -150,7 +159,9 @@ Widget _buildCommandList() {
           child: ElevatedButton(
             onPressed: () {
               // Handle the command action here
-              widget.deviceData!.socket?.add(commands[index]);
+              widget.wsController.sendMessage(widget.deviceData!.ipAddress, commands[index]);
+              print(widget.wsMessageList);
+              //sendMessage
               print("Executing command: ${commands[index]}"); // Replace with actual command execution logic
             },
             child: Text(commands[index]), // Display the command

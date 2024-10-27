@@ -1,39 +1,24 @@
 import 'dart:io';
 
+import 'package:attempt_two/main_screen/device_list/websocket_manager/websocket_connection.dart';
+
 class WsMessage {
   // Properties
-  Map<String, String> source;
-  dynamic message;
-  String originalRequest;
+  Map<String, String> device;
+  String message;
+  String? rawResponse;
+  dynamic response;
+  bool fulfiled = false;
 
   // Constructor
   WsMessage({
-    required this.source, 
+    required this.device, 
     required this.message, 
-    required this.originalRequest
   });
-
-  // Method to create WsMessage from a map (useful for parsing JSON)
-  factory WsMessage.fromMap(Map<String, dynamic> map) {
-    return WsMessage(
-      source: Map<String, String>.from(map['source']),
-      message: Map<String, dynamic>.from(map['message']),
-      originalRequest: map['originalRequest'] ?? '',
-    );
-  }
-
-  // Method to convert WsMessage to a map (useful for converting to JSON)
-  Map<String, dynamic> toMap() {
-    return {
-      'source': source,
-      'message': message,
-      'originalRequest': originalRequest,
-    };
-  }
 
   @override
   String toString() {
-    return 'WsMessage(source: $source, message: $message, originalRequest: $originalRequest)';
+    return 'WsMessage(source: $device, message: $message)';
   }
 }
 
@@ -50,7 +35,7 @@ class WsMessageList {
   WsMessage? searchMessage(Map<String, String> source, String originalRequest) {
     for (int i = messages.length - 1; i >= 0; i--) {
       WsMessage message = messages[i];
-      if (_compareSource(message.source, source) && message.originalRequest == originalRequest) {
+      if (_compareSource(message.device, source) && message.message == originalRequest) {
         return message;
       }
     }
@@ -76,6 +61,7 @@ class WsDevice {
   // Properties
   final Map<String, String> ipAddress;
   final WebSocket? socket;
+  final WebSocketController? wsController;
 
   Map<String, dynamic>? deviceInfo;
   WsMessageList messageList;
@@ -84,7 +70,13 @@ class WsDevice {
   
 
   // Constructor
-  WsDevice({required this.ipAddress, this.socket, required this.messageList, this.deviceInfo}){
+  WsDevice({
+    required this.ipAddress,
+    this.socket,
+    this.wsController,
+    required this.messageList,
+    this.deviceInfo
+    }){
     _fetchDeviceInfo();
   }
 
@@ -95,7 +87,7 @@ class WsDevice {
 
     // Listen for the response
     while(deviceInfo == null){
-      socket?.add("devinfo");
+      wsController?.sendMessage(ipAddress, "devinfo");
       deviceInfo = await _waitForIntroduceMessage(messageList);
     }
     
@@ -113,8 +105,8 @@ class WsDevice {
       WsMessage? message = messageList.searchMessage(ipAddress, "devinfo");
       
       // If message is found, return it
-      if (message != null) {
-        return message.message;
+      if (message!.response != null) {
+        return message.response['RESPONSE'];
       }
   
       // Wait for 50ms before retrying

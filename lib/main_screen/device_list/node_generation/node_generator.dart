@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:node_editor/node_editor.dart';
-import 'package:attempt_two/node_playground/playground_execution.dart';
+import 'package:attempt_two/main_screen/node_playground/playground_execution.dart';
 import 'dart:convert';
 
 double _DEFAULT_WIDTH = 180;

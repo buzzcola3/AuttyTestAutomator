@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:node_editor/node_editor.dart';
-import '../node_generation/node_generator.dart';
+import '../device_list/node_generation/node_generator.dart';
 
 class NodeEditorWidget extends StatefulWidget {
   final NodeEditorController controller;
