@@ -114,7 +114,7 @@ Widget build(BuildContext context) {
                           contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
                           tileColor: Colors.blueGrey[50],
                           title: Text(
-                            widget.wsController.wsDeviceList.devices[deviceIndex].deviceInfo?['DEVICE_NAME'],
+                            widget.wsController.wsDeviceList.devices[deviceIndex].deviceInfo!['DEVICE_NAME'],
                             style: TextStyle(color: Colors.black87, fontSize: 14.0),
                           ),
                           leading: Icon(

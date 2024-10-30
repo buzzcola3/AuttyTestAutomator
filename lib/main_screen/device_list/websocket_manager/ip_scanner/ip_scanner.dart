@@ -18,7 +18,7 @@ class IPScanner {
   Future<void> scanSubnet(String subnet, String port) async {
     List<Future> futures = [];
 
-    scanDoneNotifyFunction!(true);
+    //scanDoneNotifyFunction!(true);
 
     for (int i = 0; i < 255; i++) {
       final String ipAddress = '$subnet.$i';
@@ -32,7 +32,7 @@ class IPScanner {
 
     // Wait for all ipResponding instances to complete
     await Future.wait(futures);
-    scanDoneNotifyFunction!(false);
+    //scanDoneNotifyFunction!(false);
 
     return;
   }
@@ -82,13 +82,13 @@ Future<void> ipResponding(String ip, String port) async {
   Future<void> fullScan({String port = "80"}) async {
     final List<String> subnets = ["192.168.0", "192.168.1", "192.168.4", "192.168.16"]; //TODO discover subnets
 
-    scanDoneNotifyFunction!(true);
+    //scanDoneNotifyFunction!(true);
 
     for (String subnet in subnets) {
       await scanSubnet(subnet, port);
     }
 
-    scanDoneNotifyFunction!(false);
+    //scanDoneNotifyFunction!(false);
 
     return;
   }

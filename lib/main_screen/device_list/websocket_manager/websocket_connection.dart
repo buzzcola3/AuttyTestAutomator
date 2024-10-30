@@ -27,7 +27,7 @@ class WebSocketController {
     ipScanner.ipResponding("127.0.0.1", "81");
     ipScanner.ipResponding("127.0.0.1", "82");
     ipScanner.ipResponding("192.168.16.102", "80");
-    // ipScanner.fullScan();
+    ipScanner.fullScan();
   }
 
   Future<void> updateWebsocketConnections(Map<String, String> ipAddress) async {  

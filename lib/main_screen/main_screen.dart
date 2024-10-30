@@ -6,6 +6,8 @@ import 'node_playground/playground.dart';
 import 'package:attempt_two/main_screen/communication_panel/communication_panel.dart';
 import 'device_list/websocket_manager/headers/websocket_datatypes.dart';
 import 'package:attempt_two/main_screen/node_playground/playground_execution.dart';
+import 'package:attempt_two/main_screen/node_playground_file_manager/playground_file_manager.dart';
+import 'package:attempt_two/main_screen/node_playground_file_manager/playground_save_and_load.dart';
 
 class MainScreen extends StatefulWidget {
   MainScreen({super.key, required this.title});
@@ -15,6 +17,7 @@ class MainScreen extends StatefulWidget {
   final WsDeviceList wsDeviceList = WsDeviceList();
   final WsMessageList wsMessageList = WsMessageList();
   final NodeEditorController nodeController = NodeEditorController();
+  final NodeEditorWidgetController nodeEditorWidgetController = NodeEditorWidgetController();
 
   @override
   State<MainScreen> createState() => _MainScreen();
@@ -25,6 +28,7 @@ class _MainScreen extends State<MainScreen> {
   late WebSocketController wsController;
   late List<Map<String, dynamic>> nodeParameterValues;
   late DebugConsoleController debugConsoleController;
+  late PlaygroundSaveLoad playgroundSaveLoad;
 
   @override
   void initState() {
@@ -37,17 +41,16 @@ class _MainScreen extends State<MainScreen> {
 
     nodeParameterValues = [];
     
-    // Initialize PlaygroundExecutor
     playgroundExecutor = PlaygroundExecutor(
-      wsDeviceList: widget.wsDeviceList, //TODO remove, use wsController to access it
-      wsMessageList: widget.wsMessageList, //TODO remove, use wsController to access it
+      wsDeviceList: widget.wsDeviceList,
+      wsMessageList: widget.wsMessageList,
       wsController: wsController,
       controller: widget.nodeController,
       nodeParameterValues: nodeParameterValues
     );
 
+    playgroundSaveLoad = PlaygroundSaveLoad(widget.nodeController, nodeParameterValues, widget.nodeEditorWidgetController);
 
-    
     debugConsoleController = DebugConsoleController();
 
     wsController.messageChangeNotifyFunction = debugConsoleController.addMessage;
@@ -58,16 +61,11 @@ class _MainScreen extends State<MainScreen> {
     return Scaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
-          // Get screen dimensions
           double screenHeight = constraints.maxHeight;
           double screenWidth = constraints.maxWidth;
 
-          // Calculate height based on 9:16 ratio and width (1/4 of the screen width)
           double widgetHeight = screenHeight * 0.5;
           double widgetWidth = 200;
-
-          // Calculate remaining width for the empty box
-          double remainingWidth = screenWidth - widgetWidth - 20; // account for padding
 
           return Stack(
             children: [
@@ -87,15 +85,35 @@ class _MainScreen extends State<MainScreen> {
                   ),
                 ),
               ),
+              // Light gray box with rounded corners under DeviceScanner
+              Positioned(
+                top: widgetHeight + 20,
+                left: 10,
+                width: widgetWidth,
+                height: widgetHeight - 30,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[500],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: JsonFileManager(playgroundSaveLoad: playgroundSaveLoad),
+                  ),
+                ),
+              ),
               // NodeEditorWidget with overlay button
               Positioned(
                 top: 10,
                 left: widgetWidth + 20,
-                width: remainingWidth - 10,
+                width: screenWidth - widgetWidth - 30,
                 height: widgetHeight,
                 child: Stack(
                   children: [
-                    NodeEditorWidget(controller: widget.nodeController, nodeParameterValues: nodeParameterValues),
+                    NodeEditorWidget(
+                      controller: widget.nodeController,
+                      nodeParameterValues: nodeParameterValues,
+                      customController: widget.nodeEditorWidgetController,
+                    ),
                     Positioned(
                       right: 10,
                       bottom: 10,
@@ -113,14 +131,17 @@ class _MainScreen extends State<MainScreen> {
               Positioned(
                 top: widgetHeight + 20,
                 left: widgetWidth + 20,
-                width: remainingWidth - 10,
+                width: screenWidth - widgetWidth - 30,
                 height: widgetHeight - 30,
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.grey[500],
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: DebugConsole(key: debugConsoleController.key, wsMessageList: widget.wsMessageList), // Embed the DebugConsole inside the gray box
+                  child: DebugConsole(
+                    key: debugConsoleController.key,
+                    wsMessageList: widget.wsMessageList,
+                  ),
                 ),
               ),
             ],

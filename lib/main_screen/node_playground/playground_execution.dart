@@ -91,10 +91,9 @@ class PlaygroundExecutor {
 
         List parameters = [];
 
-        nodeParameterValues;
         for (var parameterValues in nodeParameterValues) {
           if(parameterValues[node.name] != null){
-            for (var parameter in parameterValues[node.name]) {
+            for (var parameter in parameterValues[node.name]["nodeParameters"]) {
               parameters.add(parameter['Value']);
             }
           }
@@ -102,7 +101,7 @@ class PlaygroundExecutor {
 
         if(node.deviceUniqueId != 'internal'){
           final deviceIp = wsController.getDeviceIp(node.deviceUniqueId);
-          wsController.awaitRequest(deviceIp!, node.command);
+          await wsController.awaitRequest(deviceIp!, node.command);
         }else{
           await internalDeviceCommandProcessor(node.command, parameters);
         }

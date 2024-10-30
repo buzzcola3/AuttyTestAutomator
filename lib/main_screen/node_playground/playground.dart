@@ -2,17 +2,35 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:node_editor/node_editor.dart';
 import '../device_list/node_generation/node_generator.dart';
+import 'package:uuid/uuid.dart';
+
+class NodeEditorWidgetController {
+  NodeEditorWidgetState? _nodeEditorWidgetState;
+
+  void bind(NodeEditorWidgetState state) {
+    _nodeEditorWidgetState = state;
+  }
+
+  void unbind() {
+    _nodeEditorWidgetState = null;
+  }
+
+  void addNodeAtPosition(Offset position, Map<String, dynamic> nodeData) {
+    _nodeEditorWidgetState?.addNodeAtPosition(position, nodeData);
+  }
+}
 
 class NodeEditorWidget extends StatefulWidget {
   final NodeEditorController controller;
   final List<Map<String, dynamic>> nodeParameterValues;
-  
+  final NodeEditorWidgetController customController;
 
   const NodeEditorWidget({
     super.key,
     required this.controller,
-    required this.nodeParameterValues
-    });
+    required this.nodeParameterValues,
+    required this.customController,
+  });
 
   @override
   NodeEditorWidgetState createState() => NodeEditorWidgetState();
@@ -23,21 +41,21 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
   late FocusNode _focusNode;
   String? _currentDraggedNodeId;
   Offset _currentDraggedPosition = const Offset(0, 0);
-  String? _selectedNodeName; // Store the unique name of the clicked node
+  String? _selectedNodeName;
   double dragStep = 20.0;
-
-  // Store controllers for TextFields
-  List<TextEditingController> _controllers = [];
+  int _nodeUniqueIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _controller = widget.controller;
+    widget.customController.bind(this); // Bind the controller
     _focusNode = FocusNode();
   }
 
   @override
   void dispose() {
+    widget.customController.unbind(); // Unbind the controller
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -46,10 +64,8 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
   void _playgroundScrollHandle(Offset offset) {
     double horPos = _controller.horizontalScrollController.offset;
     double verPos = _controller.verticalScrollController.offset;
-
     horPos -= offset.dx;
     verPos -= offset.dy;
-
     _controller.horizontalScrollController.jumpTo(horPos);
     _controller.verticalScrollController.jumpTo(verPos);
   }
@@ -91,14 +107,10 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
     return Offset(snapDragDeltaX, snapDragDeltaY);
   }
 
-  int _nodeUniqueIndex = 0;
-
-  void _addNodeAtPosition(Offset position, Map<String, dynamic> nodeData) {
-    nodeData["encodedFunction"]["unique_index"] = _nodeUniqueIndex;
-    _nodeUniqueIndex++;
+  void addNodeAtPosition(Offset position, Map<String, dynamic> nodeData) {
+    nodeData["encodedFunction"]["unique_index"] ??= _nodeUniqueIndex++;
     String uniqueNodeName = jsonEncode(nodeData["encodedFunction"]);
-
-    widget.nodeParameterValues.add({uniqueNodeName: nodeData["encodedFunction"]['nodeParameters']});
+    widget.nodeParameterValues.add({uniqueNodeName: jsonDecode(uniqueNodeName)});
 
     _controller.addNode(
       generateNode(
@@ -107,28 +119,32 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
         onPanStart: (details) {
           _currentDraggedNodeId = uniqueNodeName;
           _currentDraggedPosition = details.globalPosition;
-          print('Pan started at: ${details.globalPosition}');
         },
         onPanUpdate: (details) {
           if (_currentDraggedNodeId != null) {
             Offset cursorDelta = _dragGridSnap(details.globalPosition);
             _controller.moveNodePosition(_currentDraggedNodeId!, cursorDelta);
-            print('Cursor Position during drag: $cursorDelta');
           }
         },
         onPanEnd: (details) {
           _currentDraggedNodeId = null;
-          print('Pan ended');
         },
         onTap: () {
           setState(() {
-            _selectedNodeName = uniqueNodeName; // Show overlay with the node's unique name
+            if (_selectedNodeName == uniqueNodeName) {
+              _selectedNodeName = null;
+            } else {
+              _selectedNodeName = uniqueNodeName;
+            }
           });
-        }
+        },
       ),
       NodePosition.custom(position),
     );
+
+    setState(() {}); // Ensure the widget updates immediately
   }
+
 
   Offset _calculateDropPosition(DragTargetDetails details) {
     Offset playgroundAbsPos = details.offset - (_controller.stackPos ?? Offset.zero);
@@ -136,40 +152,39 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
       playgroundAbsPos.dx + _controller.horizontalScrollController.offset,
       playgroundAbsPos.dy + _controller.verticalScrollController.offset,
     );
-
-    Offset snappedPos = Offset(
+    return Offset(
       _snapToGrid(playgroundRelPos.dx),
       _snapToGrid(playgroundRelPos.dy),
     );
-
-    return Offset(
-      snappedPos.dx < 0 ? 0 : snappedPos.dx,
-      snappedPos.dy < 0 ? 0 : snappedPos.dy,
-    );
   }
 
-  double _snapToGrid(double value) {
-    return (value / 20).round() * 20;
-  }
+  double _snapToGrid(double value) => (value / 20).round() * 20;
 
   List<Map<String, dynamic>> getNodeParameters(String encodedNodeFunction) {
     Map<String, dynamic> decodedFunction = jsonDecode(encodedNodeFunction);
-    return List<Map<String, dynamic>>.from(decodedFunction['nodeParameters'] ?? []); // Return an empty list if "Parameters" is not found
+    return List<Map<String, dynamic>>.from(decodedFunction['nodeParameters'] ?? []);
   }
 
-
-  void _updateParameters(String encodedNodeFunction, String parameterName) {
-
+  void _updateParameter(String targetNode, String parameterName, String newParameterValue) {
     for (var nodeParameters in widget.nodeParameterValues) {
-      if(nodeParameters[encodedNodeFunction] != null){
-        for (var parameter in nodeParameters[encodedNodeFunction]) {
-          if(parameter["Name"] == parameterName){
-            parameter["Value"] = _controllers[0].text; 
-          } 
+      if (nodeParameters[targetNode] != null) {
+        for (var parameter in nodeParameters[targetNode]["nodeParameters"]) {
+          if (parameter["Name"] == parameterName) {
+            parameter["Value"] = newParameterValue;
+            return;
+          }
         }
       }
     }
+  }
 
+  List getNodeParameterList(String targetNode) {
+    for (var nodeParameters in widget.nodeParameterValues) {
+      if (nodeParameters[targetNode] != null) {
+        return nodeParameters[targetNode]["nodeParameters"];
+      }
+    }
+    return [];
   }
 
   @override
@@ -184,14 +199,9 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
         child: Stack(
           children: [
             GestureDetector(
-              onPanUpdate: (details) {
-                _playgroundScrollHandle(details.delta);
-              },
+              onPanUpdate: (details) => _playgroundScrollHandle(details.delta),
               child: DragTarget<Map<String, dynamic>>(
-                onAcceptWithDetails: (details) {
-                  Offset finalPos = _calculateDropPosition(details);
-                  _addNodeAtPosition(finalPos, details.data);
-                },
+                onAcceptWithDetails: (details) => addNodeAtPosition(_calculateDropPosition(details), details.data),
                 builder: (context, candidateData, rejectedData) {
                   return MouseRegion(
                     child: NodeEditor(
@@ -212,7 +222,7 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(10), // Rounded edges
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   width: 200,
                   child: Column(
@@ -223,54 +233,41 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
                         child: GestureDetector(
                           onTap: () {
                             setState(() {
-                              _selectedNodeName = null; // Close the overlay
-                              _controllers.clear(); // Clear controllers on close
+                              _selectedNodeName = null;
                             });
                           },
-                          child: const Text(
-                            "Close",
-                            style: TextStyle(fontSize: 12, color: Colors.black54),
-                          ),
+                          child: const Text("Close", style: TextStyle(fontSize: 12, color: Colors.black54)),
                         ),
                       ),
                       const SizedBox(height: 8),
-                      // Build a list of parameters from getNodeParameters
-                      ...getNodeParameters(_selectedNodeName!).asMap().entries.map((entry) {
-                        int index = entry.key;
-                        var parameter = entry.value;
-                        String parameterName = parameter["Name"] ?? '';
-                        String initialValue = parameter["Value"] ?? '';
+                      ...getNodeParameterList(_selectedNodeName!).map((parameter) {
+                        if (parameter is Map<String, dynamic>) {
+                          String parameterName = parameter["Name"]?.toString() ?? '';
+                          String initialValue = parameter["Value"]?.toString() ?? '';
 
-                        // Initialize a controller for each parameter
-                        if (_controllers.length <= index) {
-                          _controllers.add(TextEditingController(text: initialValue));
-                        }
-
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(parameterName),
-                              ),
-                              Expanded(
-                                child: TextField(
-                                  decoration: InputDecoration(
-                                    border: OutlineInputBorder(),
-                                    hintText: initialValue,
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(child: Text(parameterName)),
+                                Expanded(
+                                  child: TextField(
+                                    decoration: InputDecoration(
+                                      border: OutlineInputBorder(),
+                                      hintText: initialValue,
+                                    ),
+                                    onSubmitted: (value) {
+                                      _updateParameter(_selectedNodeName!, parameterName, value);
+                                    },
                                   ),
-                                  controller: _controllers[index],
-                                  onSubmitted: (value) {
-                                    // Update the parameter value here and call update function
-                                    parameter["Value"] = value;
-                                    _updateParameters(_selectedNodeName!, parameterName); // Call update function on submit
-                                  },
                                 ),
-                              ),
-                            ],
-                          ),
-                        );
+                              ],
+                            ),
+                          );
+                        } else {
+                          return const SizedBox.shrink();
+                        }
                       }).toList(),
                     ],
                   ),
