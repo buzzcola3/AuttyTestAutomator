@@ -2,13 +2,12 @@ import 'package:attempt_two/main_screen/device_list/internal_device.dart';
 import 'package:attempt_two/main_screen/device_list/websocket_manager/websocket_connection.dart';
 import 'package:node_editor/node_editor.dart';
 import 'package:attempt_two/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
-import 'dart:convert';
 
 class ExecutableNode {
   // Members
-  final String name;
-  late String command;
-  late String deviceUniqueId;
+  final String nodeUuid;
+  final String command;
+  final String deviceUniqueId;
   bool executed = false;
   late Map<String, dynamic> executionResult;
   final dynamic node; // Type can be changed to the specific type you're using
@@ -18,15 +17,12 @@ class ExecutableNode {
 
   // Constructor
   ExecutableNode({
-    required this.name,
+    required this.nodeUuid,
     required this.node,
+    required this.command,
+    required this. deviceUniqueId,
     this.executed = false,
-  }) {
-
-    Map<String, dynamic> decodedKey = jsonDecode(name);
-    command = decodedKey['nodeCommand'];
-    deviceUniqueId = decodedKey['deviceUniqueId'];
-  }
+  });
 }
 
 
@@ -35,14 +31,14 @@ class PlaygroundExecutor {
   final WsMessageList wsMessageList;
   final WebSocketController wsController;
   final NodeEditorController controller;
-  final List<Map<String, dynamic>> nodeParameterValues;
+  final Map<String, dynamic> nodesDNA;
 
   PlaygroundExecutor({
     required this.wsDeviceList,
     required this.wsMessageList,
     required this.wsController,
     required this.controller,
-    required this.nodeParameterValues
+    required this.nodesDNA
   });
 
   ExecutableNode? findStartNode(List<ExecutableNode> decodedList) {
@@ -54,7 +50,7 @@ class PlaygroundExecutor {
     return null;
   }
 
-  void execute() {
+  void execute() async {
     print("Executing node chain");
 
     // Decode the nodes using the controller
@@ -67,68 +63,73 @@ class PlaygroundExecutor {
       return;
     }
   
-    Map<String, List<ExecutableNode>> nodeStructure = {};
-    final execNodeTree = buildNodeConnectionStructure(startNode, controller.connections, nodeStructure);
+    Map<String, List<String>> nodeStructure = {};
+    var execNodeTree = buildNodeConnectionStructure(startNode, controller.connections, nodeStructure);
 
-    executeNodeTree(execNodeTree, startNode, playgroundNodes);
+    await executeNodeTree(execNodeTree, startNode.nodeUuid, playgroundNodes);
   }
 
-  void executeNodeTree(Map<String, List<ExecutableNode>> execNodeTree, ExecutableNode startNode, List<ExecutableNode> playgroundNodes) async {
+  Future<void> executeNodeTree(Map<String, List<String>> execNodeTree, String startNode, List<ExecutableNode> playgroundNodes) async {
     if (dependentNodesAlreadyExecuted(startNode, execNodeTree, playgroundNodes)) {
       await executeNode(startNode, playgroundNodes);
     } else {
       return;
     }
 
-    for (var execNode in execNodeTree[startNode.name] ?? []) {
-      executeNodeTree(execNodeTree, execNode, playgroundNodes);
+    for (var execNode in execNodeTree[startNode] ?? []) {
+      await executeNodeTree(execNodeTree, execNode, playgroundNodes);
     }
   }
 
-  Future<void> executeNode(ExecutableNode node, List<ExecutableNode> playgroundNodes) async {
-    for (var playgroundNode in playgroundNodes) {
-      if(playgroundNode.name == node.name){
+Future<void> executeNode(String node, List<ExecutableNode> playgroundNodes) async {
+  
 
-        List parameters = [];
 
-        for (var parameterValues in nodeParameterValues) {
-          if(parameterValues[node.name] != null){
-            for (var parameter in parameterValues[node.name]["nodeParameters"]) {
-              parameters.add(parameter['Value']);
-            }
-          }
-        }
+  for (var playgroundNode in playgroundNodes) {
+    
+    if (playgroundNode.nodeUuid == node) {
 
-        if(node.deviceUniqueId != 'internal'){
-          final deviceIp = wsController.getDeviceIp(node.deviceUniqueId);
-          await wsController.awaitRequest(deviceIp!, node.command);
-        }else{
-          await internalDeviceCommandProcessor(node.command, parameters);
-        }
-        //TODO execute internal
-        playgroundNode.executed = true;
+    List parameters = [];
+    if (nodesDNA[node] != null) {
+      for (var parameter in nodesDNA[node]["nodeParameters"] ?? []) {
+        parameters.add(parameter['Value']);
       }
     }
 
-    print('Executed ${node.name}');
+      if (nodesDNA[node]["deviceUniqueId"] != 'internal') {
+        final deviceIp = wsController.getDeviceIp(nodesDNA[node]["deviceUniqueId"]);
+        if (deviceIp != null) {
+          await wsController.awaitRequest(deviceIp, nodesDNA[node]["nodeCommand"]);
+        } else {
+          print("Device IP not found for ${nodesDNA[node]["deviceUniqueId"]} command: ${nodesDNA[node]["nodeCommand"]}");
+        }
+      } else {
+        await internalDeviceCommandProcessor(nodesDNA[node]["nodeCommand"], parameters);
+      }
+      
+      playgroundNode.executed = true;
+      return;
+    }
   }
 
-  Map<String, List<ExecutableNode>> buildNodeConnectionStructure(
+  print('Executed node: ${node}');
+}
+
+
+  Map<String, List<String>> buildNodeConnectionStructure(
     ExecutableNode startNode,
     List<dynamic> connections,
-    Map<String, List<ExecutableNode>> nodeStructure,
+    Map<String, List<String>> nodeStructure,
   ) {
-    if (!nodeStructure.containsKey(startNode.name)) {
-      nodeStructure[startNode.name] = [];
+    if (!nodeStructure.containsKey(startNode.nodeUuid)) {
+      nodeStructure[startNode.nodeUuid] = [];
     }
 
     List<ExecutableNode> connectedNodes = getOutPortNodes(startNode, connections);
 
     for (var connectedNode in connectedNodes) {
-      if (!nodeStructure[startNode.name]!.contains(connectedNode)) {
-        nodeStructure[startNode.name]!.add(connectedNode);
-        buildNodeConnectionStructure(connectedNode, connections, nodeStructure);
-      }
+      nodeStructure[startNode.nodeUuid]!.add(connectedNode.nodeUuid);
+      buildNodeConnectionStructure(connectedNode, connections, nodeStructure);
     }
 
     return nodeStructure;
@@ -138,8 +139,8 @@ class PlaygroundExecutor {
     List<ExecutableNode> inNodes = [];
 
     for (var connection in connections) {
-      if (connection.outNode.name == node.name) {
-        ExecutableNode execNode = ExecutableNode(name: connection.inNode.name, node: connection.inNode);
+      if (connection.outNode.name == node.nodeUuid) {
+        ExecutableNode execNode = ExecutableNode(nodeUuid: connection.inNode.name, node: connection.inNode, command: nodesDNA[node.nodeUuid]["nodeCommand"], deviceUniqueId: nodesDNA[node.nodeUuid]["deviceUniqueId"]);
         inNodes.add(execNode);
       }
     }
@@ -147,14 +148,14 @@ class PlaygroundExecutor {
     return inNodes;
   }
 
-  bool dependentNodesAlreadyExecuted(ExecutableNode node, Map<String, List<ExecutableNode>> execNodeTree, List<ExecutableNode> playgroundNodes){
+  bool dependentNodesAlreadyExecuted(String node, Map<String, List<String>> execNodeTree, List<ExecutableNode> playgroundNodes){
     List<String> dependencies = [];
 
     execNodeTree.forEach((key, connectedNodes) {
       
       for (var connectedNode in connectedNodes) {
 
-        if(connectedNode.name == node.name){
+        if(connectedNode == node){
           dependencies.add(key);
         }
         
@@ -167,7 +168,7 @@ class PlaygroundExecutor {
 
     for (var dependency in dependencies) {
       for (var playgroundNode in playgroundNodes) {
-        if(playgroundNode.name == dependency){
+        if(playgroundNode.nodeUuid == dependency){
           if(!playgroundNode.executed){
             return false;
           }
@@ -184,7 +185,7 @@ class PlaygroundExecutor {
 
     for (var key in nodes.keys) {
       try {
-        ExecutableNode node = ExecutableNode(name: key, node: nodes[key]);
+        ExecutableNode node = ExecutableNode(nodeUuid: key, node: nodes[key], command: nodesDNA[key]["nodeCommand"], deviceUniqueId: nodesDNA[key]["deviceUniqueId"]);
         decodedList.add(node);
       } catch (e) {
         print('Error decoding key: $key - $e');

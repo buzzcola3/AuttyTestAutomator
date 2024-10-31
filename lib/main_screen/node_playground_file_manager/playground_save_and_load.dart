@@ -1,14 +1,14 @@
 import 'dart:convert';
 import 'package:attempt_two/main_screen/device_list/node_generation/node_generator.dart';
 import 'package:attempt_two/main_screen/node_playground/playground.dart';
-import 'package:flutter/services.dart'; // For loading assets
 import 'package:flutter/material.dart';
 import 'package:node_editor/node_editor.dart';
+import 'dart:async';
 
 class PlaygroundSaveLoad {
   final NodeEditorController playgroundController;
   NodeEditorWidgetController nodeEditorWidgetController;
-  List<Map<String, dynamic>> nodesDNA;
+  Map<String, dynamic> nodesDNA;
 
   PlaygroundSaveLoad(this.playgroundController, this.nodesDNA, this.nodeEditorWidgetController);
 
@@ -18,7 +18,6 @@ class PlaygroundSaveLoad {
     nodesDNA;
 
     playgroundController.nodes["<nodeName>"]?.pos; // nodePosition
-    String connections = json.encode(playgroundController.connections);
     playgroundController.connections.removeLast();
 
     List<Map<String, dynamic>> nodesData = [];
@@ -28,7 +27,7 @@ class PlaygroundSaveLoad {
   }
 
   List<String> getNodesNameList(){
-    return nodesDNA.map((map) => map.keys.first).toList();
+    return nodesDNA.keys.toList();
   }
 
   Offset getNodePosition(String nodeUniqueName){
@@ -36,11 +35,10 @@ class PlaygroundSaveLoad {
   }
 
   Map<String, dynamic>? getSingleDNA(nodeUniqueName){
-    for (var singleNode in nodesDNA) {
-      if(singleNode[nodeUniqueName] != null){
-        return singleNode[nodeUniqueName];
-      }
+    if(nodesDNA[nodeUniqueName] != null){
+      return nodesDNA[nodeUniqueName];
     }
+    
     return null;
   }
 
@@ -67,13 +65,11 @@ void loadPlayground(String playgroundJson) async {
       isDummy: false,
     )!; // Adding the null assertion operator
   
-    nodeEditorWidgetController.addNodeAtPosition(position, {"encodedFunction": nodeDNA, "node": nodeWidget});
+    nodeEditorWidgetController.addNodeAtPosition(nodePosition: position, nodeDNA: nodeDNA, nodeWidget: nodeWidget);
   }
 
   // Load connections
   for (var connection in playgroundData["connections"]) {
-    playgroundController.nodesManager.unselectAllNodes();
-
     var inNodeName = connection["inNodeName"];
     var outNodeName = connection["outNodeName"];
     var inPortName = connection["inPortName"];
@@ -92,17 +88,28 @@ void loadPlayground(String playgroundJson) async {
     Connection newConnection = Connection(inPort: inPort, inNode: inNode, outNode: outNode, outPort: outPort);
     playgroundController.connections.add(newConnection);
   }
+
+  nodeEditorWidgetController.refreshUI();
 }
 
 // Helper function to wait until a port exists
 Future<void> _waitUntilPortExists(String nodeName, String portName) async {
   var node = playgroundController.nodes[nodeName];
-
-  while (playgroundController.nodes[nodeName]?.ports[portName] == null) {
-    await Future.delayed(Duration(milliseconds: 5));
+  
+  try {
+    await Future.any([
+      Future.delayed(Duration(seconds: 10), () {
+        throw TimeoutException("Timeout: Port '$portName' in node '$nodeName' not found within 10 seconds.");
+      }),
+      () async {
+        while (playgroundController.nodes[nodeName]?.ports[portName] == null) {
+          await Future.delayed(Duration(milliseconds: 5));
+        }
+      }(),
+    ]);
+  } on TimeoutException catch (e) {
+    print(e.message); // Print the error message
   }
-
-  return;
 }
 
 

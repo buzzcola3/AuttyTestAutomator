@@ -10,7 +10,7 @@ Color _NODE_CONNECTION_COLOR = Color.fromARGB(255, 109, 109, 109);
 NodeWidgetBase generateNode({
   required Widget nodeType,
 
-  required String nodeEncodedFunction,
+  required String nodeUuid,
 
   required void Function(DragStartDetails) onPanStart,
   required void Function(DragUpdateDetails) onPanUpdate,
@@ -20,7 +20,7 @@ NodeWidgetBase generateNode({
 
   
   return ContainerNodeWidget(
-    name: nodeEncodedFunction,
+    name: nodeUuid,
     typeName: 'node',
     backgroundColor: Colors.transparent, // Transparent background
     width: _DEFAULT_WIDTH, // Width is fixed
@@ -33,38 +33,6 @@ NodeWidgetBase generateNode({
       child: nodeType, // Child widget defines height and appearance
     ),
   );
-}
-// Static counter to track generated nodes
-Map<String, dynamic> encodeNodeFunction({
-  required String deviceUniqueId,
-  required String nodeCommand,
-  required String nodeName,
-  required String nodeColor,
-  required String nodeType,
-  required List inPorts,
-  required List outPorts,
-  required String svgIconString,
-  List<dynamic>? nodeParameters,
-
-}) {
-  // If nodeParameters is null, initialize it as an empty list
-  nodeParameters ??= []; // Set to empty list if null
-
-  // Create a map to hold the node data
-  Map<String, dynamic> nodeData = {
-    'deviceUniqueId': deviceUniqueId,
-    'nodeCommand': nodeCommand,
-    'nodeName': nodeName,
-    'nodeColor': nodeColor,
-    'nodeType': nodeType,
-    'inPorts': inPorts,
-    'outPorts': outPorts,
-    'svgIconString': svgIconString,
-    'nodeParameters': nodeParameters,
-    'unique_index': null, // Use the incremented counter as the index
-  };
-
-  return nodeData;
 }
 
 Container generatePreviewNode({

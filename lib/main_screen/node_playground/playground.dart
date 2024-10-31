@@ -15,20 +15,33 @@ class NodeEditorWidgetController {
     _nodeEditorWidgetState = null;
   }
 
-  void addNodeAtPosition(Offset position, Map<String, dynamic> nodeData) {
-    _nodeEditorWidgetState?.addNodeAtPosition(position, nodeData);
+  void addNodeAtPosition({
+    required Offset nodePosition,
+    required Map<String, dynamic> nodeDNA,
+    required dynamic nodeWidget,
+  }) {
+    _nodeEditorWidgetState?.addNodeAtPosition(
+      nodePosition: nodePosition,
+      nodeDNA: nodeDNA,
+      nodeWidget: nodeWidget,
+    );
+  }
+
+  void refreshUI(){
+    _nodeEditorWidgetState?.refreshUI();
   }
 }
 
+
 class NodeEditorWidget extends StatefulWidget {
   final NodeEditorController controller;
-  final List<Map<String, dynamic>> nodeParameterValues;
+  final Map<String, dynamic> nodesDNA;
   final NodeEditorWidgetController customController;
 
   const NodeEditorWidget({
     super.key,
     required this.controller,
-    required this.nodeParameterValues,
+    required this.nodesDNA,
     required this.customController,
   });
 
@@ -107,17 +120,26 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
     return Offset(snapDragDeltaX, snapDragDeltaY);
   }
 
-  void addNodeAtPosition(Offset position, Map<String, dynamic> nodeData) {
-    nodeData["encodedFunction"]["unique_index"] ??= _nodeUniqueIndex++;
-    String uniqueNodeName = jsonEncode(nodeData["encodedFunction"]);
-    widget.nodeParameterValues.add({uniqueNodeName: jsonDecode(uniqueNodeName)});
+  void refreshUI() {
+    setState(() {}); // Calls setState from within the State class
+  }
+
+  void addNodeAtPosition({
+      required Offset nodePosition,
+      required Map<String, dynamic> nodeDNA,
+      required dynamic nodeWidget
+    }) {
+    var uuid = Uuid();
+    nodeDNA["nodeUuid"] ??= uuid.v1();
+
+    widget.nodesDNA[nodeDNA["nodeUuid"]] = nodeDNA;
 
     _controller.addNode(
       generateNode(
-        nodeType: nodeData["node"],
-        nodeEncodedFunction: uniqueNodeName,
+        nodeType: nodeWidget,
+        nodeUuid: nodeDNA["nodeUuid"],
         onPanStart: (details) {
-          _currentDraggedNodeId = uniqueNodeName;
+          _currentDraggedNodeId = nodeDNA["nodeUuid"];
           _currentDraggedPosition = details.globalPosition;
         },
         onPanUpdate: (details) {
@@ -131,15 +153,15 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
         },
         onTap: () {
           setState(() {
-            if (_selectedNodeName == uniqueNodeName) {
+            if (_selectedNodeName == nodeDNA["nodeUuid"]) {
               _selectedNodeName = null;
             } else {
-              _selectedNodeName = uniqueNodeName;
+              _selectedNodeName = nodeDNA["nodeUuid"];
             }
           });
         },
       ),
-      NodePosition.custom(position),
+      NodePosition.custom(nodePosition),
     );
 
     setState(() {}); // Ensure the widget updates immediately
@@ -166,24 +188,23 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
   }
 
   void _updateParameter(String targetNode, String parameterName, String newParameterValue) {
-    for (var nodeParameters in widget.nodeParameterValues) {
-      if (nodeParameters[targetNode] != null) {
-        for (var parameter in nodeParameters[targetNode]["nodeParameters"]) {
+      if (widget.nodesDNA[targetNode] != null) {
+        for (var parameter in widget.nodesDNA["nodeParameters"]) {
           if (parameter["Name"] == parameterName) {
             parameter["Value"] = newParameterValue;
             return;
           }
         }
       }
-    }
+    
   }
 
   List getNodeParameterList(String targetNode) {
-    for (var nodeParameters in widget.nodeParameterValues) {
-      if (nodeParameters[targetNode] != null) {
-        return nodeParameters[targetNode]["nodeParameters"];
-      }
+
+    if (widget.nodesDNA[targetNode] != null) {
+      return widget.nodesDNA[targetNode]["nodeParameters"];
     }
+    
     return [];
   }
 
@@ -201,7 +222,8 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
             GestureDetector(
               onPanUpdate: (details) => _playgroundScrollHandle(details.delta),
               child: DragTarget<Map<String, dynamic>>(
-                onAcceptWithDetails: (details) => addNodeAtPosition(_calculateDropPosition(details), details.data),
+                //onAcceptWithDetails: (details) => addNodeAtPosition(_calculateDropPosition(details), details.data),
+                onAcceptWithDetails: (details) => addNodeAtPosition(nodePosition: _calculateDropPosition(details), nodeDNA: details.data["nodeDNA"], nodeWidget: details.data["nodeWidget"]),
                 builder: (context, candidateData, rejectedData) {
                   return MouseRegion(
                     child: NodeEditor(

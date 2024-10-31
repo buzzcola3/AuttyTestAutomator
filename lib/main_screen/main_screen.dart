@@ -26,7 +26,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreen extends State<MainScreen> {
   late PlaygroundExecutor playgroundExecutor;
   late WebSocketController wsController;
-  late List<Map<String, dynamic>> nodeParameterValues;
+  late Map<String, dynamic> nodesDNA;
   late DebugConsoleController debugConsoleController;
   late PlaygroundSaveLoad playgroundSaveLoad;
 
@@ -39,17 +39,17 @@ class _MainScreen extends State<MainScreen> {
       wsMessageList: widget.wsMessageList,
     );
 
-    nodeParameterValues = [];
+    nodesDNA = {};
     
     playgroundExecutor = PlaygroundExecutor(
       wsDeviceList: widget.wsDeviceList,
       wsMessageList: widget.wsMessageList,
       wsController: wsController,
       controller: widget.nodeController,
-      nodeParameterValues: nodeParameterValues
+      nodesDNA: nodesDNA
     );
 
-    playgroundSaveLoad = PlaygroundSaveLoad(widget.nodeController, nodeParameterValues, widget.nodeEditorWidgetController);
+    playgroundSaveLoad = PlaygroundSaveLoad(widget.nodeController, nodesDNA, widget.nodeEditorWidgetController);
 
     debugConsoleController = DebugConsoleController();
 
@@ -111,7 +111,7 @@ class _MainScreen extends State<MainScreen> {
                   children: [
                     NodeEditorWidget(
                       controller: widget.nodeController,
-                      nodeParameterValues: nodeParameterValues,
+                      nodesDNA: nodesDNA,
                       customController: widget.nodeEditorWidgetController,
                     ),
                     Positioned(

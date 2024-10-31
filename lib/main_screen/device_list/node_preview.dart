@@ -189,17 +189,18 @@ Widget _buildNodeList() {
       // Get the command name to display
       Map<String, dynamic> singleNode = nodes[index];
 
-      Map<String, dynamic> encodedNodeIdentifier = encodeNodeFunction(
-        deviceUniqueId: widget.deviceData!.deviceInfo!["UNIQUE_ID"],
-        nodeCommand: singleNode["Command"],
-        nodeParameters: singleNode["Parameters"],
-        nodeName: singleNode["Name"],
-        nodeColor: singleNode["Color"],
-        nodeType: singleNode["Type"],
-        inPorts: singleNode["InPorts"],
-        outPorts: singleNode["OutPorts"],
-        svgIconString: singleNode["SvgIcon"],
-        );
+      Map<String, dynamic> nodeDNA = {
+        "deviceUniqueId": widget.deviceData!.deviceInfo!["UNIQUE_ID"],
+        "nodeUuid": null,
+        "nodeCommand": singleNode["Command"],
+        "nodeParameters": singleNode["Parameters"],
+        "nodeName": singleNode["Name"],
+        "nodeColor": singleNode["Color"],
+        "nodeType": singleNode["Type"],
+        "inPorts": singleNode["InPorts"],
+        "outPorts": singleNode["OutPorts"],
+        "svgIconString": singleNode["SvgIcon"],
+      };
 
       Widget? fabricatedDummyNode = fabricateNode(
           nodeName: singleNode["Name"],
@@ -226,7 +227,7 @@ Widget _buildNodeList() {
         child: Center(  // Wrap each node in a Center to avoid stretching
           child: SizedBox(
             child: Draggable<Map<String, dynamic>>(
-              data: {"encodedFunction": encodedNodeIdentifier, "node": fabricatedNode},
+              data: {"nodeDNA": nodeDNA, "nodeWidget": fabricatedNode},
               feedback: Material(
                 color: Colors.transparent,
                 child: Opacity(
