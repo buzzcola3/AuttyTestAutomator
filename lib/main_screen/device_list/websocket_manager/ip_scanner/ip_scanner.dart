@@ -50,7 +50,7 @@ Future<void> ipResponding(String ip, String port) async {
       Map<String, dynamic> decodedMessage = jsonDecode(message);
       print('Received message: $message');
 
-      if (decodedMessage["RESPONSE"] == 'ok' && decodedMessage["FOR_REQUEST"] == 'ping') {
+      if (decodedMessage["RESPONSE"] == 'OK' && decodedMessage["UUID"] == 'PING') {
         print('Server responded to ping.');
         Map<String, String> newDevice = {"ip": ip, "port": port};
         deviceChangeNotifyFunction(newDevice);
@@ -64,7 +64,8 @@ Future<void> ipResponding(String ip, String port) async {
     // Timer to send pings every second for 20 seconds
     for (int i = 0; i < 40; i++) {
       if (stopPinging) break; // Stop if server responded
-      socket.add('ping');
+      String request = """{"COMMAND": "PING", "PARAMETERS": ""}""";
+      socket.add(jsonEncode({"REQUEST": request, "PARAMETERS": "", "UUID": "PING"}));
       await Future.delayed(Duration(seconds: 1));
     }
 

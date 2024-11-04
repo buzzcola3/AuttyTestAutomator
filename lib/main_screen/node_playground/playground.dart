@@ -189,7 +189,7 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
 
   void _updateParameter(String targetNode, String parameterName, String newParameterValue) {
       if (widget.nodesDNA[targetNode] != null) {
-        for (var parameter in widget.nodesDNA["nodeParameters"]) {
+        for (var parameter in widget.nodesDNA[targetNode]["nodeParameters"]) {
           if (parameter["Name"] == parameterName) {
             parameter["Value"] = newParameterValue;
             return;

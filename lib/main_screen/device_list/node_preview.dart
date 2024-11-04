@@ -159,7 +159,7 @@ Widget _buildCommandList() {
           child: ElevatedButton(
             onPressed: () {
               // Handle the command action here
-              widget.wsController.sendMessage(widget.deviceData!.ipAddress, commands[index]);
+              widget.wsController.sendRequest(widget.deviceData!.ipAddress, commands[index], []);
               print(widget.wsMessageList);
               //sendMessage
               print("Executing command: ${commands[index]}"); // Replace with actual command execution logic

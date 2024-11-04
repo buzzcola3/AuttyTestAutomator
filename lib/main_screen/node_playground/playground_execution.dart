@@ -99,7 +99,7 @@ Future<void> executeNode(String node, List<ExecutableNode> playgroundNodes) asyn
       if (nodesDNA[node]["deviceUniqueId"] != 'internal') {
         final deviceIp = wsController.getDeviceIp(nodesDNA[node]["deviceUniqueId"]);
         if (deviceIp != null) {
-          await wsController.awaitRequest(deviceIp, nodesDNA[node]["nodeCommand"]);
+          await wsController.awaitRequest(deviceIp, nodesDNA[node]["nodeCommand"], []); //TODO add parameters separate
         } else {
           print("Device IP not found for ${nodesDNA[node]["deviceUniqueId"]} command: ${nodesDNA[node]["nodeCommand"]}");
         }
