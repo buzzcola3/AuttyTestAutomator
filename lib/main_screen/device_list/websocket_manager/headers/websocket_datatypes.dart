@@ -15,7 +15,7 @@ class WsMessage {
   dynamic response;
   bool fulfilled = false;
 
-  final void Function(Map<String, String>, String, List<String>) messageSendFunction;
+  final void Function(Map<String, String>, String, List<String>, String?) messageSendFunction;
 
   Timer? _statusCheckTimer;
   String lastStatus = "";
@@ -40,7 +40,7 @@ class WsMessage {
         List<String> originalParameters = (originalMessage["PARAMETERS"] as List<dynamic>)
           .map((item) => item.toString())
           .toList();
-        messageSendFunction(device, originalCommand, originalParameters);
+        messageSendFunction(device, originalCommand, originalParameters, uuid);
 
       } else {
         // If fulfilled, stop the timer

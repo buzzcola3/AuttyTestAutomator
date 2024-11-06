@@ -26,7 +26,9 @@ class WebSocketController {
     ipScanner.ipResponding("127.0.0.1", "80");
     ipScanner.ipResponding("127.0.0.1", "81");
     ipScanner.ipResponding("127.0.0.1", "82");
-    ipScanner.ipResponding("192.168.16.100", "80");
+    ipScanner.ipResponding("192.168.16.111", "80");
+    ipScanner.ipResponding("192.168.16.111", "81");
+    ipScanner.ipResponding("192.168.16.111", "82");
     //ipScanner.fullScan();
   }
 
@@ -78,7 +80,7 @@ class WebSocketController {
     //check response wait list, and assign the response
   }
 
-  void sendMessage(Map<String, String> deviceIp, String command, List<String> parameters){
+  void sendMessage(Map<String, String> deviceIp, String command, List<String> parameters, String? uuid){
     final WsMessage wsMessage = WsMessage(
       device: deviceIp,
       message: jsonEncode({"COMMAND": command, "PARAMETERS": parameters}),
@@ -89,9 +91,11 @@ class WebSocketController {
     wsMessage.response = "";
     wsMessage.rawResponse = "";
 
+    uuid ??= wsMessage.uuid;
+
     for (var wsDevice in wsDeviceList.devices) {
       if(wsDevice.ipAddress['ip'] == deviceIp['ip'] && wsDevice.ipAddress['port'] == deviceIp['port']){
-        wsDevice.socket?.add(jsonEncode({"REQUEST": wsMessage.message, "UUID": wsMessage.uuid}));
+        wsDevice.socket?.add(jsonEncode({"REQUEST": wsMessage.message, "UUID": uuid}));
       }
       //TODO if no message gets sent, device no longer exists
     }
