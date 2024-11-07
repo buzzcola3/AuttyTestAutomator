@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:attempt_two/main_screen/device_list/websocket_manager/websocket_connection.dart';
 import 'package:uuid/uuid.dart';
 
+enum MessageType { generic, response, warning, error }
 
 class WsMessage {
   // Properties
@@ -14,9 +15,12 @@ class WsMessage {
   String? rawResponse;
   dynamic response;
   bool fulfilled = false;
+  int resendCount = 0;  // New property to track duplicates
 
-  final void Function(Map<String, String>, String, List<String>, String?) messageSendFunction;
 
+  MessageType messageType = MessageType.generic;
+
+  final void Function(String)? resendRequest;
   Timer? _statusCheckTimer;
   String lastStatus = "";
 
@@ -24,7 +28,7 @@ class WsMessage {
   WsMessage({
     required this.device, 
     required this.message, 
-    required this.messageSendFunction
+    this.resendRequest,
   }) {
     final messageUuid = Uuid();
     uuid = messageUuid.v1();
@@ -34,16 +38,9 @@ class WsMessage {
   void _startStatusCheck() {
     _statusCheckTimer = Timer.periodic(Duration(seconds: 6), (timer) async {
       if (!fulfilled) {
-        // Send "GET_STATUS" request
-        Map<String, dynamic> originalMessage = jsonDecode(message);
-        String originalCommand = originalMessage["COMMAND"];
-        List<String> originalParameters = (originalMessage["PARAMETERS"] as List<dynamic>)
-          .map((item) => item.toString())
-          .toList();
-        messageSendFunction(device, originalCommand, originalParameters, uuid);
-
+        resendRequest!(uuid);
+        resendCount++;
       } else {
-        // If fulfilled, stop the timer
         _statusCheckTimer?.cancel();
       }
     });
@@ -51,29 +48,41 @@ class WsMessage {
 
   @override
   String toString() {
-    return 'WsMessage(source: $device, message: $message, fulfilled: $fulfilled)';
+    return 'WsMessage(source: $device, message: $message, fulfilled: $fulfilled, duplicates: $resendCount)';
   }
 }
 
 
 class WsMessageList {
-  // List to hold all WsMessages
   List<WsMessage> messages = [];
 
-  // Method to add a WsMessage to the list
+  // Method to add a WsMessage to the list, with duplicate counting
   void addMessage(WsMessage message) {
-    messages.add(message);
+    messages.add(message);  // Add new message if no duplicate
   }
 
-  // Method to search for a WsMessage starting from the most recent (last) message
+  void addError(String errorMessage){
+    final WsMessage wsMessage = WsMessage(
+      device: {"ip": "", "port": ""},
+      message: errorMessage,
+    );
+
+    wsMessage.fulfilled = true;
+    wsMessage.response = "";
+    wsMessage.rawResponse = "";
+    wsMessage.messageType = MessageType.error;
+
+    messages.add(wsMessage);
+  }
+
+  // Method to search for a WsMessage by UUID
   WsMessage? searchMessage(String messageUuid) {
     for (int i = messages.length - 1; i >= 0; i--) {
-      WsMessage message = messages[i];
-      if (message.uuid == messageUuid) {
-        return message;
+      if (messages[i].uuid == messageUuid) {
+        return messages[i];
       }
     }
-    return null; // Return null if no match is found
+    return null;
   }
 
 

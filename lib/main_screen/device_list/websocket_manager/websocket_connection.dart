@@ -80,22 +80,21 @@ class WebSocketController {
     //check response wait list, and assign the response
   }
 
-  void sendMessage(Map<String, String> deviceIp, String command, List<String> parameters, String? uuid){
+  void sendMessage(Map<String, String> deviceIp, String command, List<String> parameters){
     final WsMessage wsMessage = WsMessage(
       device: deviceIp,
       message: jsonEncode({"COMMAND": command, "PARAMETERS": parameters}),
-      messageSendFunction: sendMessage,
+      resendRequest: resendRequest,
     );
 
     wsMessage.fulfilled = true;
     wsMessage.response = "";
     wsMessage.rawResponse = "";
 
-    uuid ??= wsMessage.uuid;
 
     for (var wsDevice in wsDeviceList.devices) {
       if(wsDevice.ipAddress['ip'] == deviceIp['ip'] && wsDevice.ipAddress['port'] == deviceIp['port']){
-        wsDevice.socket?.add(jsonEncode({"REQUEST": wsMessage.message, "UUID": uuid}));
+        wsDevice.socket?.add(jsonEncode({"REQUEST": wsMessage.message}));
       }
       //TODO if no message gets sent, device no longer exists
     }
@@ -109,7 +108,7 @@ class WebSocketController {
     final WsMessage wsMessage = WsMessage(
       device: deviceIp,
       message: jsonEncode({"COMMAND": command, "PARAMETERS": parameters}),
-      messageSendFunction: sendMessage,
+      resendRequest: resendRequest,
     );
 
     for (var wsDevice in wsDeviceList.devices) {

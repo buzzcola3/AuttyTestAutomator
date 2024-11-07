@@ -4,15 +4,12 @@ import 'package:attempt_two/main_screen/device_list/websocket_manager/headers/we
 class DebugConsoleController {
   final GlobalKey<_DebugConsoleState> _key = GlobalKey<_DebugConsoleState>();
 
-  // Expose the GlobalKey
   GlobalKey<_DebugConsoleState> get key => _key;
 
-  // External method to add messages
-  void addMessage() { //TODO rename
+  void addMessage() {
     _key.currentState?._addMessage();
   }
 
-  // External method to scroll to bottom
   void scrollToBottom() {
     _key.currentState?._scrollToBottom();
   }
@@ -27,7 +24,6 @@ class DebugConsole extends StatefulWidget {
   _DebugConsoleState createState() => _DebugConsoleState();
 }
 
-enum MessageType { generic, response, warning, error }
 
 class ConsoleMessage {
   final String content;
@@ -49,46 +45,26 @@ class _DebugConsoleState extends State<DebugConsole> {
   }
 
   void _scrollListener() {
-    if (_scrollController.offset < _scrollController.position.maxScrollExtent - 100) {
-      setState(() {
-        _showScrollToBottomButton = true;
-        _autoScrollEnabled = false;
-      });
-    } else {
-      setState(() {
-        _showScrollToBottomButton = false;
-        _autoScrollEnabled = true;
-      });
-    }
+    final nearBottom = _scrollController.offset < _scrollController.position.maxScrollExtent - 100;
+    setState(() {
+      _showScrollToBottomButton = nearBottom;
+      _autoScrollEnabled = !nearBottom;
+    });
   }
 
   void _addMessage() {
-    setState(() {
-      widget.wsMessageList;
-    });
-    if (_autoScrollEnabled) {
-      _scrollToBottom();
-    }
+    setState(() => widget.wsMessageList);
+    if (_autoScrollEnabled) _scrollToBottom();
     _inputController.clear();
   }
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
-  }
-
-  void _scrollToBottomButtonPressed() {
-    _scrollToBottom();
-    setState(() {
-      _showScrollToBottomButton = false;
-      _autoScrollEnabled = true;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
     });
   }
 
@@ -115,33 +91,9 @@ class _DebugConsoleState extends State<DebugConsole> {
                         return ExpandableMessageTile(
                           message: message.message,
                           response: message.rawResponse,
-                          type: MessageType.generic,
+                          type: message.messageType,
                         );
                       },
-                    ),
-                  ),
-                  Divider(color: Colors.grey[700], height: 1),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _inputController,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: InputDecoration(
-                              hintText: 'Enter command',
-                              hintStyle: TextStyle(color: Colors.grey[500]),
-                              filled: true,
-                              fillColor: Colors.black54,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(5.0),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ],
@@ -151,11 +103,11 @@ class _DebugConsoleState extends State<DebugConsole> {
                   bottom: 60,
                   right: 16,
                   child: IconButton(
-                    icon: Icon(Icons.arrow_downward, size: 20),
-                    onPressed: _scrollToBottomButtonPressed,
+                    icon: const Icon(Icons.arrow_downward, size: 20),
+                    onPressed: _scrollToBottom,
                     color: Colors.white,
                     padding: EdgeInsets.zero,
-                    constraints: BoxConstraints(),
+                    constraints: const BoxConstraints(),
                   ),
                 ),
             ],
@@ -179,6 +131,7 @@ class ExpandableMessageTile extends StatefulWidget {
   final String? response;
   final MessageType type;
   final int previewLength;
+  final VoidCallback? onResponseReceived;
 
   const ExpandableMessageTile({
     Key? key,
@@ -186,6 +139,7 @@ class ExpandableMessageTile extends StatefulWidget {
     this.response,
     required this.type,
     this.previewLength = 100,
+    this.onResponseReceived,
   }) : super(key: key);
 
   @override
@@ -193,12 +147,29 @@ class ExpandableMessageTile extends StatefulWidget {
 }
 
 class _ExpandableMessageTileState extends State<ExpandableMessageTile> {
-  bool _isExpanded = false;
+  bool _isMessageExpanded = false;
+  bool _isResponseExpanded = false;
+  bool _isResponseReceived = false;
 
-  void _toggleExpanded() {
-    setState(() {
-      _isExpanded = !_isExpanded;
-    });
+  @override
+  void didUpdateWidget(ExpandableMessageTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Check if response is received (this assumes widget.response is updated when response is available)
+    if (widget.response != null && !_isResponseReceived) {
+      _isResponseReceived = true;
+      if (widget.onResponseReceived != null) {
+        widget.onResponseReceived!(); // Notify parent that response is received
+      }
+    }
+  }
+
+  void _toggleMessageExpanded() {
+    setState(() => _isMessageExpanded = !_isMessageExpanded);
+  }
+
+  void _toggleResponseVisibility() {
+    setState(() => _isResponseExpanded = !_isResponseExpanded);
   }
 
   @override
@@ -209,9 +180,7 @@ class _ExpandableMessageTileState extends State<ExpandableMessageTile> {
       padding: const EdgeInsets.all(8.0),
       decoration: BoxDecoration(
         color: _getMessageBackgroundColor(widget.type),
-        border: Border(
-          bottom: BorderSide(color: Colors.grey[800]!, width: 0.9),
-        ),
+        border: Border(bottom: BorderSide(color: Colors.grey[800]!, width: 1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,48 +195,56 @@ class _ExpandableMessageTileState extends State<ExpandableMessageTile> {
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
-                  _isExpanded || !isLongMessage
+                  _isMessageExpanded || !isLongMessage
                       ? widget.message
                       : '${widget.message.substring(0, widget.previewLength)}...',
-                  style: TextStyle(
-                    color: _getMessageTextColor(widget.type),
-                    fontFamily: 'monospace',
-                  ),
+                  style: TextStyle(color: _getMessageTextColor(widget.type), fontFamily: 'monospace'),
                 ),
               ),
-              if (widget.response == null)
-                Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 1.5,
-                      color: Colors.grey[500],
-                    ),
-                  ),
+              // Only show the loading or checkmark for MessageType.generic
+              if (widget.type == MessageType.generic) 
+                Container(
+                  width: 50,
+                  height: 20,
+                  color: Colors.transparent,
+                  child: !_isResponseReceived
+                      ? const Center(
+                          child: SizedBox(
+                            width: 16,  // Set width and height to match the circular progress indicator's default size
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          ),
+                        )
+                      : Center(
+                          child: ElevatedButton(
+                            onPressed: _toggleResponseVisibility,  // Toggle response visibility
+                            style: ElevatedButton.styleFrom(
+                              shape: CircleBorder(),
+                              padding: EdgeInsets.zero,  // Remove padding to make it only the icon
+                              backgroundColor: Colors.transparent,  // Make button background transparent
+                            ),
+                            child: Icon(Icons.check, color: Colors.white), // Change to checkmark icon
+                          ),
+                        ),
+                ),
+              if (isLongMessage)
+                TextButton(
+                  onPressed: _toggleMessageExpanded,
+                  child: Text(_isMessageExpanded ? 'Collapse' : 'Expand'),
                 ),
             ],
           ),
-          if (isLongMessage)
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: _toggleExpanded,
-                child: Text(_isExpanded ? 'Collapse' : 'Expand'),
-              ),
+          // Display response text only if it is visible
+          if (_isResponseExpanded && widget.response != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              widget.response!,
+              style: TextStyle(color: Colors.grey[400], fontFamily: 'monospace'),
             ),
-          if (widget.response != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Text(
-                widget.response!,
-                style: TextStyle(
-                  color: Colors.grey[400],
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ),
+          ],
         ],
       ),
     );
