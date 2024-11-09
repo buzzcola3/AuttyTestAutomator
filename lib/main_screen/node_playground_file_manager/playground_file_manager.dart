@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:attempt_two/userdata_database.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:archive/archive.dart';
 import 'package:attempt_two/main_screen/node_playground_file_manager/playground_save_and_load.dart';
 import 'package:file_saver/file_saver.dart';
@@ -12,8 +11,13 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 class JsonFileManager extends StatefulWidget {
   final PlaygroundSaveLoad playgroundSaveLoad;
+  final UserdataDatabase userdataDatabase;
 
-  const JsonFileManager({Key? key, required this.playgroundSaveLoad}) : super(key: key);
+  const JsonFileManager({
+    super.key,
+    required this.playgroundSaveLoad,
+    required this.userdataDatabase
+    });
 
   @override
   _JsonFileManagerState createState() => _JsonFileManagerState();
@@ -40,7 +44,7 @@ class _JsonFileManagerState extends State<JsonFileManager> {
             Map<String, dynamic> jsonContent = jsonDecode(jsonString);
 
             setState(() {
-              jsonFiles.add({'name': file.name, 'content': jsonContent});
+              jsonFiles.add({'name': file.name, 'content': jsonContent, 'hover': false});
               fileContents[file.name] = Uint8List.fromList(utf8.encode(jsonString));
             });
           } catch (e) {
@@ -51,17 +55,6 @@ class _JsonFileManagerState extends State<JsonFileManager> {
         }
       }
     }
-  }
-
-  Future<void> _addNewFile() async {
-    String newFileName = 'new_file_${jsonFiles.length + 1}.json';
-    final jsonString = widget.playgroundSaveLoad.saveToJson();
-    final newFileContent = Uint8List.fromList(utf8.encode(jsonString));
-
-    setState(() {
-      jsonFiles.add({'name': newFileName, 'content': {}});
-      fileContents[newFileName] = newFileContent;
-    });
   }
 
   Future<void> _renameFile(int index) async {
@@ -172,6 +165,14 @@ class _JsonFileManagerState extends State<JsonFileManager> {
     }
   }
 
+  void _deleteFile(int index) {
+    setState(() {
+      final fileName = jsonFiles[index]['name'];
+      jsonFiles.removeAt(index);
+      fileContents.remove(fileName);
+    });
+  }
+
   void _executeJson(int index) {
     final fileName = jsonFiles[index]['name'];
 
@@ -216,7 +217,7 @@ class _JsonFileManagerState extends State<JsonFileManager> {
 
       setState(() {
         final fullFileName = '$newFileName.json';
-        jsonFiles.add({'name': fullFileName, 'content': jsonDecode(playgroundJson)});
+        jsonFiles.add({'name': fullFileName, 'content': jsonDecode(playgroundJson), 'hover': false});
         fileContents[fullFileName] = fileContent;
       });
 
@@ -226,102 +227,120 @@ class _JsonFileManagerState extends State<JsonFileManager> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey, width: 2.0),
-          borderRadius: BorderRadius.circular(8.0),
-        ),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  icon: Transform.scale(
-                    scale: 1,
-                    child: SvgPicture.asset(
-                      'lib/svg_icons/playground_download_icon.svg',
-                      width: 24,
-                      height: 24,
-                      color: const Color.fromARGB(255, 58, 58, 58),
-                    ),
-                  ),
-                  onPressed: _downloadAllAsZip,
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey, width: 2.0),
+        borderRadius: BorderRadius.circular(8.0),
+      ),
+      child: Column(
+        children: [
+          // Top action icons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              IconButton(
+                icon: SvgPicture.asset(
+                  'lib/svg_icons/playground_download_icon.svg',
+                  width: 24,
+                  height: 24,
+                  color: const Color.fromARGB(255, 58, 58, 58),
                 ),
-                IconButton(
-                  icon: Transform.scale(
-                    scale: 1,
-                    child: SvgPicture.asset(
-                      'lib/svg_icons/playground_upload_icon.svg',
-                      width: 24,
-                      height: 24,
-                      color: const Color.fromARGB(255, 58, 58, 58),
-                    ),
-                  ),
-                  onPressed: _pickFiles,
+                onPressed: _downloadAllAsZip,
+              ),
+              IconButton(
+                icon: SvgPicture.asset(
+                  'lib/svg_icons/playground_upload_icon.svg',
+                  width: 24,
+                  height: 24,
+                  color: const Color.fromARGB(255, 58, 58, 58),
                 ),
-                IconButton(
-                  icon: Transform.scale(
-                    scale: 1,
-                    child: SvgPicture.asset(
-                      'lib/svg_icons/playground_save_icon.svg',
-                      width: 24,
-                      height: 24,
-                      color: const Color.fromARGB(255, 58, 58, 58),
-                    ),
-                  ),
-                  onPressed: _savePlayground,
+                onPressed: _pickFiles,
+              ),
+              IconButton(
+                icon: SvgPicture.asset(
+                  'lib/svg_icons/playground_save_icon.svg',
+                  width: 24,
+                  height: 24,
+                  color: const Color.fromARGB(255, 58, 58, 58),
                 ),
-              ],
-            ),
-            Expanded(
-              child: ListView.builder(
+                onPressed: _savePlayground,
+              ),
+            ],
+          ),
+          
+          // List of JSON files with reordering
+          Expanded(
+            child: Overlay(
+              initialEntries: [
+                OverlayEntry(builder: (context){
+                  return                ReorderableListView.builder(
+                buildDefaultDragHandles: false, // Disable default drag handles
+                onReorder: (oldIndex, newIndex) {
+                  setState(() {
+                    if (newIndex > oldIndex) newIndex -= 1;
+                    final item = jsonFiles.removeAt(oldIndex);
+                    jsonFiles.insert(newIndex, item);
+                  });
+                },
                 itemCount: jsonFiles.length,
                 itemBuilder: (context, index) {
-                  final fileName = jsonFiles[index]['name'].replaceAll('.json', '');
                   return MouseRegion(
+                    key: ValueKey(jsonFiles[index]['name']),
                     onEnter: (_) => setState(() => jsonFiles[index]['hover'] = true),
                     onExit: (_) => setState(() => jsonFiles[index]['hover'] = false),
                     child: Container(
                       color: Colors.grey[300],
                       margin: const EdgeInsets.symmetric(vertical: 4.0),
-                      height: 30,
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      height: 40,
                       child: Stack(
                         alignment: Alignment.centerLeft,
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 8.0),
-                            child: Row(
-                              children: [
-                                Icon(Icons.insert_drive_file, size: 18, color: Colors.grey[700]),
-                                SizedBox(width: 8),
-                                Text(
-                                  fileName,
-                                  style: TextStyle(fontSize: 14, color: Colors.black87),
-                                ),
-                              ],
-                            ),
+                          Row(
+                            children: [
+                              if (!jsonFiles[index]['hover'])
+                                Icon(Icons.insert_drive_file, size: 18, color: Color.fromARGB(255, 58, 58, 58)),
+                              const SizedBox(width: 8),
+                              Text(
+                                !jsonFiles[index]['hover'] ? jsonFiles[index]['name'] : "",
+                                style: TextStyle(fontSize: 14, color: Colors.black87),
+                              ),
+                            ],
                           ),
-                          if (jsonFiles[index]['hover'] == true)
+                          if (jsonFiles[index]['hover'])
                             Positioned(
-                              right: 8.0,
+                              right: 0,
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
+                                  // Custom drag handle for reordering within the hover overlay
+                                  ReorderableDragStartListener(
+                                    index: index,
+                                    child: Icon(Icons.drag_handle, size: 20, color: Color.fromARGB(255, 58, 58, 58)),
+                                  ),
                                   IconButton(
-                                    icon: Icon(Icons.play_arrow, size: 20, color: Colors.green),
+                                    icon: Icon(Icons.play_arrow, size: 20, color: Color.fromARGB(255, 58, 58, 58)),
                                     onPressed: () => _executeJson(index),
                                   ),
                                   IconButton(
-                                    icon: Icon(Icons.edit, size: 20),
+                                    icon: Icon(Icons.edit, size: 20, color: Color.fromARGB(255, 58, 58, 58)),
                                     onPressed: () => _renameFile(index),
                                   ),
                                   IconButton(
-                                    icon: Icon(Icons.download, size: 20),
+                                    icon: SvgPicture.asset(
+                                      'lib/svg_icons/playground_download_icon.svg',
+                                      width: 20,
+                                      height: 20,
+                                      color: Color.fromARGB(255, 58, 58, 58),
+                                    ),
                                     onPressed: () => _downloadFile(jsonFiles[index]['name']),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(Icons.delete, size: 20, color: Color.fromARGB(255, 58, 58, 58)),
+                                    onPressed: () => _deleteFile(index),
                                   ),
                                 ],
                               ),
@@ -331,11 +350,19 @@ class _JsonFileManagerState extends State<JsonFileManager> {
                     ),
                   );
                 },
-              ),
+              );
+                })
+              ],
+
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
+
+
+
 }

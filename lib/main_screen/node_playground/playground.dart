@@ -215,7 +215,7 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
         clipBehavior: Clip.hardEdge,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
-          color: Colors.green,
+          color: const Color.fromARGB(255, 58, 58, 58),
         ),
         child: Stack(
           children: [

@@ -38,8 +38,10 @@ dependencies:
   file_picker: ^8.1.3
   archive: ^3.6.1
   path_provider: ^2.1.4
-  share_plus: ^10.1.1
   file_saver: ^0.2.14
+  idb_sqflite: ^1.3.3+6
+  sqlite3_flutter_libs: ^0.5.26
+  sqflite_common_ffi: ^2.3.4
   uuid: ^4.4.2
 
 

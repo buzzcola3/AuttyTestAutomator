@@ -8,6 +8,7 @@ import 'device_list/websocket_manager/headers/websocket_datatypes.dart';
 import 'package:attempt_two/main_screen/node_playground/playground_execution.dart';
 import 'package:attempt_two/main_screen/node_playground_file_manager/playground_file_manager.dart';
 import 'package:attempt_two/main_screen/node_playground_file_manager/playground_save_and_load.dart';
+import 'package:attempt_two/userdata_database.dart';
 
 class MainScreen extends StatefulWidget {
   MainScreen({super.key, required this.title});
@@ -29,6 +30,7 @@ class _MainScreen extends State<MainScreen> {
   late Map<String, dynamic> nodesDNA;
   late DebugConsoleController debugConsoleController;
   late PlaygroundSaveLoad playgroundSaveLoad;
+  late UserdataDatabase userdataDatabase;
 
   @override
   void initState() {
@@ -50,6 +52,8 @@ class _MainScreen extends State<MainScreen> {
     );
 
     playgroundSaveLoad = PlaygroundSaveLoad(widget.nodeController, nodesDNA, widget.nodeEditorWidgetController);
+
+    userdataDatabase = UserdataDatabase();
 
     debugConsoleController = DebugConsoleController();
 
@@ -82,6 +86,7 @@ class _MainScreen extends State<MainScreen> {
                   ),
                   child: DeviceScanner(
                     wsController: wsController,
+                    userdataDatabase: userdataDatabase
                   ),
                 ),
               ),
@@ -97,7 +102,7 @@ class _MainScreen extends State<MainScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Center(
-                    child: JsonFileManager(playgroundSaveLoad: playgroundSaveLoad),
+                    child: JsonFileManager(playgroundSaveLoad: playgroundSaveLoad, userdataDatabase: userdataDatabase),
                   ),
                 ),
               ),

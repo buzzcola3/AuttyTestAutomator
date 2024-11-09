@@ -25,7 +25,7 @@ class IPScanner {
 
       // Delay the start of each new instance by 200 milliseconds
       futures.add(Future.delayed(Duration(milliseconds: i * 200), () async {
-        await ipResponding(ipAddress, port);
+        await attemptConnection(ipAddress, port);
 
       }));
     }
@@ -37,7 +37,7 @@ class IPScanner {
     return;
   }
 
-Future<void> ipResponding(String ip, String port) async {
+Future<void> attemptConnection(String ip, String port) async {
   try {
     WebSocket socket = await WebSocket.connect('ws://$ip:$port');
     print('Connected to server!');
