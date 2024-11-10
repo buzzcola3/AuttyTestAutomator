@@ -53,6 +53,30 @@ Map<String, dynamic> internalDevice = {
       "InPorts": ["delay_inport"],
       "OutPorts": ["delay_outport"],
       "SvgIcon": startNodeIcon
+    },
+    {
+      "Name": "Test",
+      "Type": "basicNode",
+      "Command": "DELAY",
+      "Parameters": 
+      [
+        {
+          "Name": "ur List",
+          "Type": "List",
+          "Value": "apple",
+          "AvailableValues": [
+  "apple", "orange", "banana", "grape", "kiwi", "melon", "peach", "plum",
+  "cherry", "berry", "mango", "lemon", "fig", "coconut", "papaya", "lime",
+  "apricot", "date", "pear", "guava", "nectarine", "blueberry", "strawberry",
+  "blackberry", "raspberry", "cranberry", "pomegranate", "dragonfruit", 
+  "persimmon", "watermelon"
+],
+        }
+      ],
+      "Color": "blue",
+      "InPorts": ["delay_inport"],
+      "OutPorts": ["delay_outport"],
+      "SvgIcon": startNodeIcon
     }
   ],
 };

@@ -327,7 +327,7 @@ Row(
         height: 32, // Larger icon size
         color: const Color.fromARGB(255, 58, 58, 58),
       ),
-      onPressed: _executeAllFiles, // Define this function for execution action// Set the button size to be consistent with the others
+      onPressed: _executeAllFiles,
     ),
     IconButton(
       icon: SvgPicture.asset(

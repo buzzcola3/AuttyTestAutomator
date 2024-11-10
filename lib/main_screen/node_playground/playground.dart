@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:node_editor/node_editor.dart';
+import 'package:dropdown_search/dropdown_search.dart';
 import '../device_list/node_generation/node_generator.dart';
 import 'package:uuid/uuid.dart';
+
 
 class NodeEditorWidgetController {
   NodeEditorWidgetState? _nodeEditorWidgetState;
@@ -201,10 +203,82 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
   List getNodeParameterList(String targetNode) {
 
     if (widget.nodesDNA[targetNode] != null) {
-      return widget.nodesDNA[targetNode]["nodeParameters"];
+      if (widget.nodesDNA[targetNode]["nodeParameters"]!= null){
+        return widget.nodesDNA[targetNode]["nodeParameters"];
+      }
     }
     
     return [];
+  }
+
+  Widget getParameterWidget(dynamic parameter){
+    String parameterType = parameter["Type"]?.toString() ?? '';
+    String parameterName = parameter["Name"]?.toString() ?? '';
+    String initialValue = parameter["Value"]?.toString() ?? '';
+
+
+  if (parameterType == 'List') {
+    final List<String> availableValues = List<String>.from(parameter["AvailableValues"])
+      ..sort((a, b) => a.compareTo(b)); // Sort alphabetically
+
+    String? selectedValue = initialValue;
+    final GlobalKey<DropdownSearchState<String>> dropDownKey = GlobalKey();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(child: Text(parameterName)),
+          // Using SizedBox to control the dropdown width
+          SizedBox(
+            width: 130, // Adjust this value to make the selection area wider
+            child: DropdownSearch<String>(
+              key: dropDownKey,
+              selectedItem: selectedValue,
+              items: (String? filter, _) => availableValues,
+              onChanged: (newValue) {
+                selectedValue = newValue;
+                _updateParameter(_selectedNodeName!, parameterName, newValue!);
+              },
+              popupProps: PopupProps.menu(
+                fit: FlexFit.loose,
+                constraints: BoxConstraints(),
+                showSearchBox: true, // Enables search box within the dropdown
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+    else if(parameterType == 'Int'){
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(child: Text(parameterName)),
+            Expanded(
+              child: TextField(
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  hintText: initialValue,
+                ),
+                onSubmitted: (value) {
+                  _updateParameter(_selectedNodeName!, parameterName, value);
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    else return const SizedBox.shrink();
+
+
   }
 
   @override
@@ -262,33 +336,7 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
                       ),
                       const SizedBox(height: 8),
                       ...getNodeParameterList(_selectedNodeName!).map((parameter) {
-                        if (parameter is Map<String, dynamic>) {
-                          String parameterName = parameter["Name"]?.toString() ?? '';
-                          String initialValue = parameter["Value"]?.toString() ?? '';
-
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(child: Text(parameterName)),
-                                Expanded(
-                                  child: TextField(
-                                    decoration: InputDecoration(
-                                      border: const OutlineInputBorder(),
-                                      hintText: initialValue,
-                                    ),
-                                    onSubmitted: (value) {
-                                      _updateParameter(_selectedNodeName!, parameterName, value);
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        } else {
-                          return const SizedBox.shrink();
-                        }
+                        return getParameterWidget(parameter);
                       }),
                     ],
                   ),
@@ -300,3 +348,5 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
     );
   }
 }
+
+
