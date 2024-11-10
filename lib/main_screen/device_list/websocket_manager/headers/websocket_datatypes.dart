@@ -175,6 +175,11 @@ class WsDeviceList {
 
   // Method to add a device to the list
   void addDevice(WsDevice device) {
+    WsDevice? duplicateDevice = findDevice(device.ipAddress);
+    if (duplicateDevice != null) {
+      removeDevice(duplicateDevice.ipAddress);
+    }
+
     devices.add(device);
   }
 

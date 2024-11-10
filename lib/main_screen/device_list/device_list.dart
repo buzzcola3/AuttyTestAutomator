@@ -36,6 +36,14 @@ class DeviceScannerState extends State<DeviceScanner> {
     connectToPreviouslyConnected();
   }
 
+  void connectToDevice(IPAddress ipAddress){
+    widget.wsController.ipScanner.attemptConnection(ipAddress);
+  }
+
+  void scanSubnet(IPAddress subnetIp){
+    widget.wsController.ipScanner.scanSubnet(subnetIp);
+  }
+
   Future<void> connectToPreviouslyConnected() async {
     Map<String, dynamic> list = await userdataDatabase;
   
@@ -49,14 +57,7 @@ class DeviceScannerState extends State<DeviceScanner> {
   
     if (previouslyConnected != null) {
       for (var dev in previouslyConnected!) {
-        // Check if device is already in wsDeviceList.devices based on ip and port
-        bool isConnected = widget.wsController.wsDeviceList.devices.any((connectedDevice) =>
-            connectedDevice.ipAddress == IPAddress.fromMap(dev));
-        
-        // Only attempt connection if the device is not already connected
-        if (!isConnected) {
-          widget.wsController.ipScanner.attemptConnection(dev['ip']!, dev['port']!);
-        }
+        widget.wsController.ipScanner.attemptConnection(IPAddress.fromMap(dev));
       }
     }
   }
@@ -91,8 +92,7 @@ Future<void> updateDeviceList() async {
     previouslyConnected!.add(ip);
   }
 
-  await widget.userdataDatabase
-      .saveDeviceListData({'connectedDevices': previouslyConnected});
+  await widget.userdataDatabase.saveDeviceListData({'connectedDevices': previouslyConnected});
 }
 
   void _handleDeviceTap(WsDevice device) {
@@ -244,6 +244,10 @@ Widget build(BuildContext context) {
 }
 
 Widget manualDeviceConnectionMenu(BuildContext context, Future<void> Function() connectToPreviouslyConnected) {
+  final TextEditingController ipController = TextEditingController();
+  final TextEditingController portController = TextEditingController();
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+
   return Container(
     clipBehavior: Clip.hardEdge,
     decoration: BoxDecoration(
@@ -252,57 +256,37 @@ Widget manualDeviceConnectionMenu(BuildContext context, Future<void> Function() 
     width: 120.0,
     child: Column(
       children: [
+        // Add Device Button
         ElevatedButton(
           onPressed: () {
-            showDialog(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: Text("Add Device"),
-                  content: Text("Enter details to add a new device."),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text("Cancel"),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        // Add device logic here
-                        Navigator.pop(context);
-                      },
-                      child: Text("Add"),
-                    ),
-                  ],
-                );
-              },
-            );
+            _showAddDeviceDialog(context, formKey, ipController, portController);
           },
           style: _buttonStyle,
           child: _buildButtonContent(Icons.add, 'Add'),
         ),
-ElevatedButton(
-  onPressed: () async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Attempting to reconnect to previously connected devices..."),
-        duration: Duration(seconds: 3), // Adjust duration as needed
-      ),
-    );
-
-    // Call the function to attempt reconnection
-    await connectToPreviouslyConnected();
-  },
-  style: _buttonStyle,
-  child: _buildButtonContent(Icons.refresh, 'Reconnect'),
-),
-
+        // Reconnect Button
+        ElevatedButton(
+          onPressed: () async {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Attempting to reconnect to previously connected devices..."),
+                duration: Duration(seconds: 3),
+              ),
+            );
+            await connectToPreviouslyConnected();
+          },
+          style: _buttonStyle,
+          child: _buildButtonContent(Icons.refresh, 'Reconnect'),
+        ),
+        // Scan Subnet Button
         ElevatedButton(
           onPressed: () {
-            // Scan subnet dialog logic here
+            _showScanSubnetDialog(context, formKey, ipController, portController);
           },
           style: _buttonStyle,
           child: _buildButtonContent(Icons.language, 'Scan Subnet'),
         ),
+        // Scan Ports Button
         ElevatedButton(
           onPressed: () {
             // Port scan dialog logic here
@@ -314,6 +298,142 @@ ElevatedButton(
     ),
   );
 }
+
+void _showAddDeviceDialog(BuildContext context, GlobalKey<FormState> formKey, TextEditingController ipController, TextEditingController portController) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text("Add Device"),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("Enter IP address and port of the new device."),
+              SizedBox(height: 10),
+              TextField(
+                controller: ipController,
+                decoration: InputDecoration(
+                  labelText: "IP Address",
+                  hintText: "e.g., 192.168.1.1",
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                onSubmitted: (_) => _submitForm(formKey, ipController, portController, context),
+              ),
+              SizedBox(height: 10),
+              TextField(
+                controller: portController,
+                decoration: InputDecoration(
+                  labelText: "Port",
+                  hintText: "e.g., 80",
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                onSubmitted: (_) => _submitForm(formKey, ipController, portController, context),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("Attempting to add the device..."),
+                  duration: Duration(seconds: 3),
+                ),
+              );
+              _submitForm(formKey, ipController, portController, context); // Add device
+            },
+            child: Text("Add"),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+void _showScanSubnetDialog(BuildContext context, GlobalKey<FormState> formKey, TextEditingController ipController, TextEditingController portController) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text("Scan Subnet"),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("Enter Subnet IP address and Port for scanning."),
+              SizedBox(height: 10),
+              TextField(
+                controller: ipController,
+                decoration: InputDecoration(
+                  labelText: "Subnet",
+                  hintText: "e.g., 192.168.1.0",
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                onSubmitted: (_) => _startSubnetScan(formKey, ipController, portController, context),
+              ),
+              SizedBox(height: 10),
+              TextField(
+                controller: portController,
+                decoration: InputDecoration(
+                  labelText: "Port",
+                  hintText: "e.g., 80",
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                onSubmitted: (_) => _startSubnetScan(formKey, ipController, portController, context),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("Started Subnet Scan..."),
+                  duration: Duration(seconds: 3),
+                ),
+              );
+              _startSubnetScan(formKey, ipController, portController, context); // Start scan
+            },
+            child: Text("Scan"),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+void _startSubnetScan(GlobalKey<FormState> formKey, TextEditingController ipController, TextEditingController portController, BuildContext context) {
+  final ipAddress = IPAddress(ipController.text, portController.text); // Adjust the port if needed
+  scanSubnet(ipAddress); // Placeholder function to handle subnet scan
+  Navigator.pop(context); // Close the dialog
+}
+
+
+void _submitForm(GlobalKey<FormState> formKey, TextEditingController ipController, TextEditingController portController, BuildContext context) {
+  if (formKey.currentState?.validate() ?? false) {
+    final ip = IPAddress(ipController.text, int.tryParse(portController.text) ?? 0);
+    connectToDevice(ip); // Replace with your actual connection method
+    Navigator.pop(context); // Close the dialog after adding the device
+  }
+}
+
 
 ButtonStyle get _buttonStyle => ElevatedButton.styleFrom(
       padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),

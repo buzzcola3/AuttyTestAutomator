@@ -13,12 +13,16 @@ class IPScanner {
   // Constructor that takes in a function
   IPScanner({required this.deviceChangeNotifyFunction, required this.scanDoneNotifyFunction});
 
-  void discoverSubnets() {
-    // TODO: Implement subnet discovery logic
-  }
-
-  Future<void> scanSubnet(String subnet, String port) async {
+  Future<void> scanSubnet(IPAddress subnetIp) async {
     List<Future> futures = [];
+    String subnet = subnetIp.ip;
+
+    List<String> octets = subnet.split('.');
+    // Check if the last octet is '0' and remove it
+    if (octets.isNotEmpty && octets.last == '0') {
+      octets.removeLast();
+    }
+    subnet = octets.join('.'); // Reassemble the IP address
 
     //scanDoneNotifyFunction!(true);
 
@@ -27,7 +31,7 @@ class IPScanner {
 
       // Delay the start of each new instance by 200 milliseconds
       futures.add(Future.delayed(Duration(milliseconds: i * 200), () async {
-        await attemptConnection(ipAddress, port);
+        await attemptConnection(IPAddress(ipAddress, subnetIp.port));
 
       }));
     }
@@ -39,9 +43,9 @@ class IPScanner {
     return;
   }
 
-Future<void> attemptConnection(String ip, String port) async {
+Future<void> attemptConnection(IPAddress ip) async {
   try {
-    WebSocket socket = await WebSocket.connect('ws://$ip:$port');
+    WebSocket socket = await WebSocket.connect('ws://$ip');
     print('Connected to server!');
 
     bool responded = false;
@@ -54,7 +58,7 @@ Future<void> attemptConnection(String ip, String port) async {
 
       if (decodedMessage["RESPONSE"] == 'OK' && decodedMessage["UUID"] == 'PING') {
         print('Server responded to ping.');
-        deviceChangeNotifyFunction(IPAddress(ip, port));
+        deviceChangeNotifyFunction(ip);
         responded = true;
         stopPinging = true; // Stop further ping attempts
         socket.close();
@@ -80,18 +84,4 @@ Future<void> attemptConnection(String ip, String port) async {
     print('Error: $e');
   }
 }
-
-  Future<void> fullScan({String port = "80"}) async {
-    final List<String> subnets = ["192.168.0", "192.168.1", "192.168.4", "192.168.16"]; //TODO discover subnets
-
-    //scanDoneNotifyFunction!(true);
-
-    for (String subnet in subnets) {
-      await scanSubnet(subnet, port);
-    }
-
-    //scanDoneNotifyFunction!(false);
-
-    return;
-  }
 }

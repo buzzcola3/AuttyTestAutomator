@@ -1,8 +1,11 @@
 class IPAddress {
-  final String ip;
+  String ip;
   final int port;
 
   IPAddress(this.ip, dynamic port) : port = _parsePort(port) {
+    if (ip == 'localhost'){
+      ip = "127.0.0.1";
+    }
     if (!isValidIP(ip)) {
       throw ArgumentError("Invalid IP address format.");
     }
@@ -25,7 +28,6 @@ class IPAddress {
 
   /// Validates if the given IP address string is in a correct format (IPv4, IPv6, or localhost).
   static bool isValidIP(String ip) {
-    if (ip == 'localhost') return true;
 
     // Regular expression for IPv4 address
     final ipv4Pattern = RegExp(r'^(\d{1,3}\.){3}\d{1,3}$');
