@@ -2,10 +2,12 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:async';
 
+import 'package:attempt_two/global_datatypes/ip_address.dart';
+
 class IPScanner {
   // Properties
   String lastScanned = "";
-  final void Function(Map<String, String>) deviceChangeNotifyFunction; // Function to notify device changes
+  final void Function(IPAddress) deviceChangeNotifyFunction; // Function to notify device changes
   final void Function(bool)? scanDoneNotifyFunction;
 
   // Constructor that takes in a function
@@ -52,8 +54,7 @@ Future<void> attemptConnection(String ip, String port) async {
 
       if (decodedMessage["RESPONSE"] == 'OK' && decodedMessage["UUID"] == 'PING') {
         print('Server responded to ping.');
-        Map<String, String> newDevice = {"ip": ip, "port": port};
-        deviceChangeNotifyFunction(newDevice);
+        deviceChangeNotifyFunction(IPAddress(ip, port));
         responded = true;
         stopPinging = true; // Stop further ping attempts
         socket.close();

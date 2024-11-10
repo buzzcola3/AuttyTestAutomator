@@ -124,7 +124,7 @@ Widget _buildHelpContent() {
   }
 
   String description = widget.deviceData!.deviceInfo!['DEVICE_DESCRIPTION'] ?? 'No description available';
-  String ipAddress = widget.deviceData!.ipAddress['ip'] ?? 'No IP address available';
+  String ipAddress = widget.deviceData!.ipAddress.toString();
   String uniqueId = widget.deviceData!.deviceInfo!['UNIQUE_ID'] ?? 'No UNIQUE_ID available';
 
   return Padding(

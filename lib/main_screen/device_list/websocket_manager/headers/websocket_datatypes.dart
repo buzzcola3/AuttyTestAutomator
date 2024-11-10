@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 
+import 'package:attempt_two/global_datatypes/ip_address.dart';
 import 'package:attempt_two/main_screen/device_list/websocket_manager/websocket_connection.dart';
 import 'package:uuid/uuid.dart';
 
@@ -9,7 +10,7 @@ enum MessageType { generic, response, warning, error }
 
 class WsMessage {
   // Properties
-  Map<String, String> device;
+  IPAddress deviceIp;
   String message;
   late String uuid;
   String? rawResponse;
@@ -26,7 +27,7 @@ class WsMessage {
 
   // Constructor
   WsMessage({
-    required this.device, 
+    required this.deviceIp, 
     required this.message, 
     this.resendRequest,
   }) {
@@ -48,7 +49,7 @@ class WsMessage {
 
   @override
   String toString() {
-    return 'WsMessage(source: $device, message: $message, fulfilled: $fulfilled, duplicates: $resendCount)';
+    return 'WsMessage(source: $deviceIp, message: $message, fulfilled: $fulfilled, duplicates: $resendCount)';
   }
 }
 
@@ -63,7 +64,7 @@ class WsMessageList {
 
   void addError(String errorMessage){
     final WsMessage wsMessage = WsMessage(
-      device: {"ip": "", "port": ""},
+      deviceIp: IPAddress("", 0),
       message: errorMessage,
     );
 
@@ -108,7 +109,7 @@ class WsMessageList {
 
 class WsDevice {
   // Properties
-  final Map<String, String> ipAddress;
+  final IPAddress ipAddress;
   final WebSocket? socket;
   final WebSocketController? wsController;
 
@@ -178,10 +179,9 @@ class WsDeviceList {
   }
 
   // Method to remove a device based on the IP address
-  void removeDevice(Map<String, String> ipAddress) {
+  void removeDevice(IPAddress ipAddress) {
     devices.removeWhere((device) => 
-      device.ipAddress['ip'] == ipAddress['ip'] && 
-      device.ipAddress['port'] == ipAddress['port']
+      device.ipAddress == ipAddress
     );
   }
 
@@ -191,11 +191,10 @@ class WsDeviceList {
   }
 
   // Optional: Method to find a device by IP address
-  WsDevice? findDevice(Map<String, String> ipAddress) {
+  WsDevice? findDevice(IPAddress ipAddress) {
     try {
       return devices.firstWhere(
-        (device) => device.ipAddress['ip'] == ipAddress['ip'] && 
-                    device.ipAddress['port'] == ipAddress['port'],
+        (device) => device.ipAddress == ipAddress,
         orElse: () => throw Exception('Device not found') // Throw an exception instead of returning null
       );
     } catch (e) {

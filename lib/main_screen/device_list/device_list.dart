@@ -5,6 +5,7 @@ import "websocket_manager/websocket_connection.dart";
 import "websocket_manager/headers/websocket_datatypes.dart";
 import 'internal_device.dart';
 import "package:attempt_two/userdata_database.dart";
+import "package:attempt_two/global_datatypes/ip_address.dart";
 
 class DeviceScanner extends StatefulWidget {
   final WebSocketController wsController;
@@ -25,7 +26,7 @@ class DeviceScannerState extends State<DeviceScanner> {
   bool showGreenBox = false;
   WsDevice? selectedDevice;
   late Future<Map<String, dynamic>> userdataDatabase;
-  List<Map<String, String>>? previouslyConnected;
+  List<Map<String, dynamic>>? previouslyConnected;
 
   @override
   void initState() {
@@ -39,9 +40,9 @@ class DeviceScannerState extends State<DeviceScanner> {
     Map<String, dynamic> list = await userdataDatabase;
   
     // Safely cast the connected devices list
-    List<Map<String, String>>? connectedDevices = (list['connectedDevices'] as List<dynamic>?)
+    List<Map<String, dynamic>>? connectedDevices = (list['connectedDevices'] as List<dynamic>?)
         ?.whereType<Map<String, dynamic>>()
-        .map((item) => item.cast<String, String>())
+        .map((item) => item.cast<String, dynamic>())
         .toList();
   
     previouslyConnected = connectedDevices;
@@ -50,8 +51,7 @@ class DeviceScannerState extends State<DeviceScanner> {
       for (var dev in previouslyConnected!) {
         // Check if device is already in wsDeviceList.devices based on ip and port
         bool isConnected = widget.wsController.wsDeviceList.devices.any((connectedDevice) =>
-            connectedDevice.ipAddress['ip'] == dev['ip'] &&
-            connectedDevice.ipAddress['port'] == dev['port']);
+            connectedDevice.ipAddress == IPAddress.fromMap(dev));
         
         // Only attempt connection if the device is not already connected
         if (!isConnected) {
@@ -69,13 +69,12 @@ Future<void> updateDeviceList() async {
 
   if (previouslyConnected == null) {
     Map<String, dynamic> list = await userdataDatabase;
-    previouslyConnected = List<Map<String, String>>.from(list['connectedDevices'] ?? []);
+    previouslyConnected = List<Map<String, dynamic>>.from(list['connectedDevices'] ?? []);
   }
 
   for (var device in widget.wsController.wsDeviceList.devices) {
     int existingIndex = previouslyConnected!.indexWhere((ipMap) =>
-        ipMap['ip'] == device.ipAddress['ip'] &&
-        ipMap['port'] == device.ipAddress['port']);
+        IPAddress.fromMap(ipMap) == device.ipAddress);
 
     // If the device is already in the list, remove it
     if (existingIndex != -1) {
@@ -88,7 +87,8 @@ Future<void> updateDeviceList() async {
     }
 
     // Add the new device
-    previouslyConnected!.add(device.ipAddress);
+    final ip = device.ipAddress.toMap();
+    previouslyConnected!.add(ip);
   }
 
   await widget.userdataDatabase
@@ -105,7 +105,7 @@ Future<void> updateDeviceList() async {
   void _handleFunctionDeviceTap() {
     WsMessageList dummyMessageList = WsMessageList();
     WsDevice dummyDevice = WsDevice(
-      ipAddress: {"ip": "internal", "port": ""},
+      ipAddress: IPAddress('', 0),
       messageList: dummyMessageList,
       deviceInfo: internalDevice,
     );

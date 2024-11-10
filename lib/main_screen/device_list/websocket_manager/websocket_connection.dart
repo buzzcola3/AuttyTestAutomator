@@ -1,3 +1,5 @@
+import 'package:attempt_two/global_datatypes/ip_address.dart';
+
 import 'ip_scanner/ip_scanner.dart';
 import 'dart:io';
 import 'dart:convert';
@@ -25,18 +27,18 @@ class WebSocketController {
     ipScanner = IPScanner(deviceChangeNotifyFunction: updateWebsocketConnections, scanDoneNotifyFunction: scanDoneNotifyFunction);
   }
 
-  Future<void> updateWebsocketConnections(Map<String, String> ipAddress) async {  
+  Future<void> updateWebsocketConnections(IPAddress ipAddress) async {  
     try {
-      final WebSocket socket = await WebSocket.connect('ws://${ipAddress['ip']}:${ipAddress['port']}');
-      print('WebSocket connected to ${ipAddress['ip']} on port ${ipAddress['port']}');
+      final WebSocket socket = await WebSocket.connect('ws://$ipAddress');
+      print('WebSocket connected to $ipAddress');
 
       socket.listen(
         (incomingMessage) {
           print("{___________________RXXXXXXXXXXXXXXXX}");
-          receiveMessage(ipAddress, incomingMessage);
+          receiveMessage(incomingMessage);
         },
         onDone: () {
-          print('WebSocket connection closed for ${ipAddress['ip']} on port ${ipAddress['port']}');
+          print('WebSocket connection closed for $ipAddress');
           wsDeviceList.removeDevice(ipAddress);
         },
         onError: (error) {
@@ -55,11 +57,11 @@ class WebSocketController {
 
       newConnectionNotifyFunction?.call(); // Only call if not null
     } catch (e) {
-      print('Failed to connect to WebSocket at ${ipAddress['ip']} on port ${ipAddress['port']}: $e');
+      print('Failed to connect to WebSocket at $ipAddress}: $e');
     }
   }
 
-  void receiveMessage(Map<String, String> messageSource, String incomingMessage) {
+  void receiveMessage(String incomingMessage) {
     Map<String, dynamic> decodedMessage = jsonDecode(incomingMessage);
     String messageUuid = decodedMessage["UUID"];
     WsMessage? ogMessage = wsMessageList.searchUnfulfilledMessage(messageUuid);
@@ -73,9 +75,9 @@ class WebSocketController {
     //check response wait list, and assign the response
   }
 
-  void sendMessage(Map<String, String> deviceIp, String command, List<String> parameters){
+  void sendMessage(IPAddress deviceIp, String command, List<String> parameters){
     final WsMessage wsMessage = WsMessage(
-      device: deviceIp,
+      deviceIp: deviceIp,
       message: jsonEncode({"COMMAND": command, "PARAMETERS": parameters}),
       resendRequest: resendRequest,
     );
@@ -86,7 +88,7 @@ class WebSocketController {
 
 
     for (var wsDevice in wsDeviceList.devices) {
-      if(wsDevice.ipAddress['ip'] == deviceIp['ip'] && wsDevice.ipAddress['port'] == deviceIp['port']){
+      if(wsDevice.ipAddress == deviceIp){
         wsDevice.socket?.add(jsonEncode({"REQUEST": wsMessage.message}));
       }
       //TODO if no message gets sent, device no longer exists
@@ -97,15 +99,15 @@ class WebSocketController {
     return;
   }
 
-  WsMessage sendRequest(Map<String, String> deviceIp, String command, List<String> parameters){
+  WsMessage sendRequest(IPAddress deviceIp, String command, List<String> parameters){
     final WsMessage wsMessage = WsMessage(
-      device: deviceIp,
+      deviceIp: deviceIp,
       message: jsonEncode({"COMMAND": command, "PARAMETERS": parameters}),
       resendRequest: resendRequest,
     );
 
     for (var wsDevice in wsDeviceList.devices) {
-      if(wsDevice.ipAddress['ip'] == deviceIp['ip'] && wsDevice.ipAddress['port'] == deviceIp['port']){
+      if(wsDevice.ipAddress == deviceIp){ //TODO, maybe use the get device by uuid to do this? why am I always finding by ip and looping?
         wsDevice.socket?.add(jsonEncode({"REQUEST": wsMessage.message, "UUID": wsMessage.uuid}));
       }
       //TODO if no message gets sent, device no longer exists
@@ -120,7 +122,7 @@ class WebSocketController {
     WsMessage? message = wsMessageList.searchMessage(uuid);
 
     for (var wsDevice in wsDeviceList.devices) {
-      if(wsDevice.ipAddress['ip'] ==  message?.device['ip'] && wsDevice.ipAddress['port'] ==  message?.device['port']){
+      if(wsDevice.ipAddress ==  message?.deviceIp){
         wsDevice.socket?.add(jsonEncode({"REQUEST": message?.message, "UUID": message?.uuid}));
         return;
       }
@@ -128,7 +130,7 @@ class WebSocketController {
 
   }
 
-  Future<WsMessage> awaitRequest(Map<String, String> deviceIp, String command, List<String> parameters) async {
+  Future<WsMessage> awaitRequest(IPAddress deviceIp, String command, List<String> parameters) async {
     // Send the message and get the WsMessage instance
     final WsMessage wsMessage = sendRequest(deviceIp, command, parameters);
   
@@ -142,7 +144,7 @@ class WebSocketController {
   }
 
   
-  Map<String, String>? getDeviceIp(String deviceUniqueId){
+  IPAddress? getDeviceIp(String deviceUniqueId){
     for (var wsDevice in wsDeviceList.devices) {
       if(wsDevice.deviceInfo?["UNIQUE_ID"] == deviceUniqueId){
         return wsDevice.ipAddress;
