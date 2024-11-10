@@ -78,6 +78,7 @@ flutter:
     - lib/svg_icons/playground_save_icon.svg
     - lib/svg_icons/playground_upload_icon.svg
     - lib/svg_icons/playground_download_icon.svg
+    - lib\svg_icons\playground_list_execute_icon.svg
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

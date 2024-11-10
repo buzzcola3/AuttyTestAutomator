@@ -31,13 +31,13 @@ class WsMessage {
     required this.message, 
     this.resendRequest,
   }) {
-    final messageUuid = Uuid();
+    const messageUuid = Uuid();
     uuid = messageUuid.v1();
     _startStatusCheck();
   }
 
   void _startStatusCheck() {
-    _statusCheckTimer = Timer.periodic(Duration(seconds: 6), (timer) async {
+    _statusCheckTimer = Timer.periodic(const Duration(seconds: 6), (timer) async {
       if (!fulfilled) {
         resendRequest!(uuid);
         resendCount++;

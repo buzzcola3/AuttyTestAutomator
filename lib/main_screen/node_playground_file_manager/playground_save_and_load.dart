@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:attempt_two/main_screen/device_list/node_generation/node_generator.dart';
 import 'package:attempt_two/main_screen/node_playground/playground.dart';
+import 'package:attempt_two/main_screen/node_playground/playground_execution.dart';
 import 'package:flutter/material.dart';
 import 'package:node_editor/node_editor.dart';
 import 'dart:async';
@@ -9,8 +10,9 @@ class PlaygroundSaveLoad {
   final NodeEditorController playgroundController;
   NodeEditorWidgetController nodeEditorWidgetController;
   Map<String, dynamic> nodesDNA;
+  PlaygroundExecutor playgroundExecutor;
 
-  PlaygroundSaveLoad(this.playgroundController, this.nodesDNA, this.nodeEditorWidgetController);
+  PlaygroundSaveLoad(this.playgroundController, this.nodesDNA, this.nodeEditorWidgetController, this.playgroundExecutor);
 
   // Save the current state of nodes to JSON
   String saveToJson() {
@@ -43,7 +45,7 @@ class PlaygroundSaveLoad {
   }
 
 
-void loadPlayground(String playgroundJson) async {
+Future<void> loadPlayground(String playgroundJson) async {
   playgroundController.nodes.clear();
   playgroundController.connections.clear();
   nodesDNA.clear();
@@ -92,18 +94,21 @@ void loadPlayground(String playgroundJson) async {
   nodeEditorWidgetController.refreshUI();
 }
 
+Future<void> loadAndExecutePlayground(String playgroundJson) async {
+  await loadPlayground(playgroundJson);
+  await playgroundExecutor.execute();
+}
+
 // Helper function to wait until a port exists
 Future<void> _waitUntilPortExists(String nodeName, String portName) async {
-  var node = playgroundController.nodes[nodeName];
-  
   try {
     await Future.any([
-      Future.delayed(Duration(seconds: 10), () {
+      Future.delayed(const Duration(seconds: 10), () {
         throw TimeoutException("Timeout: Port '$portName' in node '$nodeName' not found within 10 seconds.");
       }),
       () async {
         while (playgroundController.nodes[nodeName]?.ports[portName] == null) {
-          await Future.delayed(Duration(milliseconds: 5));
+          await Future.delayed(const Duration(milliseconds: 5));
         }
       }(),
     ]);
@@ -169,10 +174,5 @@ Future<void> _waitUntilPortExists(String nodeName, String portName) async {
 
     return jsonableConnection;
     
-  }
-
-  // Load nodes from a JSON string
-  void loadFromJson(String jsonString) {
-    List<dynamic> nodesData = jsonDecode(jsonString);
   }
 }

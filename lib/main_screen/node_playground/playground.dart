@@ -56,7 +56,6 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
   Offset _currentDraggedPosition = const Offset(0, 0);
   String? _selectedNodeName;
   double dragStep = 20.0;
-  int _nodeUniqueIndex = 0;
 
   @override
   void initState() {
@@ -129,7 +128,7 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
       required Map<String, dynamic> nodeDNA,
       required dynamic nodeWidget
     }) {
-    var uuid = Uuid();
+    var uuid = const Uuid();
     nodeDNA["nodeUuid"] ??= uuid.v1();
 
     widget.nodesDNA[nodeDNA["nodeUuid"]] = nodeDNA;
@@ -276,7 +275,7 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
                                 Expanded(
                                   child: TextField(
                                     decoration: InputDecoration(
-                                      border: OutlineInputBorder(),
+                                      border: const OutlineInputBorder(),
                                       hintText: initialValue,
                                     ),
                                     onSubmitted: (value) {
@@ -290,7 +289,7 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
                         } else {
                           return const SizedBox.shrink();
                         }
-                      }).toList(),
+                      }),
                     ],
                   ),
                 ),

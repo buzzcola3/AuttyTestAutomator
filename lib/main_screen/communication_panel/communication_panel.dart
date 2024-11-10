@@ -222,11 +222,11 @@ class _ExpandableMessageTileState extends State<ExpandableMessageTile> {
                           child: ElevatedButton(
                             onPressed: _toggleResponseVisibility,  // Toggle response visibility
                             style: ElevatedButton.styleFrom(
-                              shape: CircleBorder(),
+                              shape: const CircleBorder(),
                               padding: EdgeInsets.zero,  // Remove padding to make it only the icon
                               backgroundColor: Colors.transparent,  // Make button background transparent
                             ),
-                            child: Icon(Icons.check, color: Colors.white), // Change to checkmark icon
+                            child: const Icon(Icons.check, color: Colors.white), // Change to checkmark icon
                           ),
                         ),
                 ),

@@ -134,7 +134,7 @@ Future<void> updateDeviceList() async {
 Widget build(BuildContext context) {
   return Scaffold(
     body: Container(
-      padding: EdgeInsets.all(2.0),
+      padding: const EdgeInsets.all(2.0),
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey, width: 2.0),
         borderRadius: BorderRadius.circular(8.0),
@@ -149,16 +149,16 @@ Widget build(BuildContext context) {
                   itemBuilder: (context, index) {
                     if (index == 0) {
                       return Card(
-                        margin: EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+                        margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
                         elevation: 2.0,
                         child: ListTile(
-                          contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
                           tileColor: Colors.blueGrey[50],
-                          title: Text(
+                          title: const Text(
                             "Functions",
                             style: TextStyle(color: Colors.black87, fontSize: 14.0),
                           ),
-                          leading: Icon(
+                          leading: const Icon(
                             Icons.functions,
                             color: Color.fromARGB(255, 58, 58, 58),
                             size: 20.0,
@@ -169,16 +169,16 @@ Widget build(BuildContext context) {
                     } else {
                       int deviceIndex = index - 1;
                       return Card(
-                        margin: EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+                        margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
                         elevation: 2.0,
                         child: ListTile(
-                          contentPadding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
                           tileColor: Colors.blueGrey[50],
                           title: Text(
                             widget.wsController.wsDeviceList.devices[deviceIndex].deviceInfo!['DEVICE_NAME'],
-                            style: TextStyle(color: Colors.black87, fontSize: 14.0),
+                            style: const TextStyle(color: Colors.black87, fontSize: 14.0),
                           ),
-                          leading: Icon(
+                          leading: const Icon(
                             Icons.devices,
                             color: Color.fromARGB(255, 58, 58, 58),
                             size: 20.0,
@@ -199,7 +199,7 @@ Widget build(BuildContext context) {
               wsMessageList: widget.wsController.wsMessageList,
               wsController: widget.wsController,
             ),
-          Positioned(
+          const Positioned(
             bottom: 3.0,
             left: 3.0,
             child: SizedBox(
@@ -219,7 +219,7 @@ Widget build(BuildContext context) {
               height: 18.0,
               child: IconButton(
                 padding: EdgeInsets.zero,
-                icon: Icon(Icons.add, color: Color.fromARGB(255, 58, 58, 58)),
+                icon: const Icon(Icons.add, color: Color.fromARGB(255, 58, 58, 58)),
                 iconSize: 18.0,
                 onPressed: _toggleManualConnectionMenu,
               ),
@@ -252,7 +252,7 @@ Widget manualDeviceConnectionMenu(BuildContext context, Future<void> Function() 
 
   return Container(
     clipBehavior: Clip.hardEdge,
-    decoration: BoxDecoration(
+    decoration: const BoxDecoration(
       color: Colors.transparent,
     ),
     width: 120.0,
@@ -270,7 +270,7 @@ Widget manualDeviceConnectionMenu(BuildContext context, Future<void> Function() 
         ElevatedButton(
           onPressed: () async {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
+              const SnackBar(
                 content: Text("Attempting to reconnect to previously connected devices..."),
                 duration: Duration(seconds: 3),
               ),
@@ -306,28 +306,28 @@ void _showAddDeviceDialog(BuildContext context, GlobalKey<FormState> formKey, Te
     context: context,
     builder: (BuildContext context) {
       return AlertDialog(
-        title: Text("Add Device"),
+        title: const Text("Add Device"),
         content: Form(
           key: formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("Enter IP address and port of the new device."),
-              SizedBox(height: 10),
+              const Text("Enter IP address and port of the new device."),
+              const SizedBox(height: 10),
               TextField(
                 controller: ipController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: "IP Address",
                   hintText: "e.g., 192.168.1.1",
                   border: OutlineInputBorder(),
                 ),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 onSubmitted: (_) => _addDevice(formKey, ipController, portController, context),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               TextField(
                 controller: portController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: "Port",
                   hintText: "e.g., 80",
                   border: OutlineInputBorder(),
@@ -341,19 +341,19 @@ void _showAddDeviceDialog(BuildContext context, GlobalKey<FormState> formKey, Te
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text("Cancel"),
+            child: const Text("Cancel"),
           ),
           TextButton(
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
+                const SnackBar(
                   content: Text("Attempting to add the device..."),
                   duration: Duration(seconds: 3),
                 ),
               );
               _addDevice(formKey, ipController, portController, context); // Add device
             },
-            child: Text("Add"),
+            child: const Text("Add"),
           ),
         ],
       );
@@ -366,28 +366,28 @@ void _showScanSubnetDialog(BuildContext context, GlobalKey<FormState> formKey, T
     context: context,
     builder: (BuildContext context) {
       return AlertDialog(
-        title: Text("Scan Subnet"),
+        title: const Text("Scan Subnet"),
         content: Form(
           key: formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("Enter Subnet IP address and Port for scanning."),
-              SizedBox(height: 10),
+              const Text("Enter Subnet IP address and Port for scanning."),
+              const SizedBox(height: 10),
               TextField(
                 controller: ipController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: "Subnet",
                   hintText: "e.g., 192.168.1.0",
                   border: OutlineInputBorder(),
                 ),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 onSubmitted: (_) => _startSubnetScan(formKey, ipController, portController, context),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               TextField(
                 controller: portController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: "Port",
                   hintText: "e.g., 80",
                   border: OutlineInputBorder(),
@@ -401,19 +401,19 @@ void _showScanSubnetDialog(BuildContext context, GlobalKey<FormState> formKey, T
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text("Cancel"),
+            child: const Text("Cancel"),
           ),
           TextButton(
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
+                const SnackBar(
                   content: Text("Started Subnet Scan..."),
                   duration: Duration(seconds: 3),
                 ),
               );
               _startSubnetScan(formKey, ipController, portController, context); // Start scan
             },
-            child: Text("Scan"),
+            child: const Text("Scan"),
           ),
         ],
       );
@@ -432,37 +432,37 @@ void _showPortScanDialog(
     context: context,
     builder: (BuildContext context) {
       return AlertDialog(
-        title: Text("Scan Ports"),
+        title: const Text("Scan Ports"),
         content: Form(
           key: formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("Enter IP address and port range for scanning."),
-              SizedBox(height: 10),
+              const Text("Enter IP address and port range for scanning."),
+              const SizedBox(height: 10),
               TextField(
                 controller: ipController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: "IP Address",
                   hintText: "e.g., 192.168.1.1",
                   border: OutlineInputBorder(),
                 ),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               TextField(
                 controller: portStartController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: "Start Port",
                   hintText: "e.g., 20",
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               TextField(
                 controller: portEndController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: "End Port",
                   hintText: "e.g., 80",
                   border: OutlineInputBorder(),
@@ -475,19 +475,19 @@ void _showPortScanDialog(
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text("Cancel"),
+            child: const Text("Cancel"),
           ),
           TextButton(
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
+                const SnackBar(
                   content: Text("Started Port Scan..."),
                   duration: Duration(seconds: 3),
                 ),
               );
               _startPortScan(formKey, ipController, portStartController, portEndController, context);
             },
-            child: Text("Scan"),
+            child: const Text("Scan"),
           ),
         ],
       );
@@ -518,7 +518,7 @@ void _startPortScan(
     // Check that the start and end ports are valid
     if (startPort == null || endPort == null || startPort > endPort) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text("Invalid port range. Please check your input."),
           duration: Duration(seconds: 3),
         ),
@@ -530,7 +530,7 @@ void _startPortScan(
 
     if (endPort - startPort >  64){
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text("Too many ports to scan. Please limit port range to a maximum of 64 ports."),
           duration: Duration(seconds: 3),
         ),
@@ -553,7 +553,7 @@ void _startPortScan(
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text("Started scanning ports from $startPort to $endPort."),
-        duration: Duration(seconds: 3),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -569,18 +569,18 @@ void _addDevice(GlobalKey<FormState> formKey, TextEditingController ipController
 
 
 ButtonStyle get _buttonStyle => ElevatedButton.styleFrom(
-      padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-      minimumSize: Size(120.0, 30.0),
-      textStyle: TextStyle(color: Colors.black87, fontSize: 10.0),
-      backgroundColor: Color.fromARGB(255, 80, 200, 120),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+      minimumSize: const Size(120.0, 30.0),
+      textStyle: const TextStyle(color: Colors.black87, fontSize: 10.0),
+      backgroundColor: const Color.fromARGB(255, 80, 200, 120),
     );
 
 Widget _buildButtonContent(IconData icon, String label) {
   return Row(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      Icon(icon, size: 14.0, color: Color.fromARGB(255, 58, 58, 58)),
-      SizedBox(width: 8.0),
+      Icon(icon, size: 14.0, color: const Color.fromARGB(255, 58, 58, 58)),
+      const SizedBox(width: 8.0),
       Text(label),
     ],
   );

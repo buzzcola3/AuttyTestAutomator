@@ -51,7 +51,7 @@ class _MainScreen extends State<MainScreen> {
       nodesDNA: nodesDNA
     );
 
-    playgroundSaveLoad = PlaygroundSaveLoad(widget.nodeController, nodesDNA, widget.nodeEditorWidgetController);
+    playgroundSaveLoad = PlaygroundSaveLoad(widget.nodeController, nodesDNA, widget.nodeEditorWidgetController, playgroundExecutor);
 
     userdataDatabase = UserdataDatabase();
 

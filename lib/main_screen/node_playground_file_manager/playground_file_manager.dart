@@ -27,87 +27,113 @@ class _JsonFileManagerState extends State<JsonFileManager> {
   List<Map<String, dynamic>> jsonFiles = [];
   Map<String, Uint8List> fileContents = {};
 
-Future<void> _pickFiles() async {
-  var result = await FilePicker.platform.pickFiles(
-    allowMultiple: true,
-    type: FileType.custom,
-    allowedExtensions: ['json', 'zip'],
-  );
+Future<void> _executeAllFiles() async {
+  for (int i = 0; i < jsonFiles.length; i++) {
+    final fileName = jsonFiles[i]['name'];
 
-  if (result != null) {
-    for (var file in result.files) {
-      if (file.path != null) {
-        final File selectedFile = File(file.path!);
+    if (fileContents.containsKey(fileName)) {
+      String jsonContent = utf8.decode(fileContents[fileName]!);
+      await widget.playgroundSaveLoad.loadAndExecutePlayground(jsonContent);
 
-        if (file.extension == 'json') {
-          // Handle individual JSON files
-          try {
-            String jsonString = await selectedFile.readAsString();
-            Map<String, dynamic> jsonContent = jsonDecode(jsonString);
-
-            setState(() {
-              jsonFiles.add({'name': file.name, 'content': jsonContent, 'hover': false});
-              fileContents[file.name] = Uint8List.fromList(utf8.encode(jsonString));
-            });
-          } catch (e) {
-            print('Error reading JSON from file ${file.name}: $e');
-          }
-        } else if (file.extension == 'zip') {
-          // Handle ZIP files
-          try {
-            final zipData = await selectedFile.readAsBytes();
-            final archive = ZipDecoder().decodeBytes(zipData);
-            List<String> orderList = [];
-            Map<String, Map<String, dynamic>> tempJsonFiles = {};
-
-            // Read the order file if it exists
-            for (var archiveFile in archive) {
-              if (archiveFile.isFile && archiveFile.name == 'file.order') {
-                final orderContent = utf8.decode(archiveFile.content as List<int>);
-                final jsonOrder = jsonDecode(orderContent);
-                orderList = List<String>.from(jsonOrder["file_order"]);
-                break;
-              }
-            }
-
-            // Parse JSON files and store them temporarily
-            for (var archiveFile in archive) {
-              if (archiveFile.isFile && archiveFile.name.endsWith('.json') && archiveFile.name != 'file.order') {
-                final jsonString = utf8.decode(archiveFile.content as List<int>);
-                Map<String, dynamic> jsonContent = jsonDecode(jsonString);
-                tempJsonFiles[archiveFile.name] = {'content': jsonContent, 'data': Uint8List.fromList(utf8.encode(jsonString))};
-              }
-            }
-
-            // Arrange files based on the order list
-            setState(() {
-              for (var fileName in orderList) {
-                if (tempJsonFiles.containsKey(fileName)) {
-                  jsonFiles.add({'name': fileName, 'content': tempJsonFiles[fileName]!['content'], 'hover': false});
-                  fileContents[fileName] = tempJsonFiles[fileName]!['data'];
-                }
-              }
-
-              // Add remaining files not listed in file.order
-              for (var entry in tempJsonFiles.entries) {
-                if (!orderList.contains(entry.key)) {
-                  jsonFiles.add({'name': entry.key, 'content': entry.value['content'], 'hover': false});
-                  fileContents[entry.key] = entry.value['data'];
-                }
-              }
-            });
-          } catch (e) {
-            print('Error reading ZIP file ${file.name}: $e');
-          }
-        } else {
-          print('Unsupported file type: ${file.name}');
-        }
-      }
+      print('Executing JSON from $fileName: $jsonContent');
+    } else {
+      print('No content found for $fileName');
     }
   }
 }
 
+  Future<void> _loadFileToPlayground(int index) async {
+    final fileName = jsonFiles[index]['name'];
 
+    if (fileContents.containsKey(fileName)) {
+      String jsonContent = utf8.decode(fileContents[fileName]!);
+      widget.playgroundSaveLoad.loadPlayground(jsonContent);
+
+      print('Executing JSON from $fileName: $jsonContent');
+    } else {
+      print('No content found for $fileName');
+    }
+  }
+
+  Future<void> _pickFiles() async {
+    var result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      type: FileType.custom,
+      allowedExtensions: ['json', 'zip'],
+    );
+  
+    if (result != null) {
+      for (var file in result.files) {
+        if (file.path != null) {
+          final File selectedFile = File(file.path!);
+  
+          if (file.extension == 'json') {
+            // Handle individual JSON files
+            try {
+              String jsonString = await selectedFile.readAsString();
+              Map<String, dynamic> jsonContent = jsonDecode(jsonString);
+  
+              setState(() {
+                jsonFiles.add({'name': file.name, 'content': jsonContent, 'hover': false});
+                fileContents[file.name] = Uint8List.fromList(utf8.encode(jsonString));
+              });
+            } catch (e) {
+              print('Error reading JSON from file ${file.name}: $e');
+            }
+          } else if (file.extension == 'zip') {
+            // Handle ZIP files
+            try {
+              final zipData = await selectedFile.readAsBytes();
+              final archive = ZipDecoder().decodeBytes(zipData);
+              List<String> orderList = [];
+              Map<String, Map<String, dynamic>> tempJsonFiles = {};
+  
+              // Read the order file if it exists
+              for (var archiveFile in archive) {
+                if (archiveFile.isFile && archiveFile.name == 'file.order') {
+                  final orderContent = utf8.decode(archiveFile.content as List<int>);
+                  final jsonOrder = jsonDecode(orderContent);
+                  orderList = List<String>.from(jsonOrder["file_order"]);
+                  break;
+                }
+              }
+  
+              // Parse JSON files and store them temporarily
+              for (var archiveFile in archive) {
+                if (archiveFile.isFile && archiveFile.name.endsWith('.json') && archiveFile.name != 'file.order') {
+                  final jsonString = utf8.decode(archiveFile.content as List<int>);
+                  Map<String, dynamic> jsonContent = jsonDecode(jsonString);
+                  tempJsonFiles[archiveFile.name] = {'content': jsonContent, 'data': Uint8List.fromList(utf8.encode(jsonString))};
+                }
+              }
+  
+              // Arrange files based on the order list
+              setState(() {
+                for (var fileName in orderList) {
+                  if (tempJsonFiles.containsKey(fileName)) {
+                    jsonFiles.add({'name': fileName, 'content': tempJsonFiles[fileName]!['content'], 'hover': false});
+                    fileContents[fileName] = tempJsonFiles[fileName]!['data'];
+                  }
+                }
+  
+                // Add remaining files not listed in file.order
+                for (var entry in tempJsonFiles.entries) {
+                  if (!orderList.contains(entry.key)) {
+                    jsonFiles.add({'name': entry.key, 'content': entry.value['content'], 'hover': false});
+                    fileContents[entry.key] = entry.value['data'];
+                  }
+                }
+              });
+            } catch (e) {
+              print('Error reading ZIP file ${file.name}: $e');
+            }
+          } else {
+            print('Unsupported file type: ${file.name}');
+          }
+        }
+      }
+    }
+  }
 
   Future<void> _renameFile(int index) async {
     final currentName = jsonFiles[index]['name'];
@@ -117,19 +143,19 @@ Future<void> _pickFiles() async {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("Rename File"),
+          title: const Text("Rename File"),
           content: TextField(
             controller: controller,
-            decoration: InputDecoration(hintText: "Enter new name"),
+            decoration: const InputDecoration(hintText: "Enter new name"),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text("Cancel"),
+              child: const Text("Cancel"),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(controller.text),
-              child: Text("Rename"),
+              child: const Text("Rename"),
             ),
           ],
         );
@@ -173,19 +199,19 @@ Future<void> _pickFiles() async {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("Save as Zip"),
+          title: const Text("Save as Zip"),
           content: TextField(
             controller: controller,
-            decoration: InputDecoration(hintText: "Enter zip file name"),
+            decoration: const InputDecoration(hintText: "Enter zip file name"),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text("Cancel"),
+              child: const Text("Cancel"),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(controller.text),
-              child: Text("Save"),
+              child: const Text("Save"),
             ),
           ],
         );
@@ -238,38 +264,25 @@ Future<void> _pickFiles() async {
     });
   }
 
-  void _executeJson(int index) {
-    final fileName = jsonFiles[index]['name'];
-
-    if (fileContents.containsKey(fileName)) {
-      String jsonContent = utf8.decode(fileContents[fileName]!);
-      widget.playgroundSaveLoad.loadPlayground(jsonContent);
-
-      print('Executing JSON from $fileName: $jsonContent');
-    } else {
-      print('No content found for $fileName');
-    }
-  }
-
   void _savePlayground() async {
     final controller = TextEditingController();
     final newFileName = await showDialog<String>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("Save Playground"),
+          title: const Text("Save Playground"),
           content: TextField(
             controller: controller,
-            decoration: InputDecoration(hintText: "Enter file name"),
+            decoration: const InputDecoration(hintText: "Enter file name"),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text("Cancel"),
+              child: const Text("Cancel"),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(controller.text),
-              child: Text("Save"),
+              child: const Text("Save"),
             ),
           ],
         );
@@ -303,38 +316,49 @@ Widget build(BuildContext context) {
       child: Column(
         children: [
           // Top action icons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              IconButton(
-                icon: SvgPicture.asset(
-                  'lib/svg_icons/playground_download_icon.svg',
-                  width: 24,
-                  height: 24,
-                  color: const Color.fromARGB(255, 58, 58, 58),
-                ),
-                onPressed: _downloadAllAsZip,
-              ),
-              IconButton(
-                icon: SvgPicture.asset(
-                  'lib/svg_icons/playground_upload_icon.svg',
-                  width: 24,
-                  height: 24,
-                  color: const Color.fromARGB(255, 58, 58, 58),
-                ),
-                onPressed: _pickFiles,
-              ),
-              IconButton(
-                icon: SvgPicture.asset(
-                  'lib/svg_icons/playground_save_icon.svg',
-                  width: 24,
-                  height: 24,
-                  color: const Color.fromARGB(255, 58, 58, 58),
-                ),
-                onPressed: _savePlayground,
-              ),
-            ],
-          ),
+Row(
+  mainAxisAlignment: MainAxisAlignment.end,
+  children: [
+    IconButton(
+      padding: new EdgeInsets.all(0.0),
+      icon: SvgPicture.asset(
+        'lib/svg_icons/playground_list_execute_icon.svg',
+        width: 32,  // Larger icon size
+        height: 32, // Larger icon size
+        color: const Color.fromARGB(255, 58, 58, 58),
+      ),
+      onPressed: _executeAllFiles, // Define this function for execution action// Set the button size to be consistent with the others
+    ),
+    IconButton(
+      icon: SvgPicture.asset(
+        'lib/svg_icons/playground_download_icon.svg',
+        width: 24,
+        height: 24,
+        color: const Color.fromARGB(255, 58, 58, 58),
+      ),
+      onPressed: _downloadAllAsZip,
+    ),
+    IconButton(
+      icon: SvgPicture.asset(
+        'lib/svg_icons/playground_upload_icon.svg',
+        width: 24,
+        height: 24,
+        color: const Color.fromARGB(255, 58, 58, 58),
+      ),
+      onPressed: _pickFiles,
+    ),
+    IconButton(
+      icon: SvgPicture.asset(
+        'lib/svg_icons/playground_save_icon.svg',
+        width: 24,
+        height: 24,
+        color: const Color.fromARGB(255, 58, 58, 58),
+      ),
+      onPressed: _savePlayground,
+    ),
+  ],
+),
+
           
           // List of JSON files with reordering
           Expanded(
@@ -367,11 +391,11 @@ Widget build(BuildContext context) {
                           Row(
                             children: [
                               if (!jsonFiles[index]['hover'])
-                                Icon(Icons.insert_drive_file, size: 18, color: Color.fromARGB(255, 58, 58, 58)),
+                                const Icon(Icons.insert_drive_file, size: 18, color: Color.fromARGB(255, 58, 58, 58)),
                               const SizedBox(width: 8),
                               Text(
                                 !jsonFiles[index]['hover'] ? jsonFiles[index]['name'] : "",
-                                style: TextStyle(fontSize: 14, color: Colors.black87),
+                                style: const TextStyle(fontSize: 14, color: Colors.black87),
                               ),
                             ],
                           ),
@@ -384,14 +408,14 @@ Widget build(BuildContext context) {
                                   // Custom drag handle for reordering within the hover overlay
                                   ReorderableDragStartListener(
                                     index: index,
-                                    child: Icon(Icons.drag_handle, size: 20, color: Color.fromARGB(255, 58, 58, 58)),
+                                    child: const Icon(Icons.drag_handle, size: 20, color: Color.fromARGB(255, 58, 58, 58)),
                                   ),
                                   IconButton(
-                                    icon: Icon(Icons.play_arrow, size: 20, color: Color.fromARGB(255, 58, 58, 58)),
-                                    onPressed: () => _executeJson(index),
+                                    icon: const Icon(Icons.play_arrow, size: 20, color: Color.fromARGB(255, 58, 58, 58)),
+                                    onPressed: () => _loadFileToPlayground(index),
                                   ),
                                   IconButton(
-                                    icon: Icon(Icons.edit, size: 20, color: Color.fromARGB(255, 58, 58, 58)),
+                                    icon: const Icon(Icons.edit, size: 20, color: Color.fromARGB(255, 58, 58, 58)),
                                     onPressed: () => _renameFile(index),
                                   ),
                                   IconButton(
@@ -399,12 +423,12 @@ Widget build(BuildContext context) {
                                       'lib/svg_icons/playground_download_icon.svg',
                                       width: 20,
                                       height: 20,
-                                      color: Color.fromARGB(255, 58, 58, 58),
+                                      color: const Color.fromARGB(255, 58, 58, 58),
                                     ),
                                     onPressed: () => _downloadFile(jsonFiles[index]['name']),
                                   ),
                                   IconButton(
-                                    icon: Icon(Icons.delete, size: 20, color: Color.fromARGB(255, 58, 58, 58)),
+                                    icon: const Icon(Icons.delete, size: 20, color: Color.fromARGB(255, 58, 58, 58)),
                                     onPressed: () => _deleteFile(index),
                                   ),
                                 ],

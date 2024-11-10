@@ -45,24 +45,24 @@ class _NodePreviewState extends State<NodePreview> {
                 // Thin text above the buttons, with reduced vertical space
                 Text(
                   widget.deviceData != null ? widget.deviceData!.deviceInfo!['DEVICE_NAME'] : 'Control Bar',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12.0, // Reduced font size
                     color: Colors.black54,
                   ),
                 ),
-                SizedBox(height: 0.0), // Reduced spacing between text and buttons
+                const SizedBox(height: 0.0), // Reduced spacing between text and buttons
                 // Row of 4 buttons
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     // Replaced the close X with an arrow back icon
                     IconButton(
-                      icon: Icon(Icons.arrow_back),
+                      icon: const Icon(Icons.arrow_back),
                       onPressed: widget.onClose, // Replaced the close button functionality
                     ),
                     // Node icon
                     IconButton(
-                      icon: Icon(Icons.device_hub), // Node icon
+                      icon: const Icon(Icons.device_hub), // Node icon
                       onPressed: () {
                         setState(() {
                           currentDisplayState = DisplayState.nodes; // Show example nodes
@@ -71,7 +71,7 @@ class _NodePreviewState extends State<NodePreview> {
                     ),
                     // Command window icon
                     IconButton(
-                      icon: Icon(Icons.terminal), // Command window icon
+                      icon: const Icon(Icons.terminal), // Command window icon
                       onPressed: () {
                         setState(() {
                           currentDisplayState = DisplayState.commands; // Show available commands
@@ -80,7 +80,7 @@ class _NodePreviewState extends State<NodePreview> {
                     ),
                     // Help icon (question mark)
                     IconButton(
-                      icon: Icon(Icons.help), // Help icon
+                      icon: const Icon(Icons.help), // Help icon
                       onPressed: () {
                         setState(() {
                           currentDisplayState = DisplayState.help; // Show help information
@@ -120,7 +120,7 @@ class _NodePreviewState extends State<NodePreview> {
 // Builds the help content with device information
 Widget _buildHelpContent() {
   if (widget.deviceData == null) {
-    return Center(child: Text('No device data available.'));
+    return const Center(child: Text('No device data available.'));
   }
 
   String description = widget.deviceData!.deviceInfo!['DEVICE_DESCRIPTION'] ?? 'No description available';
@@ -133,11 +133,11 @@ Widget _buildHelpContent() {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Description: $description', style: TextStyle(fontSize: 14.0)),
-          SizedBox(height: 8.0),  // Add spacing between texts
-          Text('IP Address: $ipAddress', style: TextStyle(fontSize: 14.0)),
-          SizedBox(height: 8.0),
-          Text('Unique ID: $uniqueId', style: TextStyle(fontSize: 14.0)),
+          Text('Description: $description', style: const TextStyle(fontSize: 14.0)),
+          const SizedBox(height: 8.0),  // Add spacing between texts
+          Text('IP Address: $ipAddress', style: const TextStyle(fontSize: 14.0)),
+          const SizedBox(height: 8.0),
+          Text('Unique ID: $uniqueId', style: const TextStyle(fontSize: 14.0)),
         ],
       ),
     ),
@@ -147,7 +147,7 @@ Widget _buildHelpContent() {
 // Builds the command list from device data
 Widget _buildCommandList() {
   if (widget.deviceData == null || widget.deviceData!.deviceInfo!['DEVICE_AVAILABLE_COMMANDS'] == null) {
-    return Center(child: Text('No commands available.'));
+    return const Center(child: Text('No commands available.'));
   }
   List<String> commands = List<String>.from(widget.deviceData!.deviceInfo!['DEVICE_AVAILABLE_COMMANDS']);
   
@@ -175,7 +175,7 @@ Widget _buildCommandList() {
 Widget _buildNodeList() {
   // Check if device data and commands are available
   if (widget.deviceData == null || widget.deviceData!.deviceInfo!['DEVICE_AVAILABLE_COMMANDS'] == null) {
-    return Center(child: Text('No commands available.'));
+    return const Center(child: Text('No commands available.'));
   }
 
   // Retrieve the available nodes from device data

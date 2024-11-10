@@ -52,7 +52,7 @@ class WebSocketController {
       wsDeviceList.addDevice(newDevice);
 
       while (!newDevice.ready) {
-        await Future.delayed(Duration(milliseconds: 300));
+        await Future.delayed(const Duration(milliseconds: 300));
       }
 
       newConnectionNotifyFunction?.call(); // Only call if not null
@@ -136,7 +136,7 @@ class WebSocketController {
   
     // Polling to check for a response
     while (wsMessage.rawResponse == null) {
-      await Future.delayed(Duration(milliseconds: 100)); // adjust delay as needed
+      await Future.delayed(const Duration(milliseconds: 100)); // adjust delay as needed
     }
   
     // Return the WsMessage with the response

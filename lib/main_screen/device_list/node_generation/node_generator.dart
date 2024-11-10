@@ -5,7 +5,7 @@ import 'package:node_editor/node_editor.dart';
 
 double _DEFAULT_WIDTH = 180;
 const double _DEFAULT_NODE_PADDING = 0; // Keep 0
-Color _NODE_CONNECTION_COLOR = Color.fromARGB(255, 109, 109, 109);
+Color _NODE_CONNECTION_COLOR = const Color.fromARGB(255, 109, 109, 109);
 
 NodeWidgetBase generateNode({
   required Widget nodeType,
@@ -39,7 +39,7 @@ Container generatePreviewNode({
   required Widget? nodeType,
 }) {
   return Container(
-    decoration: BoxDecoration(
+    decoration: const BoxDecoration(
       color: Colors.transparent, // Default color for the preview node// Selected border
     ),
     width: _DEFAULT_WIDTH,
@@ -311,7 +311,7 @@ Widget basicNode({
                   width: 40, // Fixed width for accent color section
                   decoration: BoxDecoration(
                     color: accentColor, // Apply the accent color to the left side
-                    borderRadius: BorderRadius.horizontal(left: Radius.circular(5)), // Rounded corners for the left side
+                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(5)), // Rounded corners for the left side
                   ),
                   child: Center(
                     child: svgIconString != null
@@ -321,7 +321,7 @@ Widget basicNode({
                             width: 16.0, // Adjust the size of the SVG
                             height: 16.0,
                           )
-                        : Icon(
+                        : const Icon(
                             Icons.warning, // Fallback icon if SVG string is null
                             color: Colors.white,
                             size: 16.0, // Adjust the icon size
@@ -340,7 +340,7 @@ Widget basicNode({
                     child: Center(
                       child: Text(
                         nodeName ?? '', // Display the node text, default to empty string if null
-                        style: TextStyle(color: Colors.black), // Customize the text style as needed
+                        style: const TextStyle(color: Colors.black), // Customize the text style as needed
                       ),
                     ),
                   ),
@@ -415,7 +415,7 @@ Widget buttonNode({
                   width: 40, // Fixed width for the button section
                   decoration: BoxDecoration(
                     color: accentColor, // Apply the accent color to the button section
-                    borderRadius: BorderRadius.horizontal(left: Radius.circular(5)), // Rounded corners for the left side
+                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(5)), // Rounded corners for the left side
                   ),
                   child: Center(
                     child: SizedBox(
@@ -459,7 +459,7 @@ Widget buttonNode({
                     child: Center(
                       child: Text(
                         nodeName ?? '', // Display the node text, default to empty string if null
-                        style: TextStyle(color: Colors.black), // Customize the text style as needed
+                        style: const TextStyle(color: Colors.black), // Customize the text style as needed
                       ),
                     ),
                   ),

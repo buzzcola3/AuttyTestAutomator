@@ -50,7 +50,7 @@ class PlaygroundExecutor {
     return null;
   }
 
-  void execute() async {
+  Future<void> execute() async {
     print("Executing node chain");
 
     // Decode the nodes using the controller
