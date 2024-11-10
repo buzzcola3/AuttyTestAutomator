@@ -62,7 +62,7 @@ class UserdataDatabase {
     final db = await _db;
     final txn = db.transaction(fileManagerStore, 'readonly');
     final store = txn.objectStore(fileManagerStore);
-    final data = await store.getObject(1); //data is stored at key '1'
+    final data = await store.getObject(2); //data is stored at key '1'
     await txn.completed;
     return data ?? {};
   }
@@ -72,7 +72,7 @@ class UserdataDatabase {
     final db = await _db;
     final txn = db.transaction(fileManagerStore, 'readwrite');
     final store = txn.objectStore(fileManagerStore);
-    await store.put(data, 1); // Save data (auto-generated key)
+    await store.put(data, 2); // Save data (auto-generated key)
     await txn.completed;
   }
 

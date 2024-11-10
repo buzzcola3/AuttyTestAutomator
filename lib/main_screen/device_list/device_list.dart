@@ -47,13 +47,15 @@ class DeviceScannerState extends State<DeviceScanner> {
   Future<void> connectToPreviouslyConnected() async {
     Map<String, dynamic> list = await userdataDatabase;
   
-    // Safely cast the connected devices list
-    List<Map<String, dynamic>>? connectedDevices = (list['connectedDevices'] as List<dynamic>?)
-        ?.whereType<Map<String, dynamic>>()
-        .map((item) => item.cast<String, dynamic>())
-        .toList();
-  
-    previouslyConnected = connectedDevices;
+    if(previouslyConnected == null){
+      // Safely cast the connected devices list
+      List<Map<String, dynamic>>? connectedDevices = (list['connectedDevices'] as List<dynamic>?)
+          ?.whereType<Map<String, dynamic>>()
+          .map((item) => item.cast<String, dynamic>())
+          .toList();
+      previouslyConnected = connectedDevices;
+    }
+
   
     if (previouslyConnected != null) {
       for (var dev in previouslyConnected!) {
@@ -122,7 +124,7 @@ Future<void> updateDeviceList() async {
     });
   }
 
-  void _toggleGreenBox() {
+  void _toggleManualConnectionMenu() {
     setState(() {
       showGreenBox = !showGreenBox;
     });
@@ -219,7 +221,7 @@ Widget build(BuildContext context) {
                 padding: EdgeInsets.zero,
                 icon: Icon(Icons.add, color: Color.fromARGB(255, 58, 58, 58)),
                 iconSize: 18.0,
-                onPressed: _toggleGreenBox,
+                onPressed: _toggleManualConnectionMenu,
               ),
             ),
           ),
@@ -289,7 +291,7 @@ Widget manualDeviceConnectionMenu(BuildContext context, Future<void> Function() 
         // Scan Ports Button
         ElevatedButton(
           onPressed: () {
-            // Port scan dialog logic here
+            _showPortScanDialog(context, formKey, ipController, TextEditingController(), TextEditingController());
           },
           style: _buttonStyle,
           child: _buildButtonContent(Icons.search, 'Scan Ports'),
@@ -320,7 +322,7 @@ void _showAddDeviceDialog(BuildContext context, GlobalKey<FormState> formKey, Te
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
-                onSubmitted: (_) => _submitForm(formKey, ipController, portController, context),
+                onSubmitted: (_) => _addDevice(formKey, ipController, portController, context),
               ),
               SizedBox(height: 10),
               TextField(
@@ -331,7 +333,7 @@ void _showAddDeviceDialog(BuildContext context, GlobalKey<FormState> formKey, Te
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
-                onSubmitted: (_) => _submitForm(formKey, ipController, portController, context),
+                onSubmitted: (_) => _addDevice(formKey, ipController, portController, context),
               ),
             ],
           ),
@@ -349,7 +351,7 @@ void _showAddDeviceDialog(BuildContext context, GlobalKey<FormState> formKey, Te
                   duration: Duration(seconds: 3),
                 ),
               );
-              _submitForm(formKey, ipController, portController, context); // Add device
+              _addDevice(formKey, ipController, portController, context); // Add device
             },
             child: Text("Add"),
           ),
@@ -419,14 +421,145 @@ void _showScanSubnetDialog(BuildContext context, GlobalKey<FormState> formKey, T
   );
 }
 
-void _startSubnetScan(GlobalKey<FormState> formKey, TextEditingController ipController, TextEditingController portController, BuildContext context) {
-  final ipAddress = IPAddress(ipController.text, portController.text); // Adjust the port if needed
-  scanSubnet(ipAddress); // Placeholder function to handle subnet scan
-  Navigator.pop(context); // Close the dialog
+void _showPortScanDialog(
+  BuildContext context,
+  GlobalKey<FormState> formKey,
+  TextEditingController ipController,
+  TextEditingController portStartController,
+  TextEditingController portEndController,
+) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text("Scan Ports"),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("Enter IP address and port range for scanning."),
+              SizedBox(height: 10),
+              TextField(
+                controller: ipController,
+                decoration: InputDecoration(
+                  labelText: "IP Address",
+                  hintText: "e.g., 192.168.1.1",
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+              ),
+              SizedBox(height: 10),
+              TextField(
+                controller: portStartController,
+                decoration: InputDecoration(
+                  labelText: "Start Port",
+                  hintText: "e.g., 20",
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              SizedBox(height: 10),
+              TextField(
+                controller: portEndController,
+                decoration: InputDecoration(
+                  labelText: "End Port",
+                  hintText: "e.g., 80",
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("Started Port Scan..."),
+                  duration: Duration(seconds: 3),
+                ),
+              );
+              _startPortScan(formKey, ipController, portStartController, portEndController, context);
+            },
+            child: Text("Scan"),
+          ),
+        ],
+      );
+    },
+  );
 }
 
+void _startSubnetScan(GlobalKey<FormState> formKey, TextEditingController ipController, TextEditingController portController, BuildContext context) {
+  if (formKey.currentState?.validate() ?? false) {
+    final ipAddress = IPAddress(ipController.text, portController.text);
+    scanSubnet(ipAddress); // Placeholder function to handle subnet scan
+    Navigator.pop(context); // Close the dialog
+  }
+}
 
-void _submitForm(GlobalKey<FormState> formKey, TextEditingController ipController, TextEditingController portController, BuildContext context) {
+void _startPortScan(
+  GlobalKey<FormState> formKey,
+  TextEditingController ipController,
+  TextEditingController portStartController,
+  TextEditingController portEndController,
+  BuildContext context,
+) {
+  if (formKey.currentState?.validate() ?? false) {
+    // Parse the start and end ports
+    int? startPort = int.tryParse(portStartController.text);
+    final int? endPort = int.tryParse(portEndController.text);
+
+    // Check that the start and end ports are valid
+    if (startPort == null || endPort == null || startPort > endPort) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Invalid port range. Please check your input."),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    if (startPort < 1) startPort = 1;
+
+    if (endPort - startPort >  64){
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Too many ports to scan. Please limit port range to a maximum of 64 ports."),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    // Loop through the port range
+    for (int currentPort = startPort; currentPort <= endPort; currentPort++) {
+      final ipAddress = IPAddress(ipController.text, currentPort);
+      
+      // Attempt to connect to each port
+      connectToDevice(ipAddress);
+    }
+
+    // Close the dialog after starting the scan
+    Navigator.pop(context);
+    
+    // Show a snackbar to indicate the scan has started
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Started scanning ports from $startPort to $endPort."),
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+}
+
+void _addDevice(GlobalKey<FormState> formKey, TextEditingController ipController, TextEditingController portController, BuildContext context) {
   if (formKey.currentState?.validate() ?? false) {
     final ip = IPAddress(ipController.text, int.tryParse(portController.text) ?? 0);
     connectToDevice(ip); // Replace with your actual connection method

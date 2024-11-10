@@ -28,6 +28,7 @@ class IPAddress {
 
   /// Validates if the given IP address string is in a correct format (IPv4, IPv6, or localhost).
   static bool isValidIP(String ip) {
+    if(ip == '') return true;
 
     // Regular expression for IPv4 address
     final ipv4Pattern = RegExp(r'^(\d{1,3}\.){3}\d{1,3}$');
