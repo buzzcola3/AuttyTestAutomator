@@ -125,6 +125,7 @@ class WsDevice {
   WsMessageList wsMessageList = WsMessageList();
 
   void sendMessage(){
+    //TODO implement, make sending command use this??
 
   }
 
@@ -166,24 +167,50 @@ class WsDevice {
     ogMessage?.fulfilled = true;
   }
 
-  void _startConnection() async {
-    if(deviceInfo != null){
+  Future<void> _attemptReconnection() async {
+    const Duration initialDelay = Duration(seconds: 1);
+    const Duration maxDelay = Duration(minutes: 2);
+
+    deviceInfo = null;
+    ready = false;
+  
+    Duration currentDelay = initialDelay;
+  
+    while (ready == false) {
+      print("reconencting");
+      await _startConnection();
+  
+      // Wait for the current delay duration before retrying
+      await Future.delayed(currentDelay);
+  
+      // Increase the delay exponentially, but cap it at maxDelay
+      currentDelay = Duration(seconds: (currentDelay.inSeconds * 2).clamp(1, maxDelay.inSeconds));
+    }
+  }
+
+
+  Future<void> _startConnection() async {
+    if(deviceInfo != null){ //TODO workarround for internal device
       ready = true; 
       return;
     }
 
+    bool connectionFailed = true;
+
     try {
       socket = await WebSocket.connect('ws://$ipAddress');
       print('WebSocket connected to $ipAddress');
-      
+      connectionFailed = false;
   
       socket?.listen(
         (incomingMessage) {
           print("{___________________RXXXXXXXXXXXXXXXX}");
           receiveResponse(incomingMessage);
         },
-        onDone: () {
-          print('WebSocket connection closed for $ipAddress');
+        onDone: () async {
+          print('WebSocket connection closed for $ipAddress, attemptig reconnection');
+          await _attemptReconnection();
+          
         },
         onError: (error) {
           print('Error occurred on WebSocket connection: $error');
@@ -193,11 +220,14 @@ class WsDevice {
   
     } catch (e) {
       print('Failed to connect to WebSocket at $ipAddress}: $e');
+      connectionFailed = true;
     }
 
-    WsMessage devInfoMessage = await sendAwaitedRequest("DEVINFO", []);
-    deviceInfo = DeviceInfo(devInfoMessage.response["RESPONSE"]);
-    ready = true; 
+    if(connectionFailed == false){
+      WsMessage devInfoMessage = await sendAwaitedRequest("DEVINFO", []);
+      deviceInfo = DeviceInfo(devInfoMessage.response["RESPONSE"]);
+      ready = true; 
+    }
   }
 
 
@@ -234,7 +264,6 @@ class WsDeviceList {
     }
 
     devices.add(device);
-    print(devices[0].ready);
   }
 
   // Method to remove a device based on the IP address

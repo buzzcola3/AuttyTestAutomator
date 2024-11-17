@@ -33,7 +33,7 @@ class DeviceScannerState extends State<DeviceScanner> {
   void initState() {
     super.initState();
 
-    widget.websocketManager.deviceListChangeCallbacks.add(updateUI);
+    widget.websocketManager.deviceListChangeCallbacks.add(updateDeviceList);
     userdataDatabase = widget.userdataDatabase.getDeviceListData();
     connectToPreviouslyConnected();
   }
@@ -66,11 +66,6 @@ class DeviceScannerState extends State<DeviceScanner> {
     }
   }
 
-  void updateUI(){
-    setState(() {
-      widget.websocketManager.deviceList;
-    });
-  }
 
 Future<void> updateDeviceList() async {
   setState(() {
@@ -208,20 +203,21 @@ Widget build(BuildContext context) {
             NodePreview(
               onClose: _closeOverlay,
               deviceData: selectedDevice,
-//              wsMessageList: widget.websocketManager.wsMessageList,
               websocketManager: widget.websocketManager,
             ),
-          const Positioned(
+          Positioned(
             bottom: 3.0,
             left: 3.0,
-            child: SizedBox(
-              width: 10.0,
-              height: 10.0,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.0,
-                color: Color.fromARGB(255, 58, 58, 58),
-              ),
-            ),
+            child: widget.websocketManager.ipScanner.scanning
+                ? const SizedBox(
+                    width: 10.0,
+                    height: 10.0,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.0,
+                      color: Color.fromARGB(255, 58, 58, 58),
+                    ),
+                  )
+                : const SizedBox.shrink(), // Empty widget when not scanning
           ),
           Positioned(
             bottom: 0.0,

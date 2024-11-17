@@ -16,6 +16,10 @@ class WebsocketManager {
     for (var respondingDevice in ipScanner.respondingDevices) {
       connectDevice(respondingDevice);
     }
+
+    for (var callback in deviceListChangeCallbacks) { //TODO workarround to get loading indicator to work, make a standalone callback in ipScanner
+      callback();
+    }
   }
 
   Future<WsMessage?> sendAwaitedRequest(String deviceUniqueId, command, parameters) async {
