@@ -1,4 +1,4 @@
-import 'package:attempt_two/main_screen/device_list/websocket_manager/websocket_connection.dart';
+import 'package:attempt_two/main_screen/device_list/websocket_manager/websocket_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:attempt_two/main_screen/device_list/node_generation/node_generator.dart';
 import "websocket_manager/headers/websocket_datatypes.dart";
@@ -6,14 +6,12 @@ import "websocket_manager/headers/websocket_datatypes.dart";
 class NodePreview extends StatefulWidget {
   final VoidCallback onClose;
   final WsDevice? deviceData;
-  final WsMessageList wsMessageList;
-  final WebSocketController wsController;
+  final WebsocketManager websocketManager;
 
   const NodePreview({
     required this.onClose,
     this.deviceData,
-    required this.wsMessageList, // Mark wsMessageList as required
-    required this.wsController,
+    required this.websocketManager,
     super.key,
   });
 
@@ -44,7 +42,7 @@ class _NodePreviewState extends State<NodePreview> {
               children: [
                 // Thin text above the buttons, with reduced vertical space
                 Text(
-                  widget.deviceData != null ? widget.deviceData!.deviceInfo!['DEVICE_NAME'] : 'Control Bar',
+                  widget.deviceData != null ? widget.deviceData!.deviceInfo!.deviceName : 'Control Bar',
                   style: const TextStyle(
                     fontSize: 12.0, // Reduced font size
                     color: Colors.black54,
@@ -123,9 +121,9 @@ Widget _buildHelpContent() {
     return const Center(child: Text('No device data available.'));
   }
 
-  String description = widget.deviceData!.deviceInfo!['DEVICE_DESCRIPTION'] ?? 'No description available';
+  String description = widget.deviceData!.deviceInfo!.deviceName;
   String ipAddress = widget.deviceData!.ipAddress.toString();
-  String uniqueId = widget.deviceData!.deviceInfo!['UNIQUE_ID'] ?? 'No UNIQUE_ID available';
+  String uniqueId = widget.deviceData!.deviceInfo!.deviceUniqueId;
 
   return Padding(
     padding: const EdgeInsets.all(16.0),
@@ -146,10 +144,10 @@ Widget _buildHelpContent() {
 
 // Builds the command list from device data
 Widget _buildCommandList() {
-  if (widget.deviceData == null || widget.deviceData!.deviceInfo!['DEVICE_AVAILABLE_COMMANDS'] == null) {
+  if (widget.deviceData == null) {
     return const Center(child: Text('No commands available.'));
   }
-  List<String> commands = List<String>.from(widget.deviceData!.deviceInfo!['DEVICE_AVAILABLE_COMMANDS']);
+  List<String> commands = List<String>.from(widget.deviceData!.deviceInfo!.deviceAvailableCommands);
   
   return ListView.builder(
       itemCount: commands.length,
@@ -159,8 +157,7 @@ Widget _buildCommandList() {
           child: ElevatedButton(
             onPressed: () {
               // Handle the command action here
-              widget.wsController.sendRequest(widget.deviceData!.ipAddress, commands[index], []);
-              print(widget.wsMessageList);
+              widget.deviceData!.sendRequest(commands[index], []);
               //sendMessage
               print("Executing command: ${commands[index]}"); // Replace with actual command execution logic
             },
@@ -174,14 +171,11 @@ Widget _buildCommandList() {
 // Builds the list of device nodes
 Widget _buildNodeList() {
   // Check if device data and commands are available
-  if (widget.deviceData == null || widget.deviceData!.deviceInfo!['DEVICE_AVAILABLE_COMMANDS'] == null) {
-    return const Center(child: Text('No commands available.'));
+  if (widget.deviceData == null) {
+    return const Center(child: Text('No nodes available.'));
   }
 
-  // Retrieve the available nodes from device data
-  List<dynamic> dyn_nodes = widget.deviceData!.deviceInfo!['DEVICE_AVAILABLE_NODES'];
-  //cast to the correct strict datastructure
-  List<Map<String, dynamic>> nodes = dyn_nodes.cast<Map<String, dynamic>>();
+  List<Map<String, dynamic>> nodes = widget.deviceData!.deviceInfo!.deviceAvailableNodes;
 
   return ListView.builder(
     itemCount: nodes.length, // Set the item count based on the number of nodes
@@ -190,7 +184,7 @@ Widget _buildNodeList() {
       Map<String, dynamic> singleNode = nodes[index];
 
       Map<String, dynamic> nodeDNA = {
-        "deviceUniqueId": widget.deviceData!.deviceInfo!["UNIQUE_ID"],
+        "deviceUniqueId": widget.deviceData!.deviceInfo!.deviceUniqueId,
         "nodeUuid": null,
         "nodeCommand": singleNode["Command"],
         "nodeParameters": singleNode["Parameters"],

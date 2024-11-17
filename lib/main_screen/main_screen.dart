@@ -1,4 +1,4 @@
-import 'package:attempt_two/main_screen/device_list/websocket_manager/websocket_connection.dart';
+import 'package:attempt_two/main_screen/device_list/websocket_manager/websocket_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:node_editor/node_editor.dart';
 import 'device_list/device_list.dart';
@@ -26,7 +26,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreen extends State<MainScreen> {
   late PlaygroundExecutor playgroundExecutor;
-  late WebSocketController wsController;
+  late WebsocketManager websocketManager;
   late Map<String, dynamic> nodesDNA;
   late DebugConsoleController debugConsoleController;
   late PlaygroundSaveLoad playgroundSaveLoad;
@@ -36,9 +36,7 @@ class _MainScreen extends State<MainScreen> {
   void initState() {
     super.initState();
 
-    wsController = WebSocketController(
-      wsDeviceList: widget.wsDeviceList,
-      wsMessageList: widget.wsMessageList,
+    websocketManager = WebsocketManager(
     );
 
     nodesDNA = {};
@@ -46,7 +44,7 @@ class _MainScreen extends State<MainScreen> {
     playgroundExecutor = PlaygroundExecutor(
       wsDeviceList: widget.wsDeviceList,
       wsMessageList: widget.wsMessageList,
-      wsController: wsController,
+      websocketManager: websocketManager,
       controller: widget.nodeController,
       nodesDNA: nodesDNA
     );
@@ -56,8 +54,6 @@ class _MainScreen extends State<MainScreen> {
     userdataDatabase = UserdataDatabase();
 
     debugConsoleController = DebugConsoleController();
-
-    wsController.messageChangeNotifyFunction = debugConsoleController.addMessage;
   }
 
   @override
@@ -85,7 +81,7 @@ class _MainScreen extends State<MainScreen> {
                     color: const Color.fromARGB(255, 208, 211, 204),
                   ),
                   child: DeviceScanner(
-                    wsController: wsController,
+                    websocketManager: websocketManager,
                     userdataDatabase: userdataDatabase
                   ),
                 ),

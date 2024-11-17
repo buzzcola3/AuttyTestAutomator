@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 
+import 'package:attempt_two/global_datatypes/device_info.dart';
 import 'package:attempt_two/global_datatypes/ip_address.dart';
-import 'package:attempt_two/main_screen/device_list/websocket_manager/websocket_connection.dart';
 import 'package:uuid/uuid.dart';
 
 enum MessageType { generic, response, warning, error }
@@ -110,62 +110,110 @@ class WsMessageList {
 class WsDevice {
   // Properties
   final IPAddress ipAddress;
-  final WebSocket? socket;
-  final WebSocketController? wsController;
-
-  Map<String, dynamic>? deviceInfo;
-  WsMessageList messageList;
-  String deviceInfoUuid = "";
+  WebSocket? socket;
+  DeviceInfo? deviceInfo;
   bool ready = false;
   
-
-  // Constructor
   WsDevice({
     required this.ipAddress,
-    this.socket,
-    this.wsController,
-    required this.messageList,
-    this.deviceInfo
+    this.deviceInfo,
     }){
-    _fetchDeviceInfo();
-  //  _waitForIntroduceMessage(messageList);
+
+    _startConnection();
   }
 
-  Future<void> _fetchDeviceInfo() async {
-    const int maxRetries = 40;
-    const Duration retryInterval = Duration(seconds: 1);
-    int attempt = 0;
-  
-    WsMessage? devInfoMessage;
-    
-    while (deviceInfo == null && attempt < maxRetries) {
-      if (deviceInfoUuid.isEmpty) {
-        devInfoMessage = wsController?.sendRequest(ipAddress, "DEVINFO", []);
-        if (devInfoMessage != null) {
-          deviceInfoUuid = devInfoMessage.uuid;
-        }
-      } else {
-        wsController?.resendRequest(deviceInfoUuid);
-      }
-  
-      // Increment attempt and wait for 1 second before retrying
-      attempt++;
-      await Future.delayed(retryInterval);
-  
-      // Check if device info has been received in this attempt
-      WsMessage? message = messageList.searchMessage(deviceInfoUuid);
-      if (message != null && message.response != null) {
-        deviceInfo = jsonDecode(message.response['RESPONSE']);
-        ready = true;
-        return;  // Exit once deviceInfo is set
-      }
+  WsMessageList wsMessageList = WsMessageList();
+
+  void sendMessage(){
+
+  }
+
+  WsMessage sendRequest(String command, List<String> parameters){
+    final WsMessage wsMessage = WsMessage(
+      deviceIp: ipAddress,
+      message: jsonEncode({"COMMAND": command, "PARAMETERS": parameters}),
+      resendRequest: resendRequest,
+    );
+
+    socket?.add(jsonEncode({"REQUEST": wsMessage.message, "UUID": wsMessage.uuid}));
+
+    wsMessageList.addMessage(wsMessage);
+    return wsMessage;
+  }
+
+  void resendRequest(String uuid){
+    WsMessage? message = wsMessageList?.searchMessage(uuid);
+    socket?.add(jsonEncode({"REQUEST": message?.message, "UUID": message?.uuid}));
+  }
+
+  Future<WsMessage> sendAwaitedRequest(String command, List<String> parameters) async {
+    WsMessage awaitedMessage = sendRequest(command, parameters);
+
+    while (awaitedMessage.fulfilled == false) {
+      await Future.delayed(const Duration(milliseconds: 100)); // adjust delay as needed
     }
-  
-    // If deviceInfo is still null after 40 seconds, handle the failure
-    if (deviceInfo == null) {
-      print("Failed to fetch device info within the timeout period.");
-      // You might set a flag here or take other steps as necessary
+
+    return awaitedMessage;
+  }
+
+  void receiveResponse(String incomingMessage){
+    Map<String, dynamic> decodedMessage = jsonDecode(incomingMessage);
+    String messageUuid = decodedMessage["UUID"];
+    WsMessage? ogMessage = wsMessageList.searchUnfulfilledMessage(messageUuid);
+
+    ogMessage?.response = decodedMessage;
+    ogMessage?.rawResponse = incomingMessage;
+    ogMessage?.fulfilled = true;
+  }
+
+  void _startConnection() async {
+    if(deviceInfo != null){
+      ready = true; 
+      return;
     }
+
+    try {
+      socket = await WebSocket.connect('ws://$ipAddress');
+      print('WebSocket connected to $ipAddress');
+      
+  
+      socket?.listen(
+        (incomingMessage) {
+          print("{___________________RXXXXXXXXXXXXXXXX}");
+          receiveResponse(incomingMessage);
+        },
+        onDone: () {
+          print('WebSocket connection closed for $ipAddress');
+        },
+        onError: (error) {
+          print('Error occurred on WebSocket connection: $error');
+        },
+        cancelOnError: true,
+      );
+  
+    } catch (e) {
+      print('Failed to connect to WebSocket at $ipAddress}: $e');
+    }
+
+    WsMessage devInfoMessage = await sendAwaitedRequest("DEVINFO", []);
+    deviceInfo = DeviceInfo(devInfoMessage.response["RESPONSE"]);
+    ready = true; 
+  }
+
+
+
+
+  IPAddress get getIPAddress{
+    return ipAddress;
+  }
+
+
+  WebSocket? get getWebSocket{
+    return socket;
+  }
+
+  set setWebSocket(WebSocket? newSocket){
+    socket = newSocket;
   }
 }
 
@@ -174,13 +222,19 @@ class WsDeviceList {
   final List<WsDevice> devices = [];
 
   // Method to add a device to the list
-  void addDevice(WsDevice device) {
-    WsDevice? duplicateDevice = findDevice(device.ipAddress);
+  Future<void> addDevice(WsDevice device) async {
+
+    while (device.ready == false) {
+      await Future.delayed(const Duration(milliseconds: 100)); // adjust delay as needed
+    }
+
+    WsDevice? duplicateDevice = findDevice(device.deviceInfo!.deviceUniqueId);
     if (duplicateDevice != null) {
       removeDevice(duplicateDevice.ipAddress);
     }
 
     devices.add(device);
+    print(devices[0].ready);
   }
 
   // Method to remove a device based on the IP address
@@ -195,11 +249,10 @@ class WsDeviceList {
     return List.from(devices); // Return a copy of the device list
   }
 
-  // Optional: Method to find a device by IP address
-  WsDevice? findDevice(IPAddress ipAddress) {
+  WsDevice? findDevice(String deviceUniqueId){
     try {
       return devices.firstWhere(
-        (device) => device.ipAddress == ipAddress,
+        (device) => device.deviceInfo?.deviceUniqueId == deviceUniqueId,
         orElse: () => throw Exception('Device not found') // Throw an exception instead of returning null
       );
     } catch (e) {

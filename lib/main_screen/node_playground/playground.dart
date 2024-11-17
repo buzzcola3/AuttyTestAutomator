@@ -130,17 +130,20 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
       required Map<String, dynamic> nodeDNA,
       required dynamic nodeWidget
     }) {
-    var uuid = const Uuid();
-    nodeDNA["nodeUuid"] ??= uuid.v1();
 
-    widget.nodesDNA[nodeDNA["nodeUuid"]] = nodeDNA;
+    Map<String, dynamic> nodeDNACopy = jsonDecode(jsonEncode(nodeDNA));
+
+    var uuid = const Uuid();
+    nodeDNACopy["nodeUuid"] ??= uuid.v1();
+
+    widget.nodesDNA[nodeDNACopy["nodeUuid"]] = nodeDNACopy;
 
     _controller.addNode(
       generateNode(
         nodeType: nodeWidget,
-        nodeUuid: nodeDNA["nodeUuid"],
+        nodeUuid: nodeDNACopy["nodeUuid"],
         onPanStart: (details) {
-          _currentDraggedNodeId = nodeDNA["nodeUuid"];
+          _currentDraggedNodeId = nodeDNACopy["nodeUuid"];
           _currentDraggedPosition = details.globalPosition;
         },
         onPanUpdate: (details) {
@@ -154,10 +157,10 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
         },
         onTap: () {
           setState(() {
-            if (_selectedNodeName == nodeDNA["nodeUuid"]) {
+            if (_selectedNodeName == nodeDNACopy["nodeUuid"]) {
               _selectedNodeName = null;
             } else {
-              _selectedNodeName = nodeDNA["nodeUuid"];
+              _selectedNodeName = nodeDNACopy["nodeUuid"];
             }
           });
         },

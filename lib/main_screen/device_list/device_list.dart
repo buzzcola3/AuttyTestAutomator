@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import "package:attempt_two/main_screen/device_list/node_preview.dart";
-import "websocket_manager/websocket_connection.dart";
+import "websocket_manager/websocket_manager.dart";
 import "websocket_manager/headers/websocket_datatypes.dart";
 import 'internal_device.dart';
 import "package:attempt_two/userdata_database.dart";
 import "package:attempt_two/global_datatypes/ip_address.dart";
 
 class DeviceScanner extends StatefulWidget {
-  final WebSocketController wsController;
+  final WebsocketManager websocketManager;
   final UserdataDatabase userdataDatabase;
 
   const DeviceScanner({
     super.key,
-    required this.wsController,
+    required this.websocketManager,
     required this.userdataDatabase,
   });
 
@@ -28,20 +28,22 @@ class DeviceScannerState extends State<DeviceScanner> {
   late Future<Map<String, dynamic>> userdataDatabase;
   List<Map<String, dynamic>>? previouslyConnected;
 
+
   @override
   void initState() {
     super.initState();
-    widget.wsController.newConnectionNotifyFunction = updateDeviceList;
+
+    widget.websocketManager.deviceListChangeCallbacks.add(updateUI);
     userdataDatabase = widget.userdataDatabase.getDeviceListData();
     connectToPreviouslyConnected();
   }
 
   void connectToDevice(IPAddress ipAddress){
-    widget.wsController.ipScanner.attemptConnection(ipAddress);
+    widget.websocketManager.ipScanner.attemptConnection(ipAddress);
   }
 
   void scanSubnet(IPAddress subnetIp){
-    widget.wsController.ipScanner.scanSubnet(subnetIp);
+    widget.websocketManager.ipScanner.scanSubnet(subnetIp);
   }
 
   Future<void> connectToPreviouslyConnected() async {
@@ -59,15 +61,20 @@ class DeviceScannerState extends State<DeviceScanner> {
   
     if (previouslyConnected != null) {
       for (var dev in previouslyConnected!) {
-        widget.wsController.ipScanner.attemptConnection(IPAddress.fromMap(dev));
+        widget.websocketManager.ipScanner.attemptConnection(IPAddress.fromMap(dev));
       }
     }
   }
 
+  void updateUI(){
+    setState(() {
+      widget.websocketManager.deviceList;
+    });
+  }
 
 Future<void> updateDeviceList() async {
   setState(() {
-    widget.wsController.wsDeviceList;
+    widget.websocketManager.deviceList;
   });
 
   if (previouslyConnected == null) {
@@ -75,7 +82,7 @@ Future<void> updateDeviceList() async {
     previouslyConnected = List<Map<String, dynamic>>.from(list['connectedDevices'] ?? []);
   }
 
-  for (var device in widget.wsController.wsDeviceList.devices) {
+  for (var device in widget.websocketManager.deviceList.devices) {
     int existingIndex = previouslyConnected!.indexWhere((ipMap) =>
         IPAddress.fromMap(ipMap) == device.ipAddress);
 
@@ -105,12 +112,7 @@ Future<void> updateDeviceList() async {
   }
 
   void _handleFunctionDeviceTap() {
-    WsMessageList dummyMessageList = WsMessageList();
-    WsDevice dummyDevice = WsDevice(
-      ipAddress: IPAddress('', 0),
-      messageList: dummyMessageList,
-      deviceInfo: internalDevice,
-    );
+    WsDevice dummyDevice = internalWsDevice;
     setState(() {
       showOverlay = true;
       selectedDevice = dummyDevice;
@@ -145,7 +147,7 @@ Widget build(BuildContext context) {
             children: [
               Expanded(
                 child: ListView.builder(
-                  itemCount: widget.wsController.wsDeviceList.devices.length + 1,
+                  itemCount: widget.websocketManager.deviceList.devices.length + 1,
                   itemBuilder: (context, index) {
                     if (index == 0) {
                       return Card(
@@ -168,22 +170,32 @@ Widget build(BuildContext context) {
                       );
                     } else {
                       int deviceIndex = index - 1;
+                      final device = widget.websocketManager.deviceList.devices[deviceIndex];
+                      final isReady = device.ready;
+
                       return Card(
                         margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
                         elevation: 2.0,
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
-                          tileColor: Colors.blueGrey[50],
+                          tileColor: isReady ? Colors.blueGrey[50] : Colors.grey[300],
                           title: Text(
-                            widget.wsController.wsDeviceList.devices[deviceIndex].deviceInfo!['DEVICE_NAME'],
-                            style: const TextStyle(color: Colors.black87, fontSize: 14.0),
+                            device.deviceInfo!.deviceName,
+                            style: TextStyle(
+                              color: isReady ? Colors.black87 : Colors.grey[700],
+                              fontSize: 14.0,
+                            ),
                           ),
-                          leading: const Icon(
+                          leading: Icon(
                             Icons.devices,
-                            color: Color.fromARGB(255, 58, 58, 58),
+                            color: isReady
+                                ? const Color.fromARGB(255, 58, 58, 58)
+                                : Colors.grey[600],
                             size: 20.0,
                           ),
-                          onTap: () => _handleDeviceTap(widget.wsController.wsDeviceList.devices[deviceIndex]),
+                          onTap: isReady
+                              ? () => _handleDeviceTap(device)
+                              : null, // Disable tap if not ready
                         ),
                       );
                     }
@@ -196,8 +208,8 @@ Widget build(BuildContext context) {
             NodePreview(
               onClose: _closeOverlay,
               deviceData: selectedDevice,
-              wsMessageList: widget.wsController.wsMessageList,
-              wsController: widget.wsController,
+//              wsMessageList: widget.websocketManager.wsMessageList,
+              websocketManager: widget.websocketManager,
             ),
           const Positioned(
             bottom: 3.0,
@@ -244,6 +256,7 @@ Widget build(BuildContext context) {
     ),
   );
 }
+
 
 Widget manualDeviceConnectionMenu(BuildContext context, Future<void> Function() connectToPreviouslyConnected) {
   final TextEditingController ipController = TextEditingController();

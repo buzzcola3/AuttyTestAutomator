@@ -1,5 +1,11 @@
 
 
+import 'dart:convert';
+
+import 'package:attempt_two/global_datatypes/device_info.dart';
+import 'package:attempt_two/global_datatypes/ip_address.dart';
+import 'package:attempt_two/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
+
 String startNodeIcon = """
 <?xml version="1.0" encoding="utf-8"?>
 
@@ -25,6 +31,8 @@ String startNodeIcon = """
 Map<String, dynamic> internalDevice = {
   "DEVICE_NAME": "Functions",
   "UNIQUE_ID": "internal",
+  "DEVICE_DESCRIPTION": "This is an internal device, that allows usage of internal nodes functions",
+  "DEVICE_ICON_SVG": "",
   "DEVICE_AVAILABLE_COMMANDS": [],
   "DEVICE_AVAILABLE_NODES": [
     {
@@ -45,7 +53,7 @@ Map<String, dynamic> internalDevice = {
       [
         {
           "Name": "Delay(ms)",
-          "Type": "int",
+          "Type": "Int",
           "Value": "1000",
         }
       ],
@@ -80,6 +88,8 @@ Map<String, dynamic> internalDevice = {
     }
   ],
 };
+
+WsDevice internalWsDevice = WsDevice(ipAddress: IPAddress('', 0), deviceInfo: DeviceInfo(jsonEncode(internalDevice)));
 
 Future<void> internalDeviceCommandProcessor(String command, List<dynamic> params) async {
   print(command);

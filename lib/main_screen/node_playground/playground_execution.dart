@@ -1,5 +1,5 @@
 import 'package:attempt_two/main_screen/device_list/internal_device.dart';
-import 'package:attempt_two/main_screen/device_list/websocket_manager/websocket_connection.dart';
+import 'package:attempt_two/main_screen/device_list/websocket_manager/websocket_manager.dart';
 import 'package:node_editor/node_editor.dart';
 import 'package:attempt_two/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
 
@@ -29,14 +29,14 @@ class ExecutableNode {
 class PlaygroundExecutor {
   final WsDeviceList wsDeviceList;
   final WsMessageList wsMessageList;
-  final WebSocketController wsController;
+  final WebsocketManager websocketManager;
   final NodeEditorController controller;
   final Map<String, dynamic> nodesDNA;
 
   PlaygroundExecutor({
     required this.wsDeviceList,
     required this.wsMessageList,
-    required this.wsController,
+    required this.websocketManager,
     required this.controller,
     required this.nodesDNA
   });
@@ -89,7 +89,7 @@ Future<void> executeNode(String node, List<ExecutableNode> playgroundNodes) asyn
     
     if (playgroundNode.nodeUuid == node) {
 
-    List parameters = [];
+    List<String> parameters = [];
     if (nodesDNA[node] != null) {
       for (var parameter in nodesDNA[node]["nodeParameters"] ?? []) {
         parameters.add(parameter['Value']);
@@ -97,12 +97,7 @@ Future<void> executeNode(String node, List<ExecutableNode> playgroundNodes) asyn
     }
 
       if (nodesDNA[node]["deviceUniqueId"] != 'internal') {
-        final deviceIp = wsController.getDeviceIp(nodesDNA[node]["deviceUniqueId"]);
-        if (deviceIp != null) {
-          await wsController.awaitRequest(deviceIp, nodesDNA[node]["nodeCommand"], []); //TODO add parameters separate
-        } else {
-          wsMessageList.addError("Device IP not found for ${nodesDNA[node]["deviceUniqueId"]} command: ${nodesDNA[node]["nodeCommand"]}");
-        }
+        await websocketManager.sendAwaitedRequest(nodesDNA[node]["deviceUniqueId"], nodesDNA[node]["nodeCommand"], parameters);
       } else {
         await internalDeviceCommandProcessor(nodesDNA[node]["nodeCommand"], parameters);
       }
