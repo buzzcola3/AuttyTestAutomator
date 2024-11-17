@@ -1,13 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:attempt_two/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
+import 'package:attempt_two/global_datatypes/ip_address.dart';
+
+import 'dart:async';
 
 class DebugConsoleController {
   final GlobalKey<_DebugConsoleState> _key = GlobalKey<_DebugConsoleState>();
+  final WsMessageList globalWsMessageList;
 
   GlobalKey<_DebugConsoleState> get key => _key;
 
-  void addMessage() {
+  DebugConsoleController({
+    required this.globalWsMessageList
+  });
+
+  void addMessage(WsMessage message) {
+    globalWsMessageList.addMessage(message);
     _key.currentState?._addMessage();
+  
+    // Start checking every 100ms until the message is fulfilled
+    Timer.periodic(Duration(milliseconds: 100), (timer) {
+      if (message.fulfilled) {
+        // Call _addMessage again when fulfilled is true
+        _key.currentState?._addMessage();
+        
+        // Stop the timer once the condition is met
+        timer.cancel();
+      }
+    });
+  }
+
+  void addError(String errorMessage){
+    final WsMessage wsMessage = WsMessage(
+      deviceIp: IPAddress("", 0),
+      message: errorMessage,
+    );
+
+    wsMessage.fulfilled = true;
+    wsMessage.response = "";
+    wsMessage.rawResponse = "";
+    wsMessage.messageType = MessageType.error;
+
+    addMessage(wsMessage);
   }
 
   void scrollToBottom() {
@@ -16,9 +50,9 @@ class DebugConsoleController {
 }
 
 class DebugConsole extends StatefulWidget {
-  final WsMessageList wsMessageList;
+  final WsMessageList globalWsMessageList;
 
-  const DebugConsole({Key? key, required this.wsMessageList}) : super(key: key);
+  const DebugConsole({Key? key, required this.globalWsMessageList}) : super(key: key);
 
   @override
   _DebugConsoleState createState() => _DebugConsoleState();
@@ -53,7 +87,7 @@ class _DebugConsoleState extends State<DebugConsole> {
   }
 
   void _addMessage() {
-    setState(() => widget.wsMessageList);
+    setState(() => widget.globalWsMessageList);
     if (_autoScrollEnabled) _scrollToBottom();
     _inputController.clear();
   }
@@ -85,9 +119,9 @@ class _DebugConsoleState extends State<DebugConsole> {
                   Expanded(
                     child: ListView.builder(
                       controller: _scrollController,
-                      itemCount: widget.wsMessageList.messages.length,
+                      itemCount: widget.globalWsMessageList.messages.length,
                       itemBuilder: (context, index) {
-                        final message = widget.wsMessageList.messages[index];
+                        final message = widget.globalWsMessageList.messages[index];
                         return ExpandableMessageTile(
                           message: message.message,
                           response: message.rawResponse,

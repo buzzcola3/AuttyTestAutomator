@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 
+import 'package:attempt_two/main_screen/communication_panel/communication_panel.dart';
 import 'package:attempt_two/global_datatypes/device_info.dart';
 import 'package:attempt_two/global_datatypes/ip_address.dart';
 import 'package:uuid/uuid.dart';
@@ -62,20 +63,6 @@ class WsMessageList {
     messages.add(message);  // Add new message if no duplicate
   }
 
-  void addError(String errorMessage){
-    final WsMessage wsMessage = WsMessage(
-      deviceIp: IPAddress("", 0),
-      message: errorMessage,
-    );
-
-    wsMessage.fulfilled = true;
-    wsMessage.response = "";
-    wsMessage.rawResponse = "";
-    wsMessage.messageType = MessageType.error;
-
-    messages.add(wsMessage);
-  }
-
   // Method to search for a WsMessage by UUID
   WsMessage? searchMessage(String messageUuid) {
     for (int i = messages.length - 1; i >= 0; i--) {
@@ -108,13 +95,15 @@ class WsMessageList {
 }
 
 class WsDevice {
-  // Properties
+  DebugConsoleController? debugConsole;
+
   final IPAddress ipAddress;
   WebSocket? socket;
   DeviceInfo? deviceInfo;
   bool ready = false;
   
   WsDevice({
+    this.debugConsole,
     required this.ipAddress,
     this.deviceInfo,
     }){
@@ -139,6 +128,7 @@ class WsDevice {
     socket?.add(jsonEncode({"REQUEST": wsMessage.message, "UUID": wsMessage.uuid}));
 
     wsMessageList.addMessage(wsMessage);
+    debugConsole?.addMessage(wsMessage);
     return wsMessage;
   }
 

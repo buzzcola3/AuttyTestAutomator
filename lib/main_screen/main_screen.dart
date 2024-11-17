@@ -16,7 +16,7 @@ class MainScreen extends StatefulWidget {
   final String title;
 
   final WsDeviceList wsDeviceList = WsDeviceList();
-  final WsMessageList wsMessageList = WsMessageList();
+  final WsMessageList globalWsMessageList = WsMessageList();
   final NodeEditorController nodeController = NodeEditorController();
   final NodeEditorWidgetController nodeEditorWidgetController = NodeEditorWidgetController();
 
@@ -28,7 +28,7 @@ class _MainScreen extends State<MainScreen> {
   late PlaygroundExecutor playgroundExecutor;
   late WebsocketManager websocketManager;
   late Map<String, dynamic> nodesDNA;
-  late DebugConsoleController debugConsoleController;
+  late DebugConsoleController debugConsole;
   late PlaygroundSaveLoad playgroundSaveLoad;
   late UserdataDatabase userdataDatabase;
 
@@ -36,14 +36,17 @@ class _MainScreen extends State<MainScreen> {
   void initState() {
     super.initState();
 
+    debugConsole = DebugConsoleController(globalWsMessageList: widget.globalWsMessageList);
+
     websocketManager = WebsocketManager(
+      debugConsole: debugConsole
     );
 
     nodesDNA = {};
     
     playgroundExecutor = PlaygroundExecutor(
       wsDeviceList: widget.wsDeviceList,
-      wsMessageList: widget.wsMessageList,
+      debugConsole: debugConsole,
       websocketManager: websocketManager,
       controller: widget.nodeController,
       nodesDNA: nodesDNA
@@ -53,7 +56,7 @@ class _MainScreen extends State<MainScreen> {
 
     userdataDatabase = UserdataDatabase();
 
-    debugConsoleController = DebugConsoleController();
+
   }
 
   @override
@@ -140,8 +143,8 @@ class _MainScreen extends State<MainScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: DebugConsole(
-                    key: debugConsoleController.key,
-                    wsMessageList: widget.wsMessageList,
+                    key: debugConsole.key,
+                    globalWsMessageList: widget.globalWsMessageList,
                   ),
                 ),
               ),

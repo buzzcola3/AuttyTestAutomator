@@ -1,3 +1,4 @@
+import 'package:attempt_two/main_screen/communication_panel/communication_panel.dart';
 import 'package:attempt_two/main_screen/device_list/internal_device.dart';
 import 'package:attempt_two/main_screen/device_list/websocket_manager/websocket_manager.dart';
 import 'package:node_editor/node_editor.dart';
@@ -28,14 +29,14 @@ class ExecutableNode {
 
 class PlaygroundExecutor {
   final WsDeviceList wsDeviceList;
-  final WsMessageList wsMessageList;
+  final DebugConsoleController debugConsole;
   final WebsocketManager websocketManager;
   final NodeEditorController controller;
   final Map<String, dynamic> nodesDNA;
 
   PlaygroundExecutor({
     required this.wsDeviceList,
-    required this.wsMessageList,
+    required this.debugConsole,
     required this.websocketManager,
     required this.controller,
     required this.nodesDNA

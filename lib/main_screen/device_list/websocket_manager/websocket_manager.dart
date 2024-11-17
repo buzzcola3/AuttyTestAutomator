@@ -1,3 +1,4 @@
+import 'package:attempt_two/main_screen/communication_panel/communication_panel.dart';
 import 'package:attempt_two/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
 import 'package:attempt_two/main_screen/device_list/websocket_manager/ip_scanner/ip_scanner.dart';
 import 'package:attempt_two/global_datatypes/ip_address.dart';
@@ -5,12 +6,16 @@ import 'package:attempt_two/global_datatypes/ip_address.dart';
 class WebsocketManager {
   late IPScanner ipScanner;
   final WsDeviceList deviceList = WsDeviceList();
-
-  WebsocketManager() {
-    ipScanner = IPScanner(notifyChangeIPScanner: ipScannerChangeHandle);
-  }
+  final DebugConsoleController debugConsole;
 
   List<Function()> deviceListChangeCallbacks = [];
+
+  WebsocketManager({
+    required this.debugConsole
+  }) {
+
+    ipScanner = IPScanner(notifyChangeIPScanner: ipScannerChangeHandle);
+  }
 
   void ipScannerChangeHandle(){
     for (var respondingDevice in ipScanner.respondingDevices) {
@@ -36,7 +41,7 @@ class WebsocketManager {
       }
     }
 
-    WsDevice newDevice = WsDevice(ipAddress: deviceIp);
+    WsDevice newDevice = WsDevice(ipAddress: deviceIp, debugConsole: debugConsole);
 
     while (newDevice.ready == false) {
       await Future.delayed(const Duration(milliseconds: 100)); // adjust delay as needed
@@ -51,10 +56,6 @@ class WebsocketManager {
   }
 
   void disconnectDevice(){
-
-  }
-
-  void reconnectDevice(){
 
   }
 
