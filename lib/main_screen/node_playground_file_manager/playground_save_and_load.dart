@@ -94,9 +94,9 @@ Future<void> loadPlayground(String playgroundJson) async {
   nodeEditorWidgetController.refreshUI();
 }
 
-Future<void> loadAndExecutePlayground(String playgroundJson) async {
+Future<bool> loadAndExecutePlayground(String playgroundJson) async {
   await loadPlayground(playgroundJson);
-  await playgroundExecutor.execute();
+  return await playgroundExecutor.execute();
 }
 
 // Helper function to wait until a port exists

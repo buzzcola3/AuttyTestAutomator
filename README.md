@@ -7,6 +7,8 @@ A new Flutter project.
 This project is a starting point for a Flutter application.
 
 TODO:
+- implement: hard define types of execute responses: float, int, string (in a nice structure) in sync with Websocket_Device_Framework for easier result handling
+- implement: 3 execute result types, "SUCCESS", "FAIL", "ERROR"
 - implement: node deleting on the playground
 - implement: node settings drop-down menu
 

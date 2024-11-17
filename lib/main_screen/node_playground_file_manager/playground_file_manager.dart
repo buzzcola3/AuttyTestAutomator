@@ -26,21 +26,40 @@ class JsonFileManager extends StatefulWidget {
 class _JsonFileManagerState extends State<JsonFileManager> {
   List<Map<String, dynamic>> jsonFiles = [];
   Map<String, Uint8List> fileContents = {};
+  int? executingIndex;
 
 Future<void> _executeAllFiles() async {
   for (int i = 0; i < jsonFiles.length; i++) {
+    setState(() {
+      executingIndex = i;
+      jsonFiles[i]['status'] = null; // Reset status during execution
+    });
+
     final fileName = jsonFiles[i]['name'];
+    bool success = false;
 
     if (fileContents.containsKey(fileName)) {
       String jsonContent = utf8.decode(fileContents[fileName]!);
-      await widget.playgroundSaveLoad.loadAndExecutePlayground(jsonContent);
-
-      print('Executing JSON from $fileName: $jsonContent');
+      success = await widget.playgroundSaveLoad.loadAndExecutePlayground(jsonContent);
     } else {
       print('No content found for $fileName');
     }
+
+    // Update the status based on the execution result
+    setState(() {
+      jsonFiles[i]['status'] = success ? 'success' : 'failure';
+    });
+
+    // Optional delay for UI
+    await Future.delayed(const Duration(milliseconds: 500));
   }
+
+  setState(() {
+    executingIndex = null; // Reset executing index
+  });
 }
+
+
 
   Future<void> _loadFileToPlayground(int index) async {
     final fileName = jsonFiles[index]['name'];
@@ -376,12 +395,21 @@ Row(
                 },
                 itemCount: jsonFiles.length,
                 itemBuilder: (context, index) {
+                  final status = jsonFiles[index]['status'];
+                  final color = status == 'success'
+                    ? Colors.green
+                      : status == 'failure'
+                        ? Colors.red
+                          : executingIndex == index
+                            ? Colors.blue
+                              : Colors.grey[300];
+                              
                   return MouseRegion(
                     key: ValueKey(jsonFiles[index]['name']),
                     onEnter: (_) => setState(() => jsonFiles[index]['hover'] = true),
                     onExit: (_) => setState(() => jsonFiles[index]['hover'] = false),
                     child: Container(
-                      color: Colors.grey[300],
+                      color: color,
                       margin: const EdgeInsets.symmetric(vertical: 4.0),
                       padding: const EdgeInsets.symmetric(horizontal: 8.0),
                       height: 40,

@@ -42,6 +42,8 @@ class PlaygroundExecutor {
     required this.nodesDNA
   });
 
+  bool executeSuccess = false;
+
   ExecutableNode? findStartNode(List<ExecutableNode> decodedList) {
     for (var node in decodedList) {
       if (node.deviceUniqueId == 'internal' && node.command == 'RUN') {
@@ -51,8 +53,9 @@ class PlaygroundExecutor {
     return null;
   }
 
-  Future<void> execute() async {
+  Future<bool> execute() async {
     print("Executing node chain");
+    executeSuccess = true;
 
     // Decode the nodes using the controller
     List<ExecutableNode> playgroundNodes = decodeNodes(controller.nodes);
@@ -61,18 +64,20 @@ class PlaygroundExecutor {
     ExecutableNode? startNode = findStartNode(playgroundNodes);
     if (startNode == null) {
       print("No start node found.");
-      return;
+      return false;
     }
   
     Map<String, List<String>> nodeStructure = {};
     var execNodeTree = buildNodeConnectionStructure(startNode, controller.connections, nodeStructure);
 
     await executeNodeTree(execNodeTree, startNode.nodeUuid, playgroundNodes);
+
+    return executeSuccess;
   }
 
   Future<void> executeNodeTree(Map<String, List<String>> execNodeTree, String startNode, List<ExecutableNode> playgroundNodes) async {
     if (dependentNodesAlreadyExecuted(startNode, execNodeTree, playgroundNodes)) {
-      await executeNode(startNode, playgroundNodes);
+      await executeNode(startNode, execNodeTree, playgroundNodes);
     } else {
       return;
     }
@@ -82,27 +87,38 @@ class PlaygroundExecutor {
     }
   }
 
-Future<void> executeNode(String node, List<ExecutableNode> playgroundNodes) async {
+Future<void> executeNode(String node, Map<String, List<String>> execNodeTree, List<ExecutableNode> playgroundNodes) async {
   
+  Map<String, dynamic> dependencyResult = dependentNodesResult(node, execNodeTree, playgroundNodes);
 
 
   for (var playgroundNode in playgroundNodes) {
     
     if (playgroundNode.nodeUuid == node) {
 
-    List<String> parameters = [];
-    if (nodesDNA[node] != null) {
-      for (var parameter in nodesDNA[node]["nodeParameters"] ?? []) {
-        parameters.add(parameter['Value']);
+      List<String> parameters = [];
+      if (nodesDNA[node] != null) {
+        for (var parameter in nodesDNA[node]["nodeParameters"] ?? []) {
+          parameters.add(parameter['Value']);
+        }
       }
-    }
-
+  
+      Map<String, dynamic> result;
       if (nodesDNA[node]["deviceUniqueId"] != 'internal') {
-        await websocketManager.sendAwaitedRequest(nodesDNA[node]["deviceUniqueId"], nodesDNA[node]["nodeCommand"], parameters);
+        WsMessage? resultWsMessage = await websocketManager.sendAwaitedRequest(nodesDNA[node]["deviceUniqueId"], nodesDNA[node]["nodeCommand"], parameters);
+        result = resultWsMessage?.response;
       } else {
-        await internalDeviceCommandProcessor(nodesDNA[node]["nodeCommand"], parameters);
+        
+        result = await internalDeviceCommandProcessor(nodesDNA[node]["nodeCommand"], parameters, dependencyResult);
+        debugConsole.addError("${result["RESPONSE"]} --> ${result["OUTCOME"]}");
       }
-      
+
+      playgroundNode.executionResult = result;
+
+      if(result["OUTCOME"] == "ERROR"){
+        executeSuccess = false;
+      }
+        
       playgroundNode.executed = true;
       return;
     }
@@ -174,6 +190,38 @@ Future<void> executeNode(String node, List<ExecutableNode> playgroundNodes) asyn
     }
 
     return true;
+  }
+
+  Map<String, dynamic> dependentNodesResult(String node, Map<String, List<String>> execNodeTree, List<ExecutableNode> playgroundNodes){
+    List<String> dependencies = [];
+
+    execNodeTree.forEach((key, connectedNodes) {
+      
+      for (var connectedNode in connectedNodes) {
+
+        if(connectedNode == node){
+          dependencies.add(key);
+        }
+        
+      }
+    });
+
+    if (dependencies.isEmpty) {
+      return {};
+    }
+
+    for (var dependency in dependencies) {
+      for (var playgroundNode in playgroundNodes) {
+        if(playgroundNode.nodeUuid == dependency){
+          
+          return playgroundNode.executionResult;
+          
+        }
+      }
+
+    }
+
+    return {};
   }
 
   List<ExecutableNode> decodeNodes(Map<String, dynamic> nodes) {

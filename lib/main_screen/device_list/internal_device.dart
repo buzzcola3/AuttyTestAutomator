@@ -63,25 +63,24 @@ Map<String, dynamic> internalDevice = {
       "SvgIcon": startNodeIcon
     },
     {
-      "Name": "Test",
+      "Name": "Compare Number",
       "Type": "basicNode",
-      "Command": "DELAY",
+      "Command": "COMPARE NUMBER",
       "Parameters": 
       [
         {
-          "Name": "ur List",
+          "Name": "expected value",
+          "Type": "Int",
+          "Value": "0",
+        },
+        {
+          "Name": "compare type",
           "Type": "List",
-          "Value": "apple",
-          "AvailableValues": [
-  "apple", "orange", "banana", "grape", "kiwi", "melon", "peach", "plum",
-  "cherry", "berry", "mango", "lemon", "fig", "coconut", "papaya", "lime",
-  "apricot", "date", "pear", "guava", "nectarine", "blueberry", "strawberry",
-  "blackberry", "raspberry", "cranberry", "pomegranate", "dragonfruit", 
-  "persimmon", "watermelon"
-],
-        }
+          "Value": "==",
+          "AvailableValues": [">", ">=", "==", "<=", "<" ],
+        },
       ],
-      "Color": "blue",
+      "Color": "pink",
       "InPorts": ["delay_inport"],
       "OutPorts": ["delay_outport"],
       "SvgIcon": startNodeIcon
@@ -91,11 +90,71 @@ Map<String, dynamic> internalDevice = {
 
 WsDevice internalWsDevice = WsDevice(ipAddress: IPAddress('', 0), deviceInfo: DeviceInfo(jsonEncode(internalDevice)));
 
-Future<void> internalDeviceCommandProcessor(String command, List<dynamic> params) async {
+Future<Map<String, dynamic>> internalDeviceCommandProcessor(String command, List<dynamic> params, Map<String, dynamic> dependencyResult) async {
   print(command);
   print(params);
 
+  Map<String, dynamic> result = {"OUTCOME": "ERROR", "RESPONSE": "internalDeviceCommandProcessor did not return"};
+
+  
   if(command == "DELAY"){
     await Future.delayed(Duration(milliseconds: int.parse(params[0])));
+    result["OUTCOME"] = "SUCCESS";
+    result["RESPONSE"] = "ok";
   }
+  else if(command == "RUN"){
+    result["OUTCOME"] = "SUCCESS";
+    result["RESPONSE"] = "ok";
+  }
+  else if(command == "COMPARE NUMBER"){
+    double measuredValue = double.parse(dependencyResult["RESPONSE"]);
+    double expectedValue = double.parse(params[0]);
+    String compareType = params[1];
+
+    result["RESPONSE"] = "$measuredValue $compareType $expectedValue";
+    print(result["RESPONSE"]);
+
+    if(compareType == "=="){
+      if(measuredValue == expectedValue){
+        result["OUTCOME"] = "SUCCESS";
+      }
+      else{
+        result["OUTCOME"] = "ERROR";
+      }
+    }
+    else if(compareType == ">"){
+      if(measuredValue > expectedValue){
+        result["OUTCOME"] = "SUCCESS";
+      }
+      else{
+        result["OUTCOME"] = "ERROR";
+      }
+    }
+    else if(compareType == "<"){
+      if(measuredValue < expectedValue){
+        result["OUTCOME"] = "SUCCESS";
+      }
+      else{
+        result["OUTCOME"] = "ERROR";
+      }
+    }
+    else if(compareType == ">="){
+      if(measuredValue >= expectedValue){
+        result["OUTCOME"] = "SUCCESS";
+      }
+      else{
+        result["OUTCOME"] = "ERROR";
+      }
+    }
+    else if(compareType == "<="){
+      if(measuredValue <= expectedValue){
+        result["OUTCOME"] = "SUCCESS";
+      }
+      else{
+        result["OUTCOME"] = "ERROR";
+      }
+    }
+  }
+
+  return result;
 }
