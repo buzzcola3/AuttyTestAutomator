@@ -7,7 +7,6 @@ import 'package:attempt_two/global_datatypes/device_info.dart';
 import 'package:attempt_two/global_datatypes/ip_address.dart';
 import 'package:uuid/uuid.dart';
 
-enum MessageType { generic, response, warning, error }
 
 class WsMessage {
   // Properties
@@ -19,8 +18,6 @@ class WsMessage {
   bool fulfilled = false;
   int resendCount = 0;  // New property to track duplicates
 
-
-  MessageType messageType = MessageType.generic;
 
   final void Function(String)? resendRequest;
   Timer? _statusCheckTimer;
@@ -128,7 +125,7 @@ class WsDevice {
     socket?.add(jsonEncode({"REQUEST": wsMessage.message, "UUID": wsMessage.uuid}));
 
     wsMessageList.addMessage(wsMessage);
-    debugConsole?.addMessage(wsMessage);
+    debugConsole?.addMessage(wsMessage, MessageType.request, ConsoleTab.websocket);
     return wsMessage;
   }
 

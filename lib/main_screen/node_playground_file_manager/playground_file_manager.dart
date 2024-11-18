@@ -283,46 +283,86 @@ Future<void> _executeAllFiles() async {
     });
   }
 
-  void _savePlayground() async {
-    final controller = TextEditingController();
-    final newFileName = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Save Playground"),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(hintText: "Enter file name"),
+void _savePlayground() async {
+  final controller = TextEditingController();
+  final newFileName = await showDialog<String>(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text("Save Playground"),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: "Enter file name"),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("Cancel"),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Cancel"),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(controller.text),
-              child: const Text("Save"),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (newFileName != null && newFileName.isNotEmpty) {
-      String playgroundJson = widget.playgroundSaveLoad.savePlayground();
-      Uint8List fileContent = Uint8List.fromList(utf8.encode(playgroundJson));
-
-      setState(() {
-        final fullFileName = '$newFileName.json';
-        jsonFiles.add({'name': fullFileName, 'content': jsonDecode(playgroundJson), 'hover': false});
-        fileContents[fullFileName] = fileContent;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$newFileName.json saved!')),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(controller.text),
+            child: const Text("Save"),
+          ),
+        ],
       );
+    },
+  );
+
+  if (newFileName != null && newFileName.isNotEmpty) {
+    String fullFileName = '$newFileName.json';
+
+    // Check if the file already exists
+    bool fileExists = jsonFiles.any((file) => file['name'] == fullFileName);
+
+    if (fileExists) {
+      // Show a dialog to ask if the user wants to overwrite the file
+      bool overwrite = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text("File Already Exists"),
+            content: const Text("A file with this name already exists. Do you want to overwrite it?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text("Cancel"),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text("Overwrite"),
+              ),
+            ],
+          );
+        },
+      ) ?? false;
+
+      if (!overwrite) {
+        // If user doesn't want to overwrite, do nothing
+        return;
+      }
+
+      // Remove the existing file before saving the new one
+      setState(() {
+        jsonFiles.removeWhere((file) => file['name'] == fullFileName);
+        fileContents.remove(fullFileName);
+      });
     }
+
+    // Save the new file
+    String playgroundJson = widget.playgroundSaveLoad.savePlayground();
+    Uint8List fileContent = Uint8List.fromList(utf8.encode(playgroundJson));
+
+    setState(() {
+      jsonFiles.add({'name': fullFileName, 'content': jsonDecode(playgroundJson), 'hover': false});
+      fileContents[fullFileName] = fileContent;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$newFileName.json saved!')),
+    );
   }
+}
+
 
 @override
 Widget build(BuildContext context) {

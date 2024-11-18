@@ -36,7 +36,7 @@ class _MainScreen extends State<MainScreen> {
   void initState() {
     super.initState();
 
-    debugConsole = DebugConsoleController(globalWsMessageList: widget.globalWsMessageList);
+    debugConsole = DebugConsoleController();
 
     websocketManager = WebsocketManager(
       debugConsole: debugConsole
@@ -144,7 +144,6 @@ class _MainScreen extends State<MainScreen> {
                   ),
                   child: DebugConsole(
                     key: debugConsole.key,
-                    globalWsMessageList: widget.globalWsMessageList,
                   ),
                 ),
               ),

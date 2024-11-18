@@ -110,13 +110,16 @@ Future<void> executeNode(String node, Map<String, List<String>> execNodeTree, Li
       } else {
         
         result = await internalDeviceCommandProcessor(nodesDNA[node]["nodeCommand"], parameters, dependencyResult);
-        debugConsole.addError("${result["RESPONSE"]} --> ${result["OUTCOME"]}");
+        
       }
 
       playgroundNode.executionResult = result;
 
       if(result["OUTCOME"] == "ERROR"){
+        debugConsole.addMessage("${result["RESPONSE"]} --> ${result["OUTCOME"]}", MessageType.error, ConsoleTab.execute);
         executeSuccess = false;
+      }else{
+        debugConsole.addMessage("${result["RESPONSE"]} --> ${result["OUTCOME"]}", MessageType.generic, ConsoleTab.execute);
       }
         
       playgroundNode.executed = true;
