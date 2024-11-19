@@ -27,6 +27,20 @@ class _JsonFileManagerState extends State<JsonFileManager> {
   List<Map<String, dynamic>> jsonFiles = [];
   Map<String, Uint8List> fileContents = {};
   int? executingIndex;
+  
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeFileManager();
+    setState(() {
+      
+    });
+  }
+
+  void _initializeFileManager() async {
+    await _restoreFilesFromInternalDatabase();
+  }
 
 Future<void> _executeAllFiles() async {
   for (int i = 0; i < jsonFiles.length; i++) {
@@ -74,98 +88,152 @@ Future<void> _executeAllFiles() async {
     }
   }
 
-  Future<void> _pickFiles() async {
-    var result = await FilePicker.platform.pickFiles(
-      allowMultiple: true,
-      type: FileType.custom,
-      allowedExtensions: ['json', 'zip'],
-    );
-  
-    if (result != null) {
-      for (var file in result.files) {
-        if (file.path != null) {
-          final File selectedFile = File(file.path!);
-  
-          if (file.extension == 'json') {
-            // Handle individual JSON files
-            try {
-              String jsonString = await selectedFile.readAsString();
-              Map<String, dynamic> jsonContent = jsonDecode(jsonString);
-  
-              setState(() {
-                jsonFiles.add({'name': file.name, 'content': jsonContent, 'hover': false});
-                fileContents[file.name] = Uint8List.fromList(utf8.encode(jsonString));
-              });
-            } catch (e) {
-              print('Error reading JSON from file ${file.name}: $e');
-            }
-          } else if (file.extension == 'zip') {
-            // Handle ZIP files
-            try {
-              final zipData = await selectedFile.readAsBytes();
-              final archive = ZipDecoder().decodeBytes(zipData);
-              List<String> orderList = [];
-              Map<String, Map<String, dynamic>> tempJsonFiles = {};
-  
-              // Read the order file if it exists
-              for (var archiveFile in archive) {
-                if (archiveFile.isFile && archiveFile.name == 'file.order') {
-                  final orderContent = utf8.decode(archiveFile.content as List<int>);
-                  final jsonOrder = jsonDecode(orderContent);
-                  orderList = List<String>.from(jsonOrder["file_order"]);
-                  break;
-                }
-              }
-  
-              // Parse JSON files and store them temporarily
-              for (var archiveFile in archive) {
-                if (archiveFile.isFile && archiveFile.name.endsWith('.json') && archiveFile.name != 'file.order') {
-                  final jsonString = utf8.decode(archiveFile.content as List<int>);
-                  Map<String, dynamic> jsonContent = jsonDecode(jsonString);
-                  tempJsonFiles[archiveFile.name] = {'content': jsonContent, 'data': Uint8List.fromList(utf8.encode(jsonString))};
-                }
-              }
-  
-              // Arrange files based on the order list
-              setState(() {
-                for (var fileName in orderList) {
-                  if (tempJsonFiles.containsKey(fileName)) {
-                    jsonFiles.add({'name': fileName, 'content': tempJsonFiles[fileName]!['content'], 'hover': false});
-                    fileContents[fileName] = tempJsonFiles[fileName]!['data'];
-                  }
-                }
-  
-                // Add remaining files not listed in file.order
-                for (var entry in tempJsonFiles.entries) {
-                  if (!orderList.contains(entry.key)) {
-                    jsonFiles.add({'name': entry.key, 'content': entry.value['content'], 'hover': false});
-                    fileContents[entry.key] = entry.value['data'];
-                  }
-                }
-              });
-            } catch (e) {
-              print('Error reading ZIP file ${file.name}: $e');
-            }
-          } else {
-            print('Unsupported file type: ${file.name}');
-          }
+Future<void> _pickFiles() async {
+  var result = await FilePicker.platform.pickFiles(
+    allowMultiple: true,
+    type: FileType.custom,
+    allowedExtensions: ['json', 'zip'],
+  );
+
+  if (result != null) {
+    for (var file in result.files) {
+      if (file.path != null) {
+        final File selectedFile = File(file.path!);
+
+        if (file.extension == 'json') {
+          await _importJsonFile(selectedFile, file.name);
+          _saveFilesToInternalDatabase();
+        } else if (file.extension == 'zip') {
+          await _importZipFile(selectedFile);
+          _saveFilesToInternalDatabase();
+        } else {
+          print('Unsupported file type: ${file.name}');
         }
       }
     }
   }
+}
 
-  Future<void> _renameFile(int index) async {
-    final currentName = jsonFiles[index]['name'];
-    final controller = TextEditingController(text: currentName.replaceAll('.json', ''));
+Future<void> _importJsonFile(File selectedFile, String fileName) async {
+  try {
+    // Ensure unique filename
+    String uniqueFileName = fileName;
+    while (_doesFileNameExist(uniqueFileName)) {
+      uniqueFileName = _incrementFileName(uniqueFileName);
+    }
 
-    final newName = await showDialog<String>(
+    // Read and decode JSON content
+    String jsonString = await selectedFile.readAsString();
+    Map<String, dynamic> jsonContent = jsonDecode(jsonString);
+
+    setState(() {
+      jsonFiles.add({'name': uniqueFileName, 'content': jsonContent, 'hover': false});
+      fileContents[uniqueFileName] = Uint8List.fromList(utf8.encode(jsonString));
+    });
+  } catch (e) {
+    print('Error reading JSON from file $fileName: $e');
+  }
+}
+
+Future<void> _importZipFile(File selectedFile) async {
+  try {
+    final zipData = await selectedFile.readAsBytes();
+    final archive = ZipDecoder().decodeBytes(zipData);
+
+    List<String> orderList = [];
+    Map<String, Map<String, dynamic>> tempJsonFiles = {};
+
+    // Read the order file if it exists
+    for (var archiveFile in archive) {
+      if (archiveFile.isFile && archiveFile.name == 'file.order') {
+        final orderContent = utf8.decode(archiveFile.content as List<int>);
+        final jsonOrder = jsonDecode(orderContent);
+        orderList = List<String>.from(jsonOrder["file_order"]);
+        break;
+      }
+    }
+
+    // Parse JSON files and store them temporarily
+    for (var archiveFile in archive) {
+      if (archiveFile.isFile && archiveFile.name.endsWith('.json') && archiveFile.name != 'file.order') {
+        final jsonString = utf8.decode(archiveFile.content as List<int>);
+        Map<String, dynamic> jsonContent = jsonDecode(jsonString);
+
+        // Ensure unique filename
+        String uniqueName = archiveFile.name;
+        while (_doesFileNameExist(uniqueName)) {
+          uniqueName = _incrementFileName(uniqueName);
+        }
+
+        tempJsonFiles[uniqueName] = {
+          'content': jsonContent,
+          'data': Uint8List.fromList(utf8.encode(jsonString)),
+        };
+      }
+    }
+
+    // Arrange files based on the order list
+    setState(() {
+      for (var fileName in orderList) {
+        if (tempJsonFiles.containsKey(fileName)) {
+          jsonFiles.add({
+            'name': fileName,
+            'content': tempJsonFiles[fileName]!['content'],
+            'hover': false,
+          });
+          fileContents[fileName] = tempJsonFiles[fileName]!['data'];
+        }
+      }
+
+      // Add remaining files not listed in file.order
+      for (var entry in tempJsonFiles.entries) {
+        if (!orderList.contains(entry.key)) {
+          jsonFiles.add({
+            'name': entry.key,
+            'content': entry.value['content'],
+            'hover': false,
+          });
+          fileContents[entry.key] = entry.value['data'];
+        }
+      }
+    });
+  } catch (e) {
+    print('Error reading ZIP file: $e');
+  }
+}
+
+// Helper function to increment the file name by adding underscores
+String _incrementFileName(String fileName) {
+  final nameWithoutExtension = fileName.replaceAll('.json', '');
+  return '${nameWithoutExtension}_.json';
+}
+
+
+Future<void> _renameFile(int index) async {
+  final currentName = jsonFiles[index]['name'];
+  final controller = TextEditingController(text: currentName.replaceAll('.json', ''));
+
+  String? newName;
+
+  do {
+    newName = await showDialog<String>(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: const Text("Rename File"),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(hintText: "Enter new name"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(hintText: "Enter new name"),
+              ),
+              if (newName != null && _doesFileNameExist('$newName.json'))
+                const Text(
+                  "A file with this name already exists. Please choose a different name.",
+                  style: TextStyle(color: Colors.red),
+                ),
+            ],
           ),
           actions: [
             TextButton(
@@ -181,15 +249,26 @@ Future<void> _executeAllFiles() async {
       },
     );
 
-    if (newName != null && newName.isNotEmpty) {
-      setState(() {
-        final jsonContent = widget.playgroundSaveLoad.saveToJson();
-        jsonFiles[index]['name'] = '$newName.json';
-        fileContents['$newName.json'] = Uint8List.fromList(utf8.encode(jsonContent));
-        fileContents.remove(currentName);
-      });
+    if (newName == null) {
+      return; // User canceled the operation
     }
+  } while (_doesFileNameExist('$newName.json'));
+
+  if (newName.isNotEmpty) {
+    setState(() {
+      fileContents['$newName.json'] = fileContents[jsonFiles[index]['name']]!;
+      fileContents.remove(jsonFiles[index]['name']);
+      jsonFiles[index]['name'] = '$newName.json';
+      
+    });
+    _saveFilesToInternalDatabase();
   }
+}
+
+bool _doesFileNameExist(String name) {
+  return jsonFiles.any((file) => file['name'] == name);
+}
+
 
   Future<void> _downloadFile(String fileName) async {
     final Uint8List bytes = fileContents[fileName]!;
@@ -210,6 +289,27 @@ Future<void> _executeAllFiles() async {
         SnackBar(content: Text('Failed to save $fileName')),
       );
     }
+  }
+
+  Future<List<int>> _getFileManagerZipData() async {
+    final archive = Archive();
+
+    // Add each JSON file to the archive
+    for (var entry in fileContents.entries) {
+      archive.addFile(ArchiveFile(entry.key, entry.value.length, entry.value));
+    }
+
+    // Create the .order file content
+    List<String> fileOrder = jsonFiles.map((file) => file['name'] as String).toList();
+    String orderJson = jsonEncode({'file_order': fileOrder});
+    Uint8List orderData = Uint8List.fromList(utf8.encode(orderJson));
+
+    // Add the .order file to the archive
+    archive.addFile(ArchiveFile('file.order', orderData.length, orderData));
+
+    // Encode the archive to zip format
+    final zipData = ZipEncoder().encode(archive)!;
+    return zipData;
   }
 
   Future<void> _downloadAllAsZip() async {
@@ -238,23 +338,7 @@ Future<void> _executeAllFiles() async {
     );
   
     if (zipFileName != null && zipFileName.isNotEmpty) {
-      final archive = Archive();
-  
-      // Add each JSON file to the archive
-      for (var entry in fileContents.entries) {
-        archive.addFile(ArchiveFile(entry.key, entry.value.length, entry.value));
-      }
-  
-      // Create the .order file content
-      List<String> fileOrder = jsonFiles.map((file) => file['name'] as String).toList();
-      String orderJson = jsonEncode({'file_order': fileOrder});
-      Uint8List orderData = Uint8List.fromList(utf8.encode(orderJson));
-  
-      // Add the .order file to the archive
-      archive.addFile(ArchiveFile('file.order', orderData.length, orderData));
-  
-      // Encode the archive to zip format
-      final zipData = ZipEncoder().encode(archive)!;
+      final zipData = await _getFileManagerZipData();
   
       try {
         await FileSaver.instance.saveFile(
@@ -281,7 +365,84 @@ Future<void> _executeAllFiles() async {
       jsonFiles.removeAt(index);
       fileContents.remove(fileName);
     });
+    _saveFilesToInternalDatabase();
   }
+
+  void _saveFilesToInternalDatabase() async {
+    final zipData = await _getFileManagerZipData();
+    widget.userdataDatabase.saveFileManagerData(zipData);
+  }
+
+Future<void> _restoreFilesFromInternalDatabase() async {
+  try {
+    // Retrieve ZIP data from the database
+    List<int> zipData = await widget.userdataDatabase.getFileManagerData();
+
+    // Pass the data to a helper function for ZIP processing
+    await _processZipData(Uint8List.fromList(zipData));
+  } catch (e) {
+    print("Error restoring files from database: $e");
+  }
+}
+
+Future<void> _processZipData(Uint8List zipData) async {
+  try {
+    final archive = ZipDecoder().decodeBytes(zipData);
+
+    List<String> orderList = [];
+    Map<String, Map<String, dynamic>> tempJsonFiles = {};
+
+    // Read the order file if it exists
+    for (var archiveFile in archive) {
+      if (archiveFile.isFile && archiveFile.name == 'file.order') {
+        final orderContent = utf8.decode(archiveFile.content as List<int>);
+        final jsonOrder = jsonDecode(orderContent);
+        orderList = List<String>.from(jsonOrder["file_order"]);
+        break;
+      }
+    }
+
+    // Parse JSON files and store them temporarily
+    for (var archiveFile in archive) {
+      if (archiveFile.isFile && archiveFile.name.endsWith('.json') && archiveFile.name != 'file.order') {
+        final jsonString = utf8.decode(archiveFile.content as List<int>);
+        Map<String, dynamic> jsonContent = jsonDecode(jsonString);
+        tempJsonFiles[archiveFile.name] = {
+          'content': jsonContent,
+          'data': Uint8List.fromList(utf8.encode(jsonString)),
+        };
+      }
+    }
+
+    // Arrange files based on the order list
+    setState(() {
+      for (var fileName in orderList) {
+        if (tempJsonFiles.containsKey(fileName)) {
+          jsonFiles.add({
+            'name': fileName,
+            'content': tempJsonFiles[fileName]!['content'],
+            'hover': false,
+          });
+          fileContents[fileName] = tempJsonFiles[fileName]!['data'];
+        }
+      }
+
+      // Add remaining files not listed in file.order
+      for (var entry in tempJsonFiles.entries) {
+        if (!orderList.contains(entry.key)) {
+          jsonFiles.add({
+            'name': entry.key,
+            'content': entry.value['content'],
+            'hover': false,
+          });
+          fileContents[entry.key] = entry.value['data'];
+        }
+      }
+    });
+  } catch (e) {
+    print("Error processing ZIP data: $e");
+  }
+}
 
 void _savePlayground() async {
   final controller = TextEditingController();
@@ -360,6 +521,8 @@ void _savePlayground() async {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('$newFileName.json saved!')),
     );
+
+    _saveFilesToInternalDatabase();
   }
 }
 
@@ -432,6 +595,7 @@ Row(
                     final item = jsonFiles.removeAt(oldIndex);
                     jsonFiles.insert(newIndex, item);
                   });
+                  _saveFilesToInternalDatabase();
                 },
                 itemCount: jsonFiles.length,
                 itemBuilder: (context, index) {

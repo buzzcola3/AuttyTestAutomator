@@ -58,7 +58,7 @@ class UserdataDatabase {
   }
 
   // Get File Manager Data
-  Future<Map<String, dynamic>> getFileManagerData() async {
+  Future<List<int>> getFileManagerData() async {
     final db = await _db;
     final txn = db.transaction(fileManagerStore, 'readonly');
     final store = txn.objectStore(fileManagerStore);
@@ -68,7 +68,7 @@ class UserdataDatabase {
   }
 
   // Save File Manager Data
-  Future<void> saveFileManagerData(Map<String, dynamic> data) async {
+  Future<void> saveFileManagerData(List<int> data) async {
     final db = await _db;
     final txn = db.transaction(fileManagerStore, 'readwrite');
     final store = txn.objectStore(fileManagerStore);
