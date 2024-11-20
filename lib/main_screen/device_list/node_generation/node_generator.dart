@@ -6,6 +6,7 @@ import 'package:node_editor/node_editor.dart';
 double _DEFAULT_WIDTH = 180;
 const double _DEFAULT_NODE_PADDING = 0; // Keep 0
 Color _NODE_CONNECTION_COLOR = const Color.fromARGB(255, 109, 109, 109);
+const double _NODE_EDGE_RADIUS = 6;
 
 NodeWidgetBase generateNode({
   required Widget nodeType,
@@ -22,6 +23,9 @@ NodeWidgetBase generateNode({
   return ContainerNodeWidget(
     name: nodeUuid,
     typeName: 'node',
+    selectedBorder: Border.all(color: Colors.white),
+    border: Border.all(color: Colors.transparent),
+    radius: _NODE_EDGE_RADIUS,
     backgroundColor: Colors.transparent, // Transparent background
     width: _DEFAULT_WIDTH, // Width is fixed
     contentPadding: const EdgeInsets.all(_DEFAULT_NODE_PADDING),
@@ -302,7 +306,7 @@ Widget basicNode({
             decoration: BoxDecoration(
               color: color, // Apply the main color to the node
               border: Border.all(color: Colors.grey, width: 1), // Thin border
-              borderRadius: BorderRadius.circular(5), // Rounded corners for both sides
+              borderRadius: BorderRadius.circular(_NODE_EDGE_RADIUS), // Rounded corners for both sides
             ),
             child: Row(
               children: [
@@ -311,7 +315,7 @@ Widget basicNode({
                   width: 40, // Fixed width for accent color section
                   decoration: BoxDecoration(
                     color: accentColor, // Apply the accent color to the left side
-                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(5)), // Rounded corners for the left side
+                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(_NODE_EDGE_RADIUS)), // Rounded corners for the left side
                   ),
                   child: Center(
                     child: svgIconString != null
@@ -406,7 +410,7 @@ Widget buttonNode({
             decoration: BoxDecoration(
               color: color, // Apply the main color to the node
               border: Border.all(color: Colors.grey, width: 1), // Thin border
-              borderRadius: BorderRadius.circular(5), // Rounded corners for the node
+              borderRadius: BorderRadius.circular(_NODE_EDGE_RADIUS), // Rounded corners for the node
             ),
             child: Row(
               children: [
@@ -415,7 +419,7 @@ Widget buttonNode({
                   width: 40, // Fixed width for the button section
                   decoration: BoxDecoration(
                     color: accentColor, // Apply the accent color to the button section
-                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(5)), // Rounded corners for the left side
+                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(_NODE_EDGE_RADIUS)), // Rounded corners for the left side
                   ),
                   child: Center(
                     child: SizedBox(

@@ -104,6 +104,7 @@ Future<void> executeNode(String node, Map<String, List<String>> execNodeTree, Li
       }
   
       Map<String, dynamic> result;
+      controller.selectNodeAction(node); // highlight the node when executing
       if (nodesDNA[node]["deviceUniqueId"] != 'internal') {
         WsMessage? resultWsMessage = await websocketManager.sendAwaitedRequest(nodesDNA[node]["deviceUniqueId"], nodesDNA[node]["nodeCommand"], parameters);
         result = resultWsMessage?.response;
