@@ -132,10 +132,6 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
     }) {
 
     Map<String, dynamic> nodeDNACopy = jsonDecode(jsonEncode(nodeDNA));
-
-    if(widget.controller.nodes.keys.firstOrNull != null){
-      widget.controller.selectNodeAction(widget.controller.nodes.keys.first);
-    }
     
 
     var uuid = const Uuid();

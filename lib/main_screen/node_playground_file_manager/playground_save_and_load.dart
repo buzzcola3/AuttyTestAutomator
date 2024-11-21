@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'package:attempt_two/main_screen/device_list/node_generation/node_generator.dart';
-import 'package:attempt_two/main_screen/node_playground/playground.dart';
-import 'package:attempt_two/main_screen/node_playground/playground_execution.dart';
+import 'package:Autty/main_screen/device_list/node_generation/node_generator.dart';
+import 'package:Autty/main_screen/node_playground/playground.dart';
+import 'package:Autty/main_screen/node_playground/playground_execution.dart';
 import 'package:flutter/material.dart';
 import 'package:node_editor/node_editor.dart';
 import 'dart:async';

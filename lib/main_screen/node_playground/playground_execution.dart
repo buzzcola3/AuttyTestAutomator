@@ -1,8 +1,8 @@
-import 'package:attempt_two/main_screen/communication_panel/communication_panel.dart';
-import 'package:attempt_two/main_screen/device_list/internal_device.dart';
-import 'package:attempt_two/main_screen/device_list/websocket_manager/websocket_manager.dart';
+import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
+import 'package:Autty/main_screen/device_list/internal_device.dart';
+import 'package:Autty/main_screen/device_list/websocket_manager/websocket_manager.dart';
 import 'package:node_editor/node_editor.dart';
-import 'package:attempt_two/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
+import 'package:Autty/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
 
 class ExecutableNode {
   // Members
@@ -54,7 +54,8 @@ class PlaygroundExecutor {
   }
 
   Future<bool> execute() async {
-    print("Executing node chain");
+    debugConsole.addInternalTabMessage("Started execution", MessageType.info);
+    debugConsole.clearTabMessages(ConsoleTab.execute);
     executeSuccess = true;
 
     // Decode the nodes using the controller
@@ -117,10 +118,10 @@ Future<void> executeNode(String node, Map<String, List<String>> execNodeTree, Li
       playgroundNode.executionResult = result;
 
       if(result["OUTCOME"] == "ERROR"){
-        debugConsole.addMessage("${result["RESPONSE"]} --> ${result["OUTCOME"]}", MessageType.error, ConsoleTab.execute);
+        debugConsole.addExecutionTabMessage("${result["RESPONSE"]} --> ${result["OUTCOME"]}", playgroundNode.nodeUuid, MessageType.error, controller.selectNodeAction);
         executeSuccess = false;
       }else{
-        debugConsole.addMessage("${result["RESPONSE"]} --> ${result["OUTCOME"]}", MessageType.generic, ConsoleTab.execute);
+        debugConsole.addExecutionTabMessage("${result["RESPONSE"]} --> ${result["OUTCOME"]}", playgroundNode.nodeUuid, MessageType.generic, controller.selectNodeAction);
       }
         
       playgroundNode.executed = true;

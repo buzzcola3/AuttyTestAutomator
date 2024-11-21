@@ -1,22 +1,42 @@
-import 'package:attempt_two/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
+import 'package:Autty/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
 import 'package:flutter/material.dart';
 
 enum ConsoleTab { websocket, execute, log }
 enum MessageType { generic, error, response, request, info, warning }
+
 
 class DebugConsoleController {
   final GlobalKey<_DebugConsoleState> _key = GlobalKey<_DebugConsoleState>();
 
   GlobalKey<_DebugConsoleState> get key => _key;
 
-  /// Adds a message to the console
-  void addMessage(dynamic message, MessageType type, ConsoleTab tab) {
-    if (type == MessageType.request && message is! WsMessage) {
-      throw ArgumentError(
-        'Messages of type "request" must be of type WsMessage.',
-      );
-    }
-    _key.currentState?._addMessage({'message': message, 'type': type}, tab: tab);
+
+  void addInternalTabMessage(String message, MessageType type){
+
+  }
+
+  // Function to clear messages from a specific tab
+  void clearTabMessages(ConsoleTab tab) {
+    _key.currentState?._clearMessages(tab);
+  }
+
+  void addExecutionTabMessage(
+    String message, 
+    String nodeUUID, 
+    MessageType type, 
+    void Function(String) highlightNodeFunction,
+  ) {
+    // Create the message tile and pass the highlightNodeFunction to it
+    Widget tile = _buildNodeMessageTile(message, type, nodeUUID, highlightNodeFunction);
+    
+    // Add the message to the console in the execute tab
+    _key.currentState?._addMessage(tile, ConsoleTab.execute);
+  }
+
+  void addWsCommunicationMessage(WsMessage message, MessageType type){
+    Widget tile = _buildWsMessageTile(message);
+    _key.currentState?._addMessage(tile, ConsoleTab.websocket);
+
   }
 
   /// Scrolls to the bottom of the console
@@ -35,7 +55,7 @@ class DebugConsole extends StatefulWidget {
 
 class _DebugConsoleState extends State<DebugConsole>
     with SingleTickerProviderStateMixin {
-  final Map<ConsoleTab, List<dynamic>> _tabMessages = {
+  final Map<ConsoleTab, List<Widget>> _tabMessages = {
     ConsoleTab.websocket: [],
     ConsoleTab.execute: [],
     ConsoleTab.log: [],
@@ -63,12 +83,19 @@ class _DebugConsoleState extends State<DebugConsole>
     });
   }
 
-  /// Adds a message to the specified tab
-  void _addMessage(dynamic message, {required ConsoleTab tab}) {
+  /// Adds a message widget to the specified tab
+  void _addMessage(Widget messageWidget, ConsoleTab tab) {
     setState(() {
-      _tabMessages[tab]?.add(message);
+      _tabMessages[tab]?.add(messageWidget);
     });
     if (_autoScrollEnabled) _scrollToBottom();
+  }
+
+  // Function to clear messages for a specific tab
+  void _clearMessages(ConsoleTab tab) {
+    setState(() {
+      _tabMessages[tab]?.clear();  // Clear the list of messages for the given tab
+    });
   }
 
   void _scrollToBottom() {
@@ -81,99 +108,89 @@ class _DebugConsoleState extends State<DebugConsole>
     });
   }
 
-@override
-Widget build(BuildContext context) {
-  return Container(
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(10), // Rounded corners for the entire widget
-      border: Border.all(
-        color: Colors.grey, // Gray color
-        width: 2,           // 2px wide border
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10), // Rounded corners for the entire widget
+        border: Border.all(
+          color: Colors.grey, // Gray color
+          width: 2, // 2px wide border
+        ),
       ),
-    ),
-    child: Stack(
-      children: [
-        // Main content with TabBarView
-        Column(
-          children: [
-            // TabBarView for the tabs (Body content)
-            Expanded(
-              child: Container(
+      child: Stack(
+        children: [
+          // Main content with TabBarView
+          Column(
+            children: [
+              // TabBarView for the tabs (Body content)
+              Expanded(
                 child: TabBarView(
                   controller: _tabController,
-                  children: ConsoleTab.values.map((tab) => _buildTabContent(_tabMessages[tab]!)).toList(),
+                  children: ConsoleTab.values
+                      .map((tab) => _buildTabContent(_tabMessages[tab]!))
+                      .toList(),
                 ),
               ),
-            ),
-            // Container for the icons (acting as the custom AppBar)
-            Container(
-              color: Colors.transparent, // Background color for the button row
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start, // Align icons to the right
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.web),
-                    onPressed: () {
-                      // Switch to the first tab
-                      _tabController.animateTo(0);
-                    },
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.play_arrow),
-                    onPressed: () {
-                      // Switch to the second tab
-                      _tabController.animateTo(1);
-                    },
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.list),
-                    onPressed: () {
-                      // Switch to the third tab
-                      _tabController.animateTo(2);
-                    },
-                  ),
-                ],
+              // Container for the icons (acting as the custom AppBar)
+              Container(
+                color: Colors.transparent, // Background color for the button row
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start, // Align icons to the right
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.web),
+                      onPressed: () {
+                        // Switch to the first tab
+                        _tabController.animateTo(0);
+                      },
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.play_arrow),
+                      onPressed: () {
+                        // Switch to the second tab
+                        _tabController.animateTo(1);
+                      },
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.list),
+                      onPressed: () {
+                        // Switch to the third tab
+                        _tabController.animateTo(2);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          // Floating Action Button (independent of the custom AppBar)
+          if (_showScrollToBottomButton)
+            Positioned(
+              bottom: 16.0, // Adjust the position from the bottom
+              right: 16.0, // Adjust the position from the right
+              child: FloatingActionButton(
+                onPressed: _scrollToBottom,
+                child: const Icon(Icons.arrow_downward),
               ),
             ),
-          ],
-        ),
-        
-        // Floating Action Button (independent of the custom AppBar)
-        if (_showScrollToBottomButton)
-          Positioned(
-            bottom: 16.0, // Adjust the position from the bottom
-            right: 16.0,  // Adjust the position from the right
-            child: FloatingActionButton(
-              onPressed: _scrollToBottom,
-              child: const Icon(Icons.arrow_downward),
-            ),
-          ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabContent(List<Widget> messages) {
+    return ListView.builder(
+      controller: _scrollController,
+      itemCount: messages.length,
+      itemBuilder: (context, index) {
+        return messages[index]; // Directly use the widget
+      },
+    );
+  }
 }
-
-
-Widget _buildTabContent(List<dynamic> messages) {
-  return ListView.builder(
-    controller: _scrollController,
-    itemCount: messages.length,
-    itemBuilder: (context, index) {
-      final message = messages[index];
-      if (message['message'] is WsMessage) {
-        return _buildWsMessageTile(message['message']);
-      } else if (message['message'] is String) {
-         return _buildTextMessageTile(
-           message['message'],
-           message['type'] ?? MessageType.generic,
-         );
-      }
-      return const SizedBox.shrink();
-    },
-  );
-}
-
 
 
 
@@ -219,9 +236,7 @@ Widget _buildWsMessageTile(WsMessage message) {
               ),
               onPressed: () {
                 // Toggle fulfilled state when button is pressed
-                setState(() {
-                  message.fulfilled = !message.fulfilled;
-                });
+                print("todo");
               },
             ),
           ],
@@ -277,20 +292,85 @@ Widget _buildTextMessageTile(String text, MessageType type) {
   );
 }
 
+Widget _buildNodeMessageTile(
+  String text, 
+  MessageType type, 
+  String nodeUUID, 
+  void Function(String) highlightNodeFunction,
+) {
+  final style = _getMessageStyle(type);
 
+  bool isHovered = false;
 
-
-
-
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _scrollController.removeListener(_scrollListener);
-    _scrollController.dispose();
-    super.dispose();
-  }
+  return MouseRegion(
+    onEnter: (event) {
+      highlightNodeFunction(nodeUUID);  // Trigger highlight on hover
+      isHovered = true;
+    },
+    onExit: (event) {
+      highlightNodeFunction("");  // Reset highlight on hover exit
+      isHovered = false;
+    },
+    child: GestureDetector(
+      onTap: () {
+        // Your logic for tap, if any
+      },
+      child: StatefulBuilder(
+        builder: (context, setState) {
+          // Update hover state inside the setState call
+          return MouseRegion(
+            onEnter: (_) {
+              setState(() {
+                isHovered = true; // Mark as hovered
+              });
+            },
+            onExit: (_) {
+              setState(() {
+                isHovered = false; // Reset hover state
+              });
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: isHovered
+                    ? style.backgroundColor.withOpacity(0.1)  // Darken on hover
+                    : style.backgroundColor,  // Normal color
+                border: const Border(
+                  bottom: BorderSide(color: Colors.grey, width: 1), // Bottom border
+                ),
+              ),
+              child: SizedBox(
+                height: 40,  // Set a fixed height for the tile
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,  // Center the icon vertically
+                  children: [
+                    const SizedBox(width: 8),  // Spacing from the left before the icon
+                    if (style.icon != null)
+                      style.icon!,  // Add icon if not null
+                    const SizedBox(width: 10),  // Spacing between icon and text
+                    Expanded(
+                      child: Text(
+                        text,
+                        style: TextStyle(color: style.textColor, fontSize: 14),
+                        overflow: TextOverflow.ellipsis,  // Truncate text if it overflows
+                        maxLines: 1,  // Limit the text to a single line
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    ),
+  );
 }
+
+
+
+
+
+
 
 class MessageStyle {
   final Color textColor;

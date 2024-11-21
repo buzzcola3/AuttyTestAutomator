@@ -2,9 +2,9 @@
 
 import 'dart:convert';
 
-import 'package:attempt_two/global_datatypes/device_info.dart';
-import 'package:attempt_two/global_datatypes/ip_address.dart';
-import 'package:attempt_two/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
+import 'package:Autty/global_datatypes/device_info.dart';
+import 'package:Autty/global_datatypes/ip_address.dart';
+import 'package:Autty/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
 
 String startNodeIcon = """
 <?xml version="1.0" encoding="utf-8"?>

@@ -1,14 +1,14 @@
-import 'package:attempt_two/main_screen/device_list/websocket_manager/websocket_manager.dart';
+import 'package:Autty/main_screen/device_list/websocket_manager/websocket_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:node_editor/node_editor.dart';
 import 'device_list/device_list.dart';
 import 'node_playground/playground.dart';
-import 'package:attempt_two/main_screen/communication_panel/communication_panel.dart';
+import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
 import 'device_list/websocket_manager/headers/websocket_datatypes.dart';
-import 'package:attempt_two/main_screen/node_playground/playground_execution.dart';
-import 'package:attempt_two/main_screen/node_playground_file_manager/playground_file_manager.dart';
-import 'package:attempt_two/main_screen/node_playground_file_manager/playground_save_and_load.dart';
-import 'package:attempt_two/userdata_database.dart';
+import 'package:Autty/main_screen/node_playground/playground_execution.dart';
+import 'package:Autty/main_screen/node_playground_file_manager/playground_file_manager.dart';
+import 'package:Autty/main_screen/node_playground_file_manager/playground_save_and_load.dart';
+import 'package:Autty/userdata_database.dart';
 
 class MainScreen extends StatefulWidget {
   MainScreen({super.key, required this.title});

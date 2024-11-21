@@ -1,4 +1,4 @@
-package com.example.attempt_two
+package com.example.Autty
 
 import io.flutter.embedding.android.FlutterActivity
 

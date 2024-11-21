@@ -1,7 +1,7 @@
-import 'package:attempt_two/main_screen/communication_panel/communication_panel.dart';
-import 'package:attempt_two/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
-import 'package:attempt_two/main_screen/device_list/websocket_manager/ip_scanner/ip_scanner.dart';
-import 'package:attempt_two/global_datatypes/ip_address.dart';
+import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
+import 'package:Autty/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
+import 'package:Autty/main_screen/device_list/websocket_manager/ip_scanner/ip_scanner.dart';
+import 'package:Autty/global_datatypes/ip_address.dart';
 
 class WebsocketManager {
   late IPScanner ipScanner;

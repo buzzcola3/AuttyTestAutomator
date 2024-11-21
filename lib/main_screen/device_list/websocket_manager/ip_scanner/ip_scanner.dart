@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:async';
 
-import 'package:attempt_two/global_datatypes/ip_address.dart';
+import 'package:Autty/global_datatypes/ip_address.dart';
 
 class IPScanner {
   // Properties

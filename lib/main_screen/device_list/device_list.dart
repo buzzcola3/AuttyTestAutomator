@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import "package:attempt_two/main_screen/device_list/node_preview.dart";
+import "package:Autty/main_screen/device_list/node_preview.dart";
 import "websocket_manager/websocket_manager.dart";
 import "websocket_manager/headers/websocket_datatypes.dart";
 import 'internal_device.dart';
-import "package:attempt_two/userdata_database.dart";
-import "package:attempt_two/global_datatypes/ip_address.dart";
+import "package:Autty/userdata_database.dart";
+import "package:Autty/global_datatypes/ip_address.dart";
 
 class DeviceScanner extends StatefulWidget {
   final WebsocketManager websocketManager;

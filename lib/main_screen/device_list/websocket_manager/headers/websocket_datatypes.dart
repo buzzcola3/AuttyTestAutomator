@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 
-import 'package:attempt_two/main_screen/communication_panel/communication_panel.dart';
-import 'package:attempt_two/global_datatypes/device_info.dart';
-import 'package:attempt_two/global_datatypes/ip_address.dart';
+import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
+import 'package:Autty/global_datatypes/device_info.dart';
+import 'package:Autty/global_datatypes/ip_address.dart';
 import 'package:uuid/uuid.dart';
 
 
@@ -125,12 +125,12 @@ class WsDevice {
     socket?.add(jsonEncode({"REQUEST": wsMessage.message, "UUID": wsMessage.uuid}));
 
     wsMessageList.addMessage(wsMessage);
-    debugConsole?.addMessage(wsMessage, MessageType.request, ConsoleTab.websocket);
+    debugConsole?.addWsCommunicationMessage(wsMessage, MessageType.request);
     return wsMessage;
   }
 
   void resendRequest(String uuid){
-    WsMessage? message = wsMessageList?.searchMessage(uuid);
+    WsMessage? message = wsMessageList.searchMessage(uuid);
     socket?.add(jsonEncode({"REQUEST": message?.message, "UUID": message?.uuid}));
   }
 
