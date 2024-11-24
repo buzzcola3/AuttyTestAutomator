@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:Autty/main_screen/node_playground_file_manager/file_datatypes.dart';
 import 'package:Autty/userdata_database.dart';
+import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:archive/archive.dart';
-import 'package:Autty/main_screen/node_playground_file_manager/playground_save_and_load.dart';
+import 'package:Autty/main_screen/node_playground/playground_save_and_load.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -24,9 +25,9 @@ class JsonFileManager extends StatefulWidget {
 }
 
 class _JsonFileManagerState extends State<JsonFileManager> {
-  List<Map<String, dynamic>> jsonFiles = [];
-  Map<String, Uint8List> fileContents = {};
+  AuttyJsonFileFolder auttyJsonFileFolder = AuttyJsonFileFolder();
   int? executingIndex;
+  int? hoverIndex;
   
 
   @override
@@ -39,29 +40,22 @@ class _JsonFileManagerState extends State<JsonFileManager> {
   }
 
   void _initializeFileManager() async {
-    await _restoreFilesFromInternalDatabase();
+//    await _restoreFilesFromInternalDatabase();
   }
 
 Future<void> _executeAllFiles() async {
-  for (int i = 0; i < jsonFiles.length; i++) {
+  for (int i = 0; i < auttyJsonFileFolder.files.length; i++) {
     setState(() {
       executingIndex = i;
-      jsonFiles[i]['status'] = null; // Reset status during execution
     });
 
-    final fileName = jsonFiles[i]['name'];
     bool success = false;
+    success = await widget.playgroundSaveLoad.loadAndExecutePlayground(json.decode(auttyJsonFileFolder.files[i].nodePlaygroundData));
 
-    if (fileContents.containsKey(fileName)) {
-      String jsonContent = utf8.decode(fileContents[fileName]!);
-      success = await widget.playgroundSaveLoad.loadAndExecutePlayground(jsonContent);
-    } else {
-      print('No content found for $fileName');
-    }
 
     // Update the status based on the execution result
     setState(() {
-      jsonFiles[i]['status'] = success ? 'success' : 'failure';
+      auttyJsonFileFolder.files[i].executionResultSuccess = success;
     });
 
     // Optional delay for UI
@@ -76,17 +70,9 @@ Future<void> _executeAllFiles() async {
 
 
   Future<void> _loadFileToPlayground(int index) async {
-    final fileName = jsonFiles[index]['name'];
-
-    if (fileContents.containsKey(fileName)) {
-      String jsonContent = utf8.decode(fileContents[fileName]!);
-      widget.playgroundSaveLoad.loadPlayground(jsonContent);
-
-      print('Executing JSON from $fileName: $jsonContent');
-    } else {
-      print('No content found for $fileName');
-    }
+    widget.playgroundSaveLoad.loadPlayground(json.decode(auttyJsonFileFolder.files[index].nodePlaygroundData));
   }
+
 
 Future<void> _pickFiles() async {
   var result = await FilePicker.platform.pickFiles(
@@ -102,10 +88,10 @@ Future<void> _pickFiles() async {
 
         if (file.extension == 'json') {
           await _importJsonFile(selectedFile, file.name);
-          _saveFilesToInternalDatabase();
+
         } else if (file.extension == 'zip') {
           await _importZipFile(selectedFile);
-          _saveFilesToInternalDatabase();
+
         } else {
           print('Unsupported file type: ${file.name}');
         }
@@ -124,11 +110,11 @@ Future<void> _importJsonFile(File selectedFile, String fileName) async {
 
     // Read and decode JSON content
     String jsonString = await selectedFile.readAsString();
-    Map<String, dynamic> jsonContent = jsonDecode(jsonString);
+    AuttyJsonFile auttyJsonFile = AuttyJsonFile.fromJsonString(jsonString);
+
 
     setState(() {
-      jsonFiles.add({'name': uniqueFileName, 'content': jsonContent, 'hover': false});
-      fileContents[uniqueFileName] = Uint8List.fromList(utf8.encode(jsonString));
+      auttyJsonFileFolder.addFile(auttyJsonFile);
     });
   } catch (e) {
     print('Error reading JSON from file $fileName: $e');
@@ -140,62 +126,19 @@ Future<void> _importZipFile(File selectedFile) async {
     final zipData = await selectedFile.readAsBytes();
     final archive = ZipDecoder().decodeBytes(zipData);
 
-    List<String> orderList = [];
-    Map<String, Map<String, dynamic>> tempJsonFiles = {};
-
-    // Read the order file if it exists
-    for (var archiveFile in archive) {
-      if (archiveFile.isFile && archiveFile.name == 'file.order') {
-        final orderContent = utf8.decode(archiveFile.content as List<int>);
-        final jsonOrder = jsonDecode(orderContent);
-        orderList = List<String>.from(jsonOrder["file_order"]);
-        break;
-      }
-    }
-
     // Parse JSON files and store them temporarily
     for (var archiveFile in archive) {
-      if (archiveFile.isFile && archiveFile.name.endsWith('.json') && archiveFile.name != 'file.order') {
+      if (archiveFile.isFile && archiveFile.name.endsWith('.json')) {
         final jsonString = utf8.decode(archiveFile.content as List<int>);
-        Map<String, dynamic> jsonContent = jsonDecode(jsonString);
+        AuttyJsonFile file = AuttyJsonFile.fromJsonString(jsonString);
 
-        // Ensure unique filename
-        String uniqueName = archiveFile.name;
-        while (_doesFileNameExist(uniqueName)) {
-          uniqueName = _incrementFileName(uniqueName);
-        }
-
-        tempJsonFiles[uniqueName] = {
-          'content': jsonContent,
-          'data': Uint8List.fromList(utf8.encode(jsonString)),
-        };
+        auttyJsonFileFolder.addFile(file);
       }
     }
 
     // Arrange files based on the order list
     setState(() {
-      for (var fileName in orderList) {
-        if (tempJsonFiles.containsKey(fileName)) {
-          jsonFiles.add({
-            'name': fileName,
-            'content': tempJsonFiles[fileName]!['content'],
-            'hover': false,
-          });
-          fileContents[fileName] = tempJsonFiles[fileName]!['data'];
-        }
-      }
-
-      // Add remaining files not listed in file.order
-      for (var entry in tempJsonFiles.entries) {
-        if (!orderList.contains(entry.key)) {
-          jsonFiles.add({
-            'name': entry.key,
-            'content': entry.value['content'],
-            'hover': false,
-          });
-          fileContents[entry.key] = entry.value['data'];
-        }
-      }
+      auttyJsonFileFolder.files;
     });
   } catch (e) {
     print('Error reading ZIP file: $e');
@@ -209,8 +152,7 @@ String _incrementFileName(String fileName) {
 }
 
 
-Future<void> _renameFile(int index) async {
-  final currentName = jsonFiles[index]['name'];
+Future<void> _renameFile(String currentName) async {
   final controller = TextEditingController(text: currentName.replaceAll('.json', ''));
 
   String? newName;
@@ -256,30 +198,30 @@ Future<void> _renameFile(int index) async {
 
   if (newName.isNotEmpty) {
     setState(() {
-      fileContents['$newName.json'] = fileContents[jsonFiles[index]['name']]!;
-      fileContents.remove(jsonFiles[index]['name']);
-      jsonFiles[index]['name'] = '$newName.json';
-      
+      auttyJsonFileFolder.renameFile(currentName, '${newName!}.json');
     });
-    _saveFilesToInternalDatabase();
   }
 }
 
-bool _doesFileNameExist(String name) {
-  return jsonFiles.any((file) => file['name'] == name);
-}
+  bool _doesFileNameExist(String name) {
+    return auttyJsonFileFolder.files.any((file) => file.filename == name);
+  }
 
 
-  Future<void> _downloadFile(String fileName) async {
-    final Uint8List bytes = fileContents[fileName]!;
-
+  Future<void> _downloadFile(int index) async {
+    final jsonData = auttyJsonFileFolder.files[index].toJson(); // Get JSON data
+    final String jsonString = jsonEncode(jsonData); // Convert to JSON string
+    final Uint8List bytes = Uint8List.fromList(utf8.encode(jsonString)); // Convert string to bytes
+  
+    final String fileName = auttyJsonFileFolder.files[index].filename; // Use filename from the file object
+  
     try {
       await FileSaver.instance.saveFile(
-        name: fileName,
+        name: fileName, // Use fileName here
         bytes: bytes,
         mimeType: MimeType.json,
       );
-
+  
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('$fileName saved to Downloads folder successfully!')),
       );
@@ -291,26 +233,6 @@ bool _doesFileNameExist(String name) {
     }
   }
 
-  Future<List<int>> _getFileManagerZipData() async {
-    final archive = Archive();
-
-    // Add each JSON file to the archive
-    for (var entry in fileContents.entries) {
-      archive.addFile(ArchiveFile(entry.key, entry.value.length, entry.value));
-    }
-
-    // Create the .order file content
-    List<String> fileOrder = jsonFiles.map((file) => file['name'] as String).toList();
-    String orderJson = jsonEncode({'file_order': fileOrder});
-    Uint8List orderData = Uint8List.fromList(utf8.encode(orderJson));
-
-    // Add the .order file to the archive
-    archive.addFile(ArchiveFile('file.order', orderData.length, orderData));
-
-    // Encode the archive to zip format
-    final zipData = ZipEncoder().encode(archive)!;
-    return zipData;
-  }
 
   Future<void> _downloadAllAsZip() async {
     final controller = TextEditingController();
@@ -338,7 +260,7 @@ bool _doesFileNameExist(String name) {
     );
   
     if (zipFileName != null && zipFileName.isNotEmpty) {
-      final zipData = await _getFileManagerZipData();
+      final zipData = auttyJsonFileFolder.exportAsZip();
   
       try {
         await FileSaver.instance.saveFile(
@@ -360,89 +282,12 @@ bool _doesFileNameExist(String name) {
   }
 
   void _deleteFile(int index) {
+    final fileName = auttyJsonFileFolder.files[index].filename;
     setState(() {
-      final fileName = jsonFiles[index]['name'];
-      jsonFiles.removeAt(index);
-      fileContents.remove(fileName);
+      auttyJsonFileFolder.removeFile(filename: fileName);
     });
-    _saveFilesToInternalDatabase();
   }
 
-  void _saveFilesToInternalDatabase() async {
-    final zipData = await _getFileManagerZipData();
-    widget.userdataDatabase.saveFileManagerData(zipData);
-  }
-
-Future<void> _restoreFilesFromInternalDatabase() async {
-  try {
-    // Retrieve ZIP data from the database
-    List<int> zipData = await widget.userdataDatabase.getFileManagerData();
-
-    // Pass the data to a helper function for ZIP processing
-    await _processZipData(Uint8List.fromList(zipData));
-  } catch (e) {
-    print("Error restoring files from database: $e");
-  }
-}
-
-Future<void> _processZipData(Uint8List zipData) async {
-  try {
-    final archive = ZipDecoder().decodeBytes(zipData);
-
-    List<String> orderList = [];
-    Map<String, Map<String, dynamic>> tempJsonFiles = {};
-
-    // Read the order file if it exists
-    for (var archiveFile in archive) {
-      if (archiveFile.isFile && archiveFile.name == 'file.order') {
-        final orderContent = utf8.decode(archiveFile.content as List<int>);
-        final jsonOrder = jsonDecode(orderContent);
-        orderList = List<String>.from(jsonOrder["file_order"]);
-        break;
-      }
-    }
-
-    // Parse JSON files and store them temporarily
-    for (var archiveFile in archive) {
-      if (archiveFile.isFile && archiveFile.name.endsWith('.json') && archiveFile.name != 'file.order') {
-        final jsonString = utf8.decode(archiveFile.content as List<int>);
-        Map<String, dynamic> jsonContent = jsonDecode(jsonString);
-        tempJsonFiles[archiveFile.name] = {
-          'content': jsonContent,
-          'data': Uint8List.fromList(utf8.encode(jsonString)),
-        };
-      }
-    }
-
-    // Arrange files based on the order list
-    setState(() {
-      for (var fileName in orderList) {
-        if (tempJsonFiles.containsKey(fileName)) {
-          jsonFiles.add({
-            'name': fileName,
-            'content': tempJsonFiles[fileName]!['content'],
-            'hover': false,
-          });
-          fileContents[fileName] = tempJsonFiles[fileName]!['data'];
-        }
-      }
-
-      // Add remaining files not listed in file.order
-      for (var entry in tempJsonFiles.entries) {
-        if (!orderList.contains(entry.key)) {
-          jsonFiles.add({
-            'name': entry.key,
-            'content': entry.value['content'],
-            'hover': false,
-          });
-          fileContents[entry.key] = entry.value['data'];
-        }
-      }
-    });
-  } catch (e) {
-    print("Error processing ZIP data: $e");
-  }
-}
 
 void _savePlayground() async {
   final controller = TextEditingController();
@@ -473,7 +318,7 @@ void _savePlayground() async {
     String fullFileName = '$newFileName.json';
 
     // Check if the file already exists
-    bool fileExists = jsonFiles.any((file) => file['name'] == fullFileName);
+    bool fileExists = _doesFileNameExist(fullFileName);
 
     if (fileExists) {
       // Show a dialog to ask if the user wants to overwrite the file
@@ -504,25 +349,23 @@ void _savePlayground() async {
 
       // Remove the existing file before saving the new one
       setState(() {
-        jsonFiles.removeWhere((file) => file['name'] == fullFileName);
-        fileContents.remove(fullFileName);
+        auttyJsonFileFolder.removeFile(filename: fullFileName);
       });
     }
 
     // Save the new file
+    int filePosition = auttyJsonFileFolder.files.length +1;
     String playgroundJson = widget.playgroundSaveLoad.savePlayground();
-    Uint8List fileContent = Uint8List.fromList(utf8.encode(playgroundJson));
+    AuttyJsonFile auttyJsonFile = AuttyJsonFile(filename: fullFileName, executionData: {}, nodePlaygroundData: playgroundJson, filePosition: filePosition);
+
 
     setState(() {
-      jsonFiles.add({'name': fullFileName, 'content': jsonDecode(playgroundJson), 'hover': false});
-      fileContents[fullFileName] = fileContent;
+      auttyJsonFileFolder.addFile(auttyJsonFile);
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('$newFileName.json saved!')),
     );
-
-    _saveFilesToInternalDatabase();
   }
 }
 
@@ -590,28 +433,23 @@ Row(
                   return                ReorderableListView.builder(
                 buildDefaultDragHandles: false, // Disable default drag handles
                 onReorder: (oldIndex, newIndex) {
-                  setState(() {
-                    if (newIndex > oldIndex) newIndex -= 1;
-                    final item = jsonFiles.removeAt(oldIndex);
-                    jsonFiles.insert(newIndex, item);
-                  });
-                  _saveFilesToInternalDatabase();
+                auttyJsonFileFolder.changeFileOrder(oldIndex, newIndex);
                 },
-                itemCount: jsonFiles.length,
+                itemCount: auttyJsonFileFolder.files.length,
                 itemBuilder: (context, index) {
-                  final status = jsonFiles[index]['status'];
-                  final color = status == 'success'
+                  final status = auttyJsonFileFolder.files[index].executionResultSuccess;
+                  final color = status == true
                     ? Colors.green
-                      : status == 'failure'
+                      : status == false
                         ? Colors.red
                           : executingIndex == index
                             ? Colors.blue
                               : Colors.grey[300];
                               
                   return MouseRegion(
-                    key: ValueKey(jsonFiles[index]['name']),
-                    onEnter: (_) => setState(() => jsonFiles[index]['hover'] = true),
-                    onExit: (_) => setState(() => jsonFiles[index]['hover'] = false),
+                    key: ValueKey(auttyJsonFileFolder.files[index].filename),
+                    onEnter: (_) => setState(() => hoverIndex = index),
+                    onExit: (_) => setState(() => hoverIndex = null),
                     child: Container(
                       color: color,
                       margin: const EdgeInsets.symmetric(vertical: 4.0),
@@ -622,16 +460,16 @@ Row(
                         children: [
                           Row(
                             children: [
-                              if (!jsonFiles[index]['hover'])
+                              if (hoverIndex != index)
                                 const Icon(Icons.insert_drive_file, size: 18, color: Color.fromARGB(255, 58, 58, 58)),
                               const SizedBox(width: 8),
                               Text(
-                                !jsonFiles[index]['hover'] ? jsonFiles[index]['name'] : "",
+                                hoverIndex != index ? auttyJsonFileFolder.files[index].filename : "",
                                 style: const TextStyle(fontSize: 14, color: Colors.black87),
                               ),
                             ],
                           ),
-                          if (jsonFiles[index]['hover'])
+                          if (index == hoverIndex)
                             Positioned(
                               right: 0,
                               child: Row(
@@ -648,7 +486,7 @@ Row(
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.edit, size: 20, color: Color.fromARGB(255, 58, 58, 58)),
-                                    onPressed: () => _renameFile(index),
+                                    onPressed: () => _renameFile(auttyJsonFileFolder.files[index].filename),
                                   ),
                                   IconButton(
                                     icon: SvgPicture.asset(
@@ -657,7 +495,7 @@ Row(
                                       height: 20,
                                       color: const Color.fromARGB(255, 58, 58, 58),
                                     ),
-                                    onPressed: () => _downloadFile(jsonFiles[index]['name']),
+                                    onPressed: () => _downloadFile(index),
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.delete, size: 20, color: Color.fromARGB(255, 58, 58, 58)),

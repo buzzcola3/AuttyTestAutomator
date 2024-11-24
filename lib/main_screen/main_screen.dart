@@ -7,7 +7,7 @@ import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
 import 'device_list/websocket_manager/headers/websocket_datatypes.dart';
 import 'package:Autty/main_screen/node_playground/playground_execution.dart';
 import 'package:Autty/main_screen/node_playground_file_manager/playground_file_manager.dart';
-import 'package:Autty/main_screen/node_playground_file_manager/playground_save_and_load.dart';
+import 'package:Autty/main_screen/node_playground/playground_save_and_load.dart';
 import 'package:Autty/userdata_database.dart';
 
 class MainScreen extends StatefulWidget {
@@ -117,16 +117,6 @@ class _MainScreen extends State<MainScreen> {
                       controller: widget.nodeController,
                       nodesDNA: nodesDNA,
                       customController: widget.nodeEditorWidgetController,
-                    ),
-                    Positioned(
-                      right: 10,
-                      bottom: 10,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          playgroundExecutor.execute();
-                        },
-                        child: const Text("Run"),
-                      ),
                     ),
                   ],
                 ),

@@ -45,12 +45,12 @@ class PlaygroundSaveLoad {
   }
 
 
-Future<void> loadPlayground(String playgroundJson) async {
+Future<void> loadPlayground(Map<String, dynamic> playgroundJson) async { //TODO change to load file
   playgroundController.nodes.clear();
   playgroundController.connections.clear();
   nodesDNA.clear();
 
-  Map<String, dynamic> playgroundData = json.decode(playgroundJson);
+  Map<String, dynamic> playgroundData = playgroundJson;
 
   // Load nodes
   for (var node in playgroundData["nodes"]) {
@@ -94,7 +94,7 @@ Future<void> loadPlayground(String playgroundJson) async {
   nodeEditorWidgetController.refreshUI();
 }
 
-Future<bool> loadAndExecutePlayground(String playgroundJson) async {
+Future<bool> loadAndExecutePlayground(Map<String, dynamic> playgroundJson) async { //TODO change to execute file
   await loadPlayground(playgroundJson);
   return await playgroundExecutor.execute();
 }

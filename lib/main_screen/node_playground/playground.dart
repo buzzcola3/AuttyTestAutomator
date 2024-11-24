@@ -286,72 +286,108 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
 
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        clipBehavior: Clip.hardEdge,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          color: const Color.fromARGB(255, 58, 58, 58),
-        ),
-        child: Stack(
-          children: [
-            GestureDetector(
-              onPanUpdate: (details) => _playgroundScrollHandle(details.delta),
-              child: DragTarget<Map<String, dynamic>>(
-                //onAcceptWithDetails: (details) => addNodeAtPosition(_calculateDropPosition(details), details.data),
-                onAcceptWithDetails: (details) => addNodeAtPosition(nodePosition: _calculateDropPosition(details), nodeDNA: details.data["nodeDNA"], nodeWidget: details.data["nodeWidget"]),
-                builder: (context, candidateData, rejectedData) {
-                  return MouseRegion(
-                    child: NodeEditor(
-                      focusNode: _focusNode,
-                      controller: _controller,
-                      background: const GridBackground(),
-                      infiniteCanvasSize: 5000,
-                    ),
-                  );
-                },
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: Container(
+      clipBehavior: Clip.hardEdge,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        color: const Color.fromARGB(255, 58, 58, 58),
+      ),
+      child: Stack(
+        children: [
+          GestureDetector(
+            onPanUpdate: (details) => _playgroundScrollHandle(details.delta),
+            child: DragTarget<Map<String, dynamic>>(
+              onAcceptWithDetails: (details) => addNodeAtPosition(
+                nodePosition: _calculateDropPosition(details),
+                nodeDNA: details.data["nodeDNA"],
+                nodeWidget: details.data["nodeWidget"],
               ),
+              builder: (context, candidateData, rejectedData) {
+                return MouseRegion(
+                  child: NodeEditor(
+                    focusNode: _focusNode,
+                    controller: _controller,
+                    background: const GridBackground(),
+                    infiniteCanvasSize: 5000,
+                  ),
+                );
+              },
             ),
-            if (_selectedNodeName != null)
-              Positioned(
-                top: 20,
-                right: 20,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  width: 200,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Align(
-                        alignment: Alignment.topRight,
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedNodeName = null;
-                            });
-                          },
-                          child: const Text("Close", style: TextStyle(fontSize: 12, color: Colors.black54)),
-                        ),
+          ),
+          if (_selectedNodeName != null)
+            Positioned(
+              top: 20,
+              right: 20,
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                width: 200,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedNodeName = null;
+                          });
+                        },
+                        child: const Text("Close", style: TextStyle(fontSize: 12, color: Colors.black54)),
                       ),
-                      const SizedBox(height: 8),
-                      ...getNodeParameterList(_selectedNodeName!).map((parameter) {
-                        return getParameterWidget(parameter);
-                      }),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...getNodeParameterList(_selectedNodeName!).map((parameter) {
+                      return getParameterWidget(parameter);
+                    }),
+                  ],
                 ),
               ),
-          ],
-        ),
+            ),
+          // Icon buttons at the bottom right
+Positioned(
+  bottom: 3, // Extends the rectangle slightly below the visible screen
+  right: 3, // Extends the rectangle slightly to the right
+  child: ClipRRect(
+    borderRadius: const BorderRadius.all(Radius.circular(10)),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 0),
+      decoration: const BoxDecoration(
+        color: Colors.white,
       ),
-    );
-  }
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            onPressed: () => {}, // _saveFile(),
+            icon: const Icon(Icons.save, color: Color.fromARGB(255, 40, 40, 40),),
+            tooltip: 'Save',
+          ),
+          const SizedBox(width: 15),
+          IconButton(
+            onPressed: () => {}, // _runPlayground(),
+            icon: const Icon(Icons.play_arrow, color: Color.fromARGB(255, 40, 40, 40),),
+            tooltip: 'Run',
+          ),
+        ],
+      ),
+    ),
+  ),
+),
+
+        ],
+      ),
+    ),
+  );
+}
+
+
 }
 
 
