@@ -60,11 +60,12 @@ class PlaygroundExecutor {
     return null;
   }
 
-  Future<bool> execute(AuttyJsonFile File) async {
-    executingFile = File;
+  Future<bool> execute(AuttyJsonFile file) async {
+    executingFile = file;
 
     debugConsole.addInternalTabMessage("Started execution", MessageType.info);
     debugConsole.clearTabMessages(ConsoleTab.execute);
+    file.executionData = [];
     overallExecuteSuccess = true;
 
     // Decode the nodes using the controller

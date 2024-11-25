@@ -92,7 +92,6 @@ class PlaygroundFileInterface {
     }
   
     debugConsole.clearTabMessages(ConsoleTab.execute);
-    file.executionData = [];
     _loadLastExecutionResult(file);
     nodeEditorWidgetController.refreshUI();
   }
