@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:Autty/global_datatypes/json.dart';
+import 'package:Autty/main_screen/node_playground/playground_file_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:node_editor/node_editor.dart';
 import 'package:dropdown_search/dropdown_search.dart';
@@ -19,7 +21,7 @@ class NodeEditorWidgetController {
 
   void addNodeAtPosition({
     required Offset nodePosition,
-    required Map<String, dynamic> nodeDNA,
+    required Json nodeDNA,
     required dynamic nodeWidget,
   }) {
     _nodeEditorWidgetState?.addNodeAtPosition(
@@ -37,14 +39,16 @@ class NodeEditorWidgetController {
 
 class NodeEditorWidget extends StatefulWidget {
   final NodeEditorController controller;
-  final Map<String, dynamic> nodesDNA;
+  final Json nodesDNA;
   final NodeEditorWidgetController customController;
+  final PlaygroundFileInterface playgroundFileInterface;
 
   const NodeEditorWidget({
     super.key,
     required this.controller,
     required this.nodesDNA,
     required this.customController,
+    required this.playgroundFileInterface
   });
 
   @override
@@ -127,11 +131,11 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
 
   void addNodeAtPosition({
       required Offset nodePosition,
-      required Map<String, dynamic> nodeDNA,
+      required Json nodeDNA,
       required dynamic nodeWidget
     }) {
 
-    Map<String, dynamic> nodeDNACopy = jsonDecode(jsonEncode(nodeDNA));
+    Json nodeDNACopy = jsonDecode(jsonEncode(nodeDNA));
     
 
     var uuid = const Uuid();
@@ -188,9 +192,9 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
 
   double _snapToGrid(double value) => (value / 20).round() * 20;
 
-  List<Map<String, dynamic>> getNodeParameters(String encodedNodeFunction) {
-    Map<String, dynamic> decodedFunction = jsonDecode(encodedNodeFunction);
-    return List<Map<String, dynamic>>.from(decodedFunction['nodeParameters'] ?? []);
+  List<Json> getNodeParameters(String encodedNodeFunction) {
+    Json decodedFunction = jsonDecode(encodedNodeFunction);
+    return List<Json>.from(decodedFunction['nodeParameters'] ?? []);
   }
 
   void _updateParameter(String targetNode, String parameterName, String newParameterValue) {
@@ -299,7 +303,7 @@ Widget build(BuildContext context) {
         children: [
           GestureDetector(
             onPanUpdate: (details) => _playgroundScrollHandle(details.delta),
-            child: DragTarget<Map<String, dynamic>>(
+            child: DragTarget<Json>(
               onAcceptWithDetails: (details) => addNodeAtPosition(
                 nodePosition: _calculateDropPosition(details),
                 nodeDNA: details.data["nodeDNA"],
@@ -365,13 +369,13 @@ Positioned(
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            onPressed: () => {}, // _saveFile(),
+            onPressed: () => widget.playgroundFileInterface.saveFile(),
             icon: const Icon(Icons.save, color: Color.fromARGB(255, 40, 40, 40),),
             tooltip: 'Save',
           ),
           const SizedBox(width: 15),
           IconButton(
-            onPressed: () => {}, // _runPlayground(),
+            onPressed: () => widget.playgroundFileInterface.executeFile(), // _runPlayground(),
             icon: const Icon(Icons.play_arrow, color: Color.fromARGB(255, 40, 40, 40),),
             tooltip: 'Run',
           ),

@@ -1,35 +1,6 @@
+import 'package:Autty/global_datatypes/json.dart';
 import 'package:idb_sqflite/idb_sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-
-Future dbtest() async {
-  // The sqflite base factory
-
-  var factory = getIdbFactorySqflite(databaseFactoryFfi);
-  // define the store name
-  const storeName = 'recordss';
-
-  // open the database
-  var db = await factory.open('my_recordss.db', version: 1,
-      onUpgradeNeeded: (VersionChangeEvent event) {
-    var db = event.database;
-    // create the store
-    db.createObjectStore(storeName, autoIncrement: true);
-  });
-
-  // put some data
-  var txn = db.transaction(storeName, 'readwrite');
-  var store = txn.objectStore(storeName);
-  var key = await store.put({'some': 'newdata'});
-  await txn.completed;
-
-  // read some data
-  txn = db.transaction(storeName, 'readonly');
-  store = txn.objectStore(storeName);
-  var value = await store.getObject(key);
-
-  print(value);
-  await txn.completed;
-}
 
 
 class UserdataDatabase {
@@ -77,7 +48,7 @@ class UserdataDatabase {
   }
 
   // Get Device List Data
-  Future<Map<String, dynamic>> getDeviceListData() async {
+  Future<Json> getDeviceListData() async {
     final db = await _db;
     final txn = db.transaction(deviceListStore, 'readonly');
     final store = txn.objectStore(deviceListStore);
@@ -87,7 +58,7 @@ class UserdataDatabase {
   }
 
   // Save Device List Data
-  Future<void> saveDeviceListData(Map<String, dynamic> data) async {
+  Future<void> saveDeviceListData(Json data) async {
     final db = await _db;
     final txn = db.transaction(deviceListStore, 'readwrite');
     final store = txn.objectStore(deviceListStore);

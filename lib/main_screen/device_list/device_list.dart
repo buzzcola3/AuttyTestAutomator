@@ -6,6 +6,7 @@ import "websocket_manager/headers/websocket_datatypes.dart";
 import 'internal_device.dart';
 import "package:Autty/userdata_database.dart";
 import "package:Autty/global_datatypes/ip_address.dart";
+import 'package:Autty/global_datatypes/json.dart';
 
 class DeviceScanner extends StatefulWidget {
   final WebsocketManager websocketManager;
@@ -25,8 +26,8 @@ class DeviceScannerState extends State<DeviceScanner> {
   bool showOverlay = false;
   bool showGreenBox = false;
   WsDevice? selectedDevice;
-  late Future<Map<String, dynamic>> userdataDatabase;
-  List<Map<String, dynamic>>? previouslyConnected;
+  late Future<Json> userdataDatabase;
+  List<Json>? previouslyConnected;
 
 
   @override
@@ -47,12 +48,12 @@ class DeviceScannerState extends State<DeviceScanner> {
   }
 
   Future<void> connectToPreviouslyConnected() async {
-    Map<String, dynamic> list = await userdataDatabase;
+    Json list = await userdataDatabase;
   
     if(previouslyConnected == null){
       // Safely cast the connected devices list
-      List<Map<String, dynamic>>? connectedDevices = (list['connectedDevices'] as List<dynamic>?)
-          ?.whereType<Map<String, dynamic>>()
+      List<Json>? connectedDevices = (list['connectedDevices'] as List<dynamic>?)
+          ?.whereType<Json>()
           .map((item) => item.cast<String, dynamic>())
           .toList();
       previouslyConnected = connectedDevices;
@@ -73,8 +74,8 @@ Future<void> updateDeviceList() async {
   });
 
   if (previouslyConnected == null) {
-    Map<String, dynamic> list = await userdataDatabase;
-    previouslyConnected = List<Map<String, dynamic>>.from(list['connectedDevices'] ?? []);
+    Json list = await userdataDatabase;
+    previouslyConnected = List<Json>.from(list['connectedDevices'] ?? []);
   }
 
   for (var device in widget.websocketManager.deviceList.devices) {

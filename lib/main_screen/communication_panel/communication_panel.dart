@@ -4,6 +4,21 @@ import 'package:flutter/material.dart';
 enum ConsoleTab { websocket, execute, log }
 enum MessageType { generic, error, response, request, info, warning }
 
+extension MessageTypeExtension on MessageType {
+  // Convert enum to string for JSON serialization
+  String toJson() {
+    return toString().split('.').last;
+  }
+
+  // Convert string back to enum for JSON deserialization
+  static MessageType fromJson(String jsonValue) {
+    return MessageType.values.firstWhere(
+      (type) => type.toString().split('.').last == jsonValue,
+      orElse: () => MessageType.generic, // Default value if no match
+    );
+  }
+}
+
 
 class DebugConsoleController {
   final GlobalKey<_DebugConsoleState> _key = GlobalKey<_DebugConsoleState>();
@@ -12,6 +27,8 @@ class DebugConsoleController {
 
 
   void addInternalTabMessage(String message, MessageType type){
+    Widget tile = _buildTextMessageTile(message, type);
+    _key.currentState?._addMessage(tile, ConsoleTab.log);
 
   }
 

@@ -4,6 +4,7 @@ import 'dart:convert';
 
 import 'package:Autty/global_datatypes/device_info.dart';
 import 'package:Autty/global_datatypes/ip_address.dart';
+import 'package:Autty/global_datatypes/json.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
 
 String startNodeIcon = """
@@ -28,7 +29,7 @@ String startNodeIcon = """
 </svg>
 """;
 
-Map<String, dynamic> internalDevice = {
+Json internalDevice = {
   "DEVICE_NAME": "Functions",
   "UNIQUE_ID": "internal",
   "DEVICE_DESCRIPTION": "This is an internal device, that allows usage of internal nodes functions",
@@ -90,11 +91,11 @@ Map<String, dynamic> internalDevice = {
 
 WsDevice internalWsDevice = WsDevice(ipAddress: IPAddress('', 0), deviceInfo: DeviceInfo(jsonEncode(internalDevice)));
 
-Future<Map<String, dynamic>> internalDeviceCommandProcessor(String command, List<dynamic> params, Map<String, dynamic> dependencyResult) async {
+Future<Json> internalDeviceCommandProcessor(String command, List<dynamic> params, Json dependencyResult) async {
   print(command);
   print(params);
 
-  Map<String, dynamic> result = {"OUTCOME": "ERROR", "RESPONSE": "internalDeviceCommandProcessor did not return"};
+  Json result = {"OUTCOME": "ERROR", "RESPONSE": "internalDeviceCommandProcessor did not return"};
 
   
   if(command == "DELAY"){

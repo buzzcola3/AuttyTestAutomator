@@ -1,3 +1,5 @@
+import 'package:Autty/global_datatypes/json.dart';
+
 class IPAddress {
   String ip;
   final int port;
@@ -15,7 +17,7 @@ class IPAddress {
   }
 
   /// Named constructor to initialize IPAddress from a primitive map.
-  IPAddress.fromMap(Map<String, dynamic> map)
+  IPAddress.fromMap(Json map)
       : ip = map['ip'] ?? 'localhost',
         port = _parsePort(map['port'] ?? '80') {
     if (!isValidIP(ip)) {
@@ -62,7 +64,7 @@ class IPAddress {
   String get fullAddress => "$ip:$port";
 
   /// Returns the IP address and port in primitive map form.
-  Map<String, dynamic> toMap() => {'ip': ip, 'port': port};
+  Json toMap() => {'ip': ip, 'port': port};
 
   /// Compares IP and port values of two IPAddress objects
   @override

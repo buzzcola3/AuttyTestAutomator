@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
 import 'package:archive/archive.dart';
+import 'package:Autty/global_datatypes/json.dart';
 
 class AuttyJsonFile {
   String filename;
-  Map<String, dynamic> executionData;
+  List<Json> executionData;
   bool? executionResultSuccess;
   String nodePlaygroundData;
   int filePosition;
@@ -17,8 +19,12 @@ class AuttyJsonFile {
     this.executionResultSuccess
   });
 
+  void addExecuteData(String resultMessage, String sourceNode, MessageType messageType){
+    executionData.add({"message": resultMessage, "sourceNode": sourceNode, "messageType": messageType.toJson()});
+  }
+
   /// Converts the instance into a JSON object
-  Map<String, dynamic> toJson() {
+  Json toJson() {
     return {
       'filename': filename,
       'executionData': executionData,
@@ -29,13 +35,13 @@ class AuttyJsonFile {
   }
 
   /// Recreates an `AuttyJsonFile` instance from a JSON object
-  factory AuttyJsonFile.fromJson(Map<String, dynamic> json) {
+  factory AuttyJsonFile.fromJson(Json json) {
     return AuttyJsonFile(
       filename: json['filename'],
-      executionData: Map<String, dynamic>.from(json['executionData'] ?? {}),
+      executionData: List.from(json['executionData'] ?? []),
       nodePlaygroundData: json['nodePlaygroundData'],
       filePosition: json['filePosition'] ?? 0, // Default to 0 if not provided
-      executionResultSuccess: json['executionResultSuccess'] ?? null
+      executionResultSuccess: json['executionResultSuccess']
     );
   }
 
@@ -44,7 +50,7 @@ class AuttyJsonFile {
 
   /// Recreates an `AuttyJsonFile` instance from a JSON string
   factory AuttyJsonFile.fromJsonString(String jsonString) {
-    final json = jsonDecode(jsonString) as Map<String, dynamic>;
+    final json = jsonDecode(jsonString) as Json;
     return AuttyJsonFile.fromJson(json);
   }
 }
@@ -115,12 +121,10 @@ void addFile(AuttyJsonFile file) {
 bool changeFileOrder(int oldPosition, int newPosition) {
   // Find the file at the old position
   try {
-    final placeholderfile = AuttyJsonFile(filename: "", executionData: {}, nodePlaygroundData: "", filePosition: 0);
-    files.removeAt(oldPosition);
+    final placeholderfile = AuttyJsonFile(filename: "", executionData: [], nodePlaygroundData: "", filePosition: 0);
+    final file = files.removeAt(oldPosition);
     files.insert(oldPosition, placeholderfile);
 
-    
-    final file = files.firstWhere((file) => file.filePosition == oldPosition);
     files.insert(newPosition, file);
     files.remove(placeholderfile);
 
@@ -163,7 +167,7 @@ void normalizeFilePositions() {
     for (var file in archive.files) {
       if (!file.isFile) continue;
       final content = utf8.decode(file.content as List<int>);
-      final jsonData = jsonDecode(content) as Map<String, dynamic>;
+      final jsonData = jsonDecode(content) as Json;
       importedFiles.add(AuttyJsonFile.fromJson(jsonData));
     }
 
@@ -172,12 +176,12 @@ void normalizeFilePositions() {
   }
 
   /// Retrieves the list of files as ordered JSON
-  List<Map<String, dynamic>> toJson() {
+  List<Json> toJson() {
     return files.map((file) => file.toJson()).toList();
   }
 
   /// Loads files from a JSON array
-  factory AuttyJsonFileFolder.fromJson(List<Map<String, dynamic>> json) {
+  factory AuttyJsonFileFolder.fromJson(List<Json> json) {
     final files = json.map((data) => AuttyJsonFile.fromJson(data)).toList();
     return AuttyJsonFileFolder(files: files).._sortFiles();
   }

@@ -1,3 +1,4 @@
+import 'package:Autty/global_datatypes/json.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/websocket_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:node_editor/node_editor.dart';
@@ -7,7 +8,7 @@ import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
 import 'device_list/websocket_manager/headers/websocket_datatypes.dart';
 import 'package:Autty/main_screen/node_playground/playground_execution.dart';
 import 'package:Autty/main_screen/node_playground_file_manager/playground_file_manager.dart';
-import 'package:Autty/main_screen/node_playground/playground_save_and_load.dart';
+import 'package:Autty/main_screen/node_playground/playground_file_interface.dart';
 import 'package:Autty/userdata_database.dart';
 
 class MainScreen extends StatefulWidget {
@@ -27,9 +28,9 @@ class MainScreen extends StatefulWidget {
 class _MainScreen extends State<MainScreen> {
   late PlaygroundExecutor playgroundExecutor;
   late WebsocketManager websocketManager;
-  late Map<String, dynamic> nodesDNA;
+  late Json nodesDNA;
   late DebugConsoleController debugConsole;
-  late PlaygroundSaveLoad playgroundSaveLoad;
+  late PlaygroundFileInterface playgroundFileInterface;
   late UserdataDatabase userdataDatabase;
 
   @override
@@ -52,7 +53,7 @@ class _MainScreen extends State<MainScreen> {
       nodesDNA: nodesDNA
     );
 
-    playgroundSaveLoad = PlaygroundSaveLoad(widget.nodeController, nodesDNA, widget.nodeEditorWidgetController, playgroundExecutor);
+    playgroundFileInterface = PlaygroundFileInterface(widget.nodeController, nodesDNA, widget.nodeEditorWidgetController, playgroundExecutor, debugConsole);
 
     userdataDatabase = UserdataDatabase();
 
@@ -101,7 +102,7 @@ class _MainScreen extends State<MainScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Center(
-                    child: JsonFileManager(playgroundSaveLoad: playgroundSaveLoad, userdataDatabase: userdataDatabase),
+                    child: JsonFileManager(playgroundFileInterface: playgroundFileInterface, userdataDatabase: userdataDatabase),
                   ),
                 ),
               ),
@@ -117,6 +118,7 @@ class _MainScreen extends State<MainScreen> {
                       controller: widget.nodeController,
                       nodesDNA: nodesDNA,
                       customController: widget.nodeEditorWidgetController,
+                      playgroundFileInterface: playgroundFileInterface,
                     ),
                   ],
                 ),

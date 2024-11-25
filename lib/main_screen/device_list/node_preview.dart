@@ -2,6 +2,7 @@ import 'package:Autty/main_screen/device_list/websocket_manager/websocket_manage
 import 'package:flutter/material.dart';
 import 'package:Autty/main_screen/device_list/node_generation/node_generator.dart';
 import "websocket_manager/headers/websocket_datatypes.dart";
+import 'package:Autty/global_datatypes/json.dart';
 
 class NodePreview extends StatefulWidget {
   final VoidCallback onClose;
@@ -175,15 +176,15 @@ Widget _buildNodeList() {
     return const Center(child: Text('No nodes available.'));
   }
 
-  List<Map<String, dynamic>> nodes = widget.deviceData!.deviceInfo!.deviceAvailableNodes;
+  List<Json> nodes = widget.deviceData!.deviceInfo!.deviceAvailableNodes;
 
   return ListView.builder(
     itemCount: nodes.length, // Set the item count based on the number of nodes
     itemBuilder: (context, index) {
       // Get the command name to display
-      Map<String, dynamic> singleNode = nodes[index];
+      Json singleNode = nodes[index];
 
-      Map<String, dynamic> nodeDNA = {
+      Json nodeDNA = {
         "deviceUniqueId": widget.deviceData!.deviceInfo!.deviceUniqueId,
         "nodeUuid": null,
         "nodeCommand": singleNode["Command"],
@@ -220,7 +221,7 @@ Widget _buildNodeList() {
         padding: const EdgeInsets.only(top: 4.0),
         child: Center(  // Wrap each node in a Center to avoid stretching
           child: SizedBox(
-            child: Draggable<Map<String, dynamic>>(
+            child: Draggable<Json>(
               data: {"nodeDNA": nodeDNA, "nodeWidget": fabricatedNode},
               feedback: Material(
                 color: Colors.transparent,

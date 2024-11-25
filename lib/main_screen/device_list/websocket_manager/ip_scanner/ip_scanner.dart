@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:Autty/global_datatypes/ip_address.dart';
+import 'package:Autty/global_datatypes/json.dart';
 
 class IPScanner {
   // Properties
@@ -83,7 +84,7 @@ class IPScanner {
       
       late StreamSubscription subscription;
       subscription = socket.listen((message) {
-        Map<String, dynamic> decodedMessage = jsonDecode(message);
+        Json decodedMessage = jsonDecode(message);
         print('Received message: $message');
   
         if (decodedMessage["RESPONSE"] == 'OK' && decodedMessage["UUID"] == 'PING') {

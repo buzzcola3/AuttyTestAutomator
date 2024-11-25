@@ -1,8 +1,13 @@
+import 'package:Autty/global_datatypes/json.dart';
 import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
 import 'package:Autty/main_screen/device_list/internal_device.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/websocket_manager.dart';
+import 'package:Autty/main_screen/node_playground_file_manager/file_datatypes.dart';
 import 'package:node_editor/node_editor.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
+
+// ignore: constant_identifier_names
+const bool _DEBUG_EXECUTOR = true;
 
 class ExecutableNode {
   // Members
@@ -10,8 +15,8 @@ class ExecutableNode {
   final String command;
   final String deviceUniqueId;
   bool executed = false;
-  late Map<String, dynamic> executionResult;
-  final dynamic node; // Type can be changed to the specific type you're using
+  late Json executionResult;
+  final dynamic node;
   
   late List inPortResults;
   
@@ -32,7 +37,9 @@ class PlaygroundExecutor {
   final DebugConsoleController debugConsole;
   final WebsocketManager websocketManager;
   final NodeEditorController controller;
-  final Map<String, dynamic> nodesDNA;
+  final Json nodesDNA;
+
+  AuttyJsonFile? executingFile;
 
   PlaygroundExecutor({
     required this.wsDeviceList,
@@ -42,9 +49,9 @@ class PlaygroundExecutor {
     required this.nodesDNA
   });
 
-  bool executeSuccess = false;
+  bool overallExecuteSuccess = false;
 
-  ExecutableNode? findStartNode(List<ExecutableNode> decodedList) {
+  ExecutableNode? _findStartNode(List<ExecutableNode> decodedList) {
     for (var node in decodedList) {
       if (node.deviceUniqueId == 'internal' && node.command == 'RUN') {
         return node;
@@ -53,44 +60,46 @@ class PlaygroundExecutor {
     return null;
   }
 
-  Future<bool> execute() async {
+  Future<bool> execute(AuttyJsonFile File) async {
+    executingFile = File;
+
     debugConsole.addInternalTabMessage("Started execution", MessageType.info);
     debugConsole.clearTabMessages(ConsoleTab.execute);
-    executeSuccess = true;
+    overallExecuteSuccess = true;
 
     // Decode the nodes using the controller
-    List<ExecutableNode> playgroundNodes = decodeNodes(controller.nodes);
+    List<ExecutableNode> playgroundNodes = _decodeNodes(controller.nodes);
 
     // Find the start node with deviceUniqueId = "internal" and nodeCommand = "{RUN}"
-    ExecutableNode? startNode = findStartNode(playgroundNodes);
+    ExecutableNode? startNode = _findStartNode(playgroundNodes);
     if (startNode == null) {
-      print("No start node found.");
+      debugConsole.addInternalTabMessage("No start node found.", MessageType.error);
       return false;
     }
   
     Map<String, List<String>> nodeStructure = {};
-    var execNodeTree = buildNodeConnectionStructure(startNode, controller.connections, nodeStructure);
+    var execNodeTree = _buildNodeConnectionStructure(startNode, controller.connections, nodeStructure);
 
-    await executeNodeTree(execNodeTree, startNode.nodeUuid, playgroundNodes);
+    await _executeNodeTree(execNodeTree, startNode.nodeUuid, playgroundNodes);
 
-    return executeSuccess;
+    return overallExecuteSuccess;
   }
 
-  Future<void> executeNodeTree(Map<String, List<String>> execNodeTree, String startNode, List<ExecutableNode> playgroundNodes) async {
-    if (dependentNodesAlreadyExecuted(startNode, execNodeTree, playgroundNodes)) {
-      await executeNode(startNode, execNodeTree, playgroundNodes);
+  Future<void> _executeNodeTree(Map<String, List<String>> execNodeTree, String startNode, List<ExecutableNode> playgroundNodes) async {
+    if (_dependentNodesAlreadyExecuted(startNode, execNodeTree, playgroundNodes)) {
+      await _executeNode(startNode, execNodeTree, playgroundNodes);
     } else {
       return;
     }
 
     for (var execNode in execNodeTree[startNode] ?? []) {
-      await executeNodeTree(execNodeTree, execNode, playgroundNodes);
+      await _executeNodeTree(execNodeTree, execNode, playgroundNodes);
     }
   }
 
-Future<void> executeNode(String node, Map<String, List<String>> execNodeTree, List<ExecutableNode> playgroundNodes) async {
+Future<void> _executeNode(String node, Map<String, List<String>> execNodeTree, List<ExecutableNode> playgroundNodes) async {
   
-  Map<String, dynamic> dependencyResult = dependentNodesResult(node, execNodeTree, playgroundNodes);
+  Json dependencyResult = _dependentNodesResult(node, execNodeTree, playgroundNodes);
 
 
   for (var playgroundNode in playgroundNodes) {
@@ -104,7 +113,7 @@ Future<void> executeNode(String node, Map<String, List<String>> execNodeTree, Li
         }
       }
   
-      Map<String, dynamic> result;
+      Json result;
       controller.selectNodeAction(node); // highlight the node when executing
       if (nodesDNA[node]["deviceUniqueId"] != 'internal') {
         WsMessage? resultWsMessage = await websocketManager.sendAwaitedRequest(nodesDNA[node]["deviceUniqueId"], nodesDNA[node]["nodeCommand"], parameters);
@@ -117,23 +126,30 @@ Future<void> executeNode(String node, Map<String, List<String>> execNodeTree, Li
 
       playgroundNode.executionResult = result;
 
-      if(result["OUTCOME"] == "ERROR"){
-        debugConsole.addExecutionTabMessage("${result["RESPONSE"]} --> ${result["OUTCOME"]}", playgroundNode.nodeUuid, MessageType.error, controller.selectNodeAction);
-        executeSuccess = false;
-      }else{
-        debugConsole.addExecutionTabMessage("${result["RESPONSE"]} --> ${result["OUTCOME"]}", playgroundNode.nodeUuid, MessageType.generic, controller.selectNodeAction);
-      }
-        
+      if(result["OUTCOME"] == "ERROR") overallExecuteSuccess = false;
+
+
       playgroundNode.executed = true;
+
+      final resultNode = playgroundNode.nodeUuid;
+      final resultMessage = "${result["RESPONSE"]} --> ${result["OUTCOME"]}";
+      MessageType resultMessageType = MessageType.error;
+
+      if(result["OUTCOME"] == "SUCCESS") resultMessageType = MessageType.generic;
+      
+      debugConsole.addExecutionTabMessage(resultMessage, resultNode, resultMessageType, controller.selectNodeAction);
+      executingFile?.addExecuteData(resultMessage, resultNode, resultMessageType);
+        
+      
       return;
     }
   }
 
-  print('Executed node: ${node}');
+  if(_DEBUG_EXECUTOR) debugConsole.addInternalTabMessage("", MessageType.info);
 }
 
 
-  Map<String, List<String>> buildNodeConnectionStructure(
+  Map<String, List<String>> _buildNodeConnectionStructure(
     ExecutableNode startNode,
     List<dynamic> connections,
     Map<String, List<String>> nodeStructure,
@@ -142,17 +158,17 @@ Future<void> executeNode(String node, Map<String, List<String>> execNodeTree, Li
       nodeStructure[startNode.nodeUuid] = [];
     }
 
-    List<ExecutableNode> connectedNodes = getOutPortNodes(startNode, connections);
+    List<ExecutableNode> connectedNodes = _getOutPortNodes(startNode, connections);
 
     for (var connectedNode in connectedNodes) {
       nodeStructure[startNode.nodeUuid]!.add(connectedNode.nodeUuid);
-      buildNodeConnectionStructure(connectedNode, connections, nodeStructure);
+      _buildNodeConnectionStructure(connectedNode, connections, nodeStructure);
     }
 
     return nodeStructure;
   }
 
-  List<ExecutableNode> getOutPortNodes(ExecutableNode node, List<dynamic> connections) {
+  List<ExecutableNode> _getOutPortNodes(ExecutableNode node, List<dynamic> connections) {
     List<ExecutableNode> inNodes = [];
 
     for (var connection in connections) {
@@ -165,7 +181,7 @@ Future<void> executeNode(String node, Map<String, List<String>> execNodeTree, Li
     return inNodes;
   }
 
-  bool dependentNodesAlreadyExecuted(String node, Map<String, List<String>> execNodeTree, List<ExecutableNode> playgroundNodes){
+  bool _dependentNodesAlreadyExecuted(String node, Map<String, List<String>> execNodeTree, List<ExecutableNode> playgroundNodes){
     List<String> dependencies = [];
 
     execNodeTree.forEach((key, connectedNodes) {
@@ -197,7 +213,7 @@ Future<void> executeNode(String node, Map<String, List<String>> execNodeTree, Li
     return true;
   }
 
-  Map<String, dynamic> dependentNodesResult(String node, Map<String, List<String>> execNodeTree, List<ExecutableNode> playgroundNodes){
+  Json _dependentNodesResult(String node, Map<String, List<String>> execNodeTree, List<ExecutableNode> playgroundNodes){
     List<String> dependencies = [];
 
     execNodeTree.forEach((key, connectedNodes) {
@@ -229,7 +245,7 @@ Future<void> executeNode(String node, Map<String, List<String>> execNodeTree, Li
     return {};
   }
 
-  List<ExecutableNode> decodeNodes(Map<String, dynamic> nodes) {
+  List<ExecutableNode> _decodeNodes(Json nodes) {
     List<ExecutableNode> decodedList = [];
 
     for (var key in nodes.keys) {
@@ -237,7 +253,7 @@ Future<void> executeNode(String node, Map<String, List<String>> execNodeTree, Li
         ExecutableNode node = ExecutableNode(nodeUuid: key, node: nodes[key], command: nodesDNA[key]["nodeCommand"], deviceUniqueId: nodesDNA[key]["deviceUniqueId"]);
         decodedList.add(node);
       } catch (e) {
-        print('Error decoding key: $key - $e');
+        if(_DEBUG_EXECUTOR) debugConsole.addInternalTabMessage("Error decoding key: $key - $e", MessageType.info);
       }
     }
 

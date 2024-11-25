@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 
+import 'package:Autty/global_datatypes/json.dart';
 import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
 import 'package:Autty/global_datatypes/device_info.dart';
 import 'package:Autty/global_datatypes/ip_address.dart';
@@ -145,7 +146,7 @@ class WsDevice {
   }
 
   void receiveResponse(String incomingMessage){
-    Map<String, dynamic> decodedMessage = jsonDecode(incomingMessage);
+    Json decodedMessage = jsonDecode(incomingMessage);
     String messageUuid = decodedMessage["UUID"];
     WsMessage? ogMessage = wsMessageList.searchUnfulfilledMessage(messageUuid);
 

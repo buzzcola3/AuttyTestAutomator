@@ -6,17 +6,17 @@ import 'package:Autty/userdata_database.dart';
 import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:Autty/main_screen/node_playground/playground_save_and_load.dart';
+import 'package:Autty/main_screen/node_playground/playground_file_interface.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class JsonFileManager extends StatefulWidget {
-  final PlaygroundSaveLoad playgroundSaveLoad;
+  final PlaygroundFileInterface playgroundFileInterface;
   final UserdataDatabase userdataDatabase;
 
   const JsonFileManager({
     super.key,
-    required this.playgroundSaveLoad,
+    required this.playgroundFileInterface,
     required this.userdataDatabase
     });
 
@@ -43,19 +43,18 @@ class _JsonFileManagerState extends State<JsonFileManager> {
 //    await _restoreFilesFromInternalDatabase();
   }
 
-Future<void> _executeAllFiles() async {
+Future<void> _executeAllFiles() async { //TODO move to playgrpund file interface
   for (int i = 0; i < auttyJsonFileFolder.files.length; i++) {
     setState(() {
       executingIndex = i;
     });
 
-    bool success = false;
-    success = await widget.playgroundSaveLoad.loadAndExecutePlayground(json.decode(auttyJsonFileFolder.files[i].nodePlaygroundData));
+    await widget.playgroundFileInterface.loadAndExecuteFile(auttyJsonFileFolder.files[i]);
 
 
     // Update the status based on the execution result
     setState(() {
-      auttyJsonFileFolder.files[i].executionResultSuccess = success;
+      auttyJsonFileFolder.files[i];
     });
 
     // Optional delay for UI
@@ -70,7 +69,7 @@ Future<void> _executeAllFiles() async {
 
 
   Future<void> _loadFileToPlayground(int index) async {
-    widget.playgroundSaveLoad.loadPlayground(json.decode(auttyJsonFileFolder.files[index].nodePlaygroundData));
+    widget.playgroundFileInterface.loadFile(auttyJsonFileFolder.files[index]);
   }
 
 
@@ -354,9 +353,13 @@ void _savePlayground() async {
     }
 
     // Save the new file
-    int filePosition = auttyJsonFileFolder.files.length +1;
-    String playgroundJson = widget.playgroundSaveLoad.savePlayground();
-    AuttyJsonFile auttyJsonFile = AuttyJsonFile(filename: fullFileName, executionData: {}, nodePlaygroundData: playgroundJson, filePosition: filePosition);
+    widget.playgroundFileInterface.saveFile();
+    AuttyJsonFile auttyJsonFile = widget.playgroundFileInterface.loadedFile;
+
+    if(auttyJsonFileFolder.files.contains(auttyJsonFile)){
+      auttyJsonFile = AuttyJsonFile.fromJson(auttyJsonFile.toJson());
+    }
+    auttyJsonFile.filename = fullFileName;
 
 
     setState(() {
@@ -430,7 +433,8 @@ Row(
             child: Overlay(
               initialEntries: [
                 OverlayEntry(builder: (context){
-                  return                ReorderableListView.builder(
+                  return
+                ReorderableListView.builder(
                 buildDefaultDragHandles: false, // Disable default drag handles
                 onReorder: (oldIndex, newIndex) {
                 auttyJsonFileFolder.changeFileOrder(oldIndex, newIndex);
@@ -438,13 +442,13 @@ Row(
                 itemCount: auttyJsonFileFolder.files.length,
                 itemBuilder: (context, index) {
                   final status = auttyJsonFileFolder.files[index].executionResultSuccess;
-                  final color = status == true
-                    ? Colors.green
-                      : status == false
-                        ? Colors.red
-                          : executingIndex == index
-                            ? Colors.blue
-                              : Colors.grey[300];
+                  final color = executingIndex == index
+                    ? Colors.blue
+                    : status == true
+                        ? Colors.green
+                        : status == false
+                            ? Colors.red
+                            : Colors.grey[300];
                               
                   return MouseRegion(
                     key: ValueKey(auttyJsonFileFolder.files[index].filename),
