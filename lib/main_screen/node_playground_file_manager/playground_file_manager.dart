@@ -9,6 +9,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:Autty/main_screen/node_playground/playground_file_interface.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:marquee/marquee.dart';
 
 class JsonFileManager extends StatefulWidget {
   final PlaygroundFileInterface playgroundFileInterface;
@@ -384,139 +385,153 @@ Widget build(BuildContext context) {
       child: Column(
         children: [
           // Top action icons
-Row(
-  mainAxisAlignment: MainAxisAlignment.end,
-  children: [
-    IconButton(
-      padding: new EdgeInsets.all(0.0),
-      icon: SvgPicture.asset(
-        'lib/svg_icons/playground_list_execute_icon.svg',
-        width: 32,  // Larger icon size
-        height: 32, // Larger icon size
-        color: const Color.fromARGB(255, 58, 58, 58),
-      ),
-      onPressed: _executeAllFiles,
-    ),
-    IconButton(
-      icon: SvgPicture.asset(
-        'lib/svg_icons/playground_download_icon.svg',
-        width: 24,
-        height: 24,
-        color: const Color.fromARGB(255, 58, 58, 58),
-      ),
-      onPressed: _downloadAllAsZip,
-    ),
-    IconButton(
-      icon: SvgPicture.asset(
-        'lib/svg_icons/playground_upload_icon.svg',
-        width: 24,
-        height: 24,
-        color: const Color.fromARGB(255, 58, 58, 58),
-      ),
-      onPressed: _pickFiles,
-    ),
-    IconButton(
-      icon: SvgPicture.asset(
-        'lib/svg_icons/playground_save_icon.svg',
-        width: 24,
-        height: 24,
-        color: const Color.fromARGB(255, 58, 58, 58),
-      ),
-      onPressed: _savePlayground,
-    ),
-  ],
-),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              IconButton(
+                padding: EdgeInsets.zero,
+                icon: SvgPicture.asset(
+                  'lib/svg_icons/playground_list_execute_icon.svg',
+                  width: 32,
+                  height: 32,
+                  color: const Color.fromARGB(255, 58, 58, 58),
+                ),
+                onPressed: _executeAllFiles,
+              ),
+              IconButton(
+                icon: SvgPicture.asset(
+                  'lib/svg_icons/playground_download_icon.svg',
+                  width: 24,
+                  height: 24,
+                  color: const Color.fromARGB(255, 58, 58, 58),
+                ),
+                onPressed: _downloadAllAsZip,
+              ),
+              IconButton(
+                icon: SvgPicture.asset(
+                  'lib/svg_icons/playground_upload_icon.svg',
+                  width: 24,
+                  height: 24,
+                  color: const Color.fromARGB(255, 58, 58, 58),
+                ),
+                onPressed: _pickFiles,
+              ),
+              IconButton(
+                icon: SvgPicture.asset(
+                  'lib/svg_icons/playground_save_icon.svg',
+                  width: 24,
+                  height: 24,
+                  color: const Color.fromARGB(255, 58, 58, 58),
+                ),
+                onPressed: _savePlayground,
+              ),
+            ],
+          ),
 
-          
           // List of JSON files with reordering
           Expanded(
-            child: Overlay(
-              initialEntries: [
-                OverlayEntry(builder: (context){
-                  return
-                ReorderableListView.builder(
-                buildDefaultDragHandles: false, // Disable default drag handles
-                onReorder: (oldIndex, newIndex) {
+            child: ReorderableListView.builder(
+              buildDefaultDragHandles: false,
+              onReorder: (oldIndex, newIndex) {
                 auttyJsonFileFolder.changeFileOrder(oldIndex, newIndex);
-                },
-                itemCount: auttyJsonFileFolder.files.length,
-                itemBuilder: (context, index) {
-                  final status = auttyJsonFileFolder.files[index].executionResultSuccess;
-                  final color = executingIndex == index
+              },
+              itemCount: auttyJsonFileFolder.files.length,
+              itemBuilder: (context, index) {
+                final file = auttyJsonFileFolder.files[index];
+                final status = file.executionResultSuccess;
+                final color = executingIndex == index
                     ? Colors.blue
                     : status == true
                         ? Colors.green
                         : status == false
                             ? Colors.red
                             : Colors.grey[300];
-                              
-                  return MouseRegion(
-                    key: ValueKey(auttyJsonFileFolder.files[index].filename),
-                    onEnter: (_) => setState(() => hoverIndex = index),
-                    onExit: (_) => setState(() => hoverIndex = null),
-                    child: Container(
-                      color: color,
-                      margin: const EdgeInsets.symmetric(vertical: 4.0),
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                      height: 40,
-                      child: Stack(
-                        alignment: Alignment.centerLeft,
-                        children: [
-                          Row(
-                            children: [
-                              if (hoverIndex != index)
-                                const Icon(Icons.insert_drive_file, size: 18, color: Color.fromARGB(255, 58, 58, 58)),
-                              const SizedBox(width: 8),
-                              Text(
-                                hoverIndex != index ? auttyJsonFileFolder.files[index].filename : "",
-                                style: const TextStyle(fontSize: 14, color: Colors.black87),
-                              ),
-                            ],
-                          ),
-                          if (index == hoverIndex)
-                            Positioned(
-                              right: 0,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // Custom drag handle for reordering within the hover overlay
-                                  ReorderableDragStartListener(
-                                    index: index,
-                                    child: const Icon(Icons.drag_handle, size: 20, color: Color.fromARGB(255, 58, 58, 58)),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.play_arrow, size: 20, color: Color.fromARGB(255, 58, 58, 58)),
-                                    onPressed: () => _loadFileToPlayground(index),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.edit, size: 20, color: Color.fromARGB(255, 58, 58, 58)),
-                                    onPressed: () => _renameFile(auttyJsonFileFolder.files[index].filename),
-                                  ),
-                                  IconButton(
-                                    icon: SvgPicture.asset(
-                                      'lib/svg_icons/playground_download_icon.svg',
-                                      width: 20,
-                                      height: 20,
-                                      color: const Color.fromARGB(255, 58, 58, 58),
-                                    ),
-                                    onPressed: () => _downloadFile(index),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete, size: 20, color: Color.fromARGB(255, 58, 58, 58)),
-                                    onPressed: () => _deleteFile(index),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              );
-                })
-              ],
 
+                return MouseRegion(
+                  key: ValueKey(file.filename),
+                  onEnter: (_) => setState(() => hoverIndex = index),
+                  onExit: (_) => setState(() => hoverIndex = null),
+                  child: Container(
+                    color: color,
+                    margin: const EdgeInsets.symmetric(vertical: 4.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    height: 40,
+                    child: Stack(
+                      alignment: Alignment.centerLeft,
+                      children: [
+                        Row(
+                          children: [
+                            if (hoverIndex != index)
+                              const Icon(Icons.insert_drive_file, size: 18, color: Color.fromARGB(255, 58, 58, 58)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: hoverIndex != index
+                                  ? Marquee(
+                                      text: auttyJsonFileFolder.files[index].filename,
+                                      style: const TextStyle(fontSize: 14, color: Colors.black87),
+                                      scrollAxis: Axis.horizontal,
+                                      blankSpace: 30.0,
+                                      velocity: 50.0, // Controls the speed of scrolling
+                                      pauseAfterRound: const Duration(seconds: 1), // Optional pause after a full scroll
+                                      startPadding: 0, // Space before starting
+                                      accelerationDuration: const Duration(milliseconds: 500), // Optional acceleration effect
+                                      accelerationCurve: Curves.linear,
+                                      decelerationDuration: const Duration(milliseconds: 500), // Optional deceleration effect
+                                      decelerationCurve: Curves.easeOut,
+                                    )
+                                  : const SizedBox(), // Empty space when hoverIndex matches index
+                            ),
+                          ],
+                        ),
+                        if (index == hoverIndex)
+                          Positioned(
+                            right: 0,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ReorderableDragStartListener(
+                                  index: index,
+                                  child: const Icon(Icons.drag_handle,
+                                      size: 20,
+                                      color: Color.fromARGB(255, 58, 58, 58)),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.play_arrow,
+                                      size: 20,
+                                      color: Color.fromARGB(255, 58, 58, 58)),
+                                  onPressed: () => _loadFileToPlayground(index),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.edit,
+                                      size: 20,
+                                      color: Color.fromARGB(255, 58, 58, 58)),
+                                  onPressed: () =>
+                                      _renameFile(file.filename),
+                                ),
+                                IconButton(
+                                  icon: SvgPicture.asset(
+                                    'lib/svg_icons/playground_download_icon.svg',
+                                    width: 20,
+                                    height: 20,
+                                    color:
+                                        const Color.fromARGB(255, 58, 58, 58),
+                                  ),
+                                  onPressed: () => _downloadFile(index),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete,
+                                      size: 20,
+                                      color: Color.fromARGB(255, 58, 58, 58)),
+                                  onPressed: () => _deleteFile(index),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ],

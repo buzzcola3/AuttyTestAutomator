@@ -255,15 +255,23 @@ Widget build(BuildContext context) {
 }
 
 
-Widget manualDeviceConnectionMenu(BuildContext context, Future<void> Function() connectToPreviouslyConnected) {
+Widget manualDeviceConnectionMenu(
+  BuildContext context,
+  Future<void> Function() connectToPreviouslyConnected,
+) {
   final TextEditingController ipController = TextEditingController();
   final TextEditingController portController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
   return Container(
     clipBehavior: Clip.hardEdge,
-    decoration: const BoxDecoration(
-      color: Colors.transparent,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(5),
+      border: Border.all(
+        color: Colors.grey, // Border color
+        width: 0.3, // Border thickness
+      ),
     ),
     width: 120.0,
     child: Column(
@@ -271,45 +279,150 @@ Widget manualDeviceConnectionMenu(BuildContext context, Future<void> Function() 
         // Add Device Button
         ElevatedButton(
           onPressed: () {
-            _showAddDeviceDialog(context, formKey, ipController, portController);
+            _showAddDeviceDialog(
+              context,
+              formKey,
+              ipController,
+              portController,
+            );
           },
-          style: _buttonStyle,
-          child: _buildButtonContent(Icons.add, 'Add'),
+          style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.black, // Set text color
+            backgroundColor: Colors.transparent, // Set background to transparent
+            shadowColor: Colors.transparent, // Remove shadow
+            padding: EdgeInsets.symmetric(vertical: 0, horizontal: 6), // Reduce vertical padding
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(5), // Set border radius to 5
+            ),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.start, // Align left
+            children: [
+              Icon(
+                Icons.add,
+                size: 14,
+              ),
+              SizedBox(width: 8), // Space between icon and text
+              Text(
+                'Add',
+                style: TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
         ),
         // Reconnect Button
         ElevatedButton(
           onPressed: () async {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text("Attempting to reconnect to previously connected devices..."),
+                content: Text(
+                  "Attempting to reconnect to previously connected devices...",
+                ),
                 duration: Duration(seconds: 3),
               ),
             );
             await connectToPreviouslyConnected();
           },
-          style: _buttonStyle,
-          child: _buildButtonContent(Icons.refresh, 'Reconnect'),
+          style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.black, // Set text color
+            backgroundColor: Colors.transparent, // Set background to transparent
+            shadowColor: Colors.transparent, // Remove shadow
+            padding: EdgeInsets.symmetric(vertical: 0, horizontal: 6), // Reduce vertical padding
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(5), // Set border radius to 5
+            ),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.start, // Align left
+            children: [
+              Icon(
+                Icons.refresh,
+                size: 14,
+              ),
+              SizedBox(width: 8), // Space between icon and text
+              Text(
+                'Reconnect',
+                style: TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
         ),
         // Scan Subnet Button
         ElevatedButton(
           onPressed: () {
-            _showScanSubnetDialog(context, formKey, ipController, portController);
+            _showScanSubnetDialog(
+              context,
+              formKey,
+              ipController,
+              portController,
+            );
           },
-          style: _buttonStyle,
-          child: _buildButtonContent(Icons.language, 'Scan Subnet'),
+          style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.black, // Set text color
+            backgroundColor: Colors.transparent, // Set background to transparent
+            shadowColor: Colors.transparent, // Remove shadow
+            padding: EdgeInsets.symmetric(vertical: 0, horizontal: 6), // Reduce vertical padding
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(5), // Set border radius to 5
+            ),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.start, // Align left
+            children: [
+              Icon(
+                Icons.language,
+                size: 14,
+              ),
+              SizedBox(width: 8), // Space between icon and text
+              Text(
+                'Scan Subnet',
+                style: TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
         ),
         // Scan Ports Button
         ElevatedButton(
           onPressed: () {
-            _showPortScanDialog(context, formKey, ipController, TextEditingController(), TextEditingController());
+            _showPortScanDialog(
+              context,
+              formKey,
+              ipController,
+              TextEditingController(),
+              TextEditingController(),
+            );
           },
-          style: _buttonStyle,
-          child: _buildButtonContent(Icons.search, 'Scan Ports'),
+          style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.black, // Set text color
+            backgroundColor: Colors.transparent, // Set background to transparent
+            shadowColor: Colors.transparent, // Remove shadow
+            padding: EdgeInsets.symmetric(vertical: 0, horizontal: 6), // Reduce vertical padding
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(5), // Set border radius to 5
+            ),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.start, // Align left
+            children: [
+              Icon(
+                Icons.search,
+                size: 14,
+              ),
+              SizedBox(width: 8), // Space between icon and text
+              Text(
+                'Scan Ports',
+                style: TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
         ),
       ],
     ),
   );
 }
+
+
+
 
 void _showAddDeviceDialog(BuildContext context, GlobalKey<FormState> formKey, TextEditingController ipController, TextEditingController portController) {
   showDialog(

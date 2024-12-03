@@ -344,7 +344,10 @@ Widget basicNode({
                     child: Center(
                       child: Text(
                         nodeName ?? '', // Display the node text, default to empty string if null
-                        style: const TextStyle(color: Colors.black), // Customize the text style as needed
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontFamily: 'CascadiaCode'
+                          ), // Customize the text style as needed
                       ),
                     ),
                   ),
@@ -453,7 +456,7 @@ Widget buttonNode({
                 ),
                 // Vertical divider where the blue meets the accent blue
                 Container(
-                  width: 0.7, // Thin width for the divider
+                  width: 1, // Thin width for the divider
                   color: Colors.grey, // Same color as the border
                 ),
                 // Right side main section for the node content
@@ -463,7 +466,10 @@ Widget buttonNode({
                     child: Center(
                       child: Text(
                         nodeName ?? '', // Display the node text, default to empty string if null
-                        style: const TextStyle(color: Colors.black), // Customize the text style as needed
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontFamily: 'CascadiaCode'
+                          ),
                       ),
                     ),
                   ),
