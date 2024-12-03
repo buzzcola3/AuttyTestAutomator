@@ -15,11 +15,8 @@ TODO:
 
 - fix: ip scanner on Web
 - fix: file upload on Web
-- fix: node svg icons
 
 - implement: device list svg icon
 - implement: delete playground file (w/ apropriate warning)
 - implement: load playground gives a hint to save unless the playground is empty
 - implement: ctrl/shift selection on playground files (delete, run)
-
-- change font to Cascadia Mono/Code

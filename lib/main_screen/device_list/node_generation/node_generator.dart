@@ -259,7 +259,8 @@ Widget? fabricateNode({
         color: getNodeColor(nodeColor), 
         accentColor: getNodeAccentColor(nodeColor), 
         inPorts: inPortsCast,  // Cast inPorts
-        outPorts: outPortsCast // Cast outPorts
+        outPorts: outPortsCast, // Cast outPorts
+        svgIconString: svgIconString
       );
 
     case "buttonNode":
@@ -339,18 +340,23 @@ Widget basicNode({
                 ),
                 // Right side main section for the node content
                 Expanded(
-                  child: Container(
-                    color: Colors.transparent, // Keep transparent to let the border show
-                    child: Center(
-                      child: Text(
-                        nodeName ?? '', // Display the node text, default to empty string if null
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontFamily: 'CascadiaCode'
-                          ), // Customize the text style as needed
-                      ),
-                    ),
-                  ),
+child: Container(
+  color: Colors.transparent, // Keep transparent to let the border show
+  child: Align(
+    alignment: Alignment.centerLeft, // Align the text to the right
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 5.0), // Add 5px space on left and right
+      child: Text(
+        nodeName ?? '', // Display the node text, default to empty string if null
+        style: const TextStyle(
+          color: Colors.black,
+          fontFamily: 'CascadiaCode',
+        ), // Customize the text style as needed
+      ),
+    ),
+  ),
+),
+
                 ),
               ],
             ),
@@ -461,18 +467,22 @@ Widget buttonNode({
                 ),
                 // Right side main section for the node content
                 Expanded(
-                  child: Container(
-                    color: Colors.transparent, // Keep transparent to let the border show
-                    child: Center(
-                      child: Text(
-                        nodeName ?? '', // Display the node text, default to empty string if null
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontFamily: 'CascadiaCode'
-                          ),
-                      ),
-                    ),
-                  ),
+child: Container(
+  color: Colors.transparent, // Keep transparent to let the border show
+  child: Align(
+    alignment: Alignment.centerLeft, // Align the text to the right
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 5.0), // Add 5px space on left and right
+      child: Text(
+        nodeName ?? '', // Display the node text, default to empty string if null
+        style: const TextStyle(
+          color: Colors.black,
+          fontFamily: 'CascadiaCode',
+        ), // Customize the text style as needed
+      ),
+    ),
+  ),
+),
                 ),
               ],
             ),
