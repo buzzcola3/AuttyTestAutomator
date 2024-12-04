@@ -1,7 +1,8 @@
 import 'package:Autty/global_datatypes/json.dart';
 import 'package:idb_sqflite/idb_sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-
+import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class UserdataDatabase {
   // Define the store names
@@ -9,12 +10,17 @@ class UserdataDatabase {
   static const String deviceListStore = 'deviceList';
 
   // The sqflite base factory
-  final _factory = getIdbFactorySqflite(databaseFactoryFfi);
+  late final IdbFactory _factory;
 
   // The database instance
   late final Future<dynamic> _db;
 
   UserdataDatabase() {
+    if(kIsWeb){
+      _factory = getIdbFactorySqflite(databaseFactoryFfiWeb);
+    }else{
+      _factory = getIdbFactorySqflite(databaseFactoryFfi);
+    }
     _db = _initDatabase();
   }
 

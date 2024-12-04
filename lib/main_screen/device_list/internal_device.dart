@@ -38,7 +38,7 @@ Json internalDevice = {
   "DEVICE_AVAILABLE_NODES": [
     {
       "Name": "Start",
-      "Type": "buttonNode",
+      "Type": "outputNode",
       "Command": "RUN",
       "Parameters": [],
       "Color": "green",

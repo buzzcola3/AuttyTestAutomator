@@ -57,11 +57,13 @@ class _NodePreviewState extends State<NodePreview> {
                     // Replaced the close X with an arrow back icon
                     IconButton(
                       icon: const Icon(Icons.arrow_back),
+                      tooltip: "Return",
                       onPressed: widget.onClose, // Replaced the close button functionality
                     ),
                     // Node icon
                     IconButton(
                       icon: const Icon(Icons.device_hub), // Node icon
+                      tooltip: "Nodes",
                       onPressed: () {
                         setState(() {
                           currentDisplayState = DisplayState.nodes; // Show example nodes
@@ -71,6 +73,7 @@ class _NodePreviewState extends State<NodePreview> {
                     // Command window icon
                     IconButton(
                       icon: const Icon(Icons.terminal), // Command window icon
+                      tooltip: "Commands",
                       onPressed: () {
                         setState(() {
                           currentDisplayState = DisplayState.commands; // Show available commands
@@ -80,6 +83,7 @@ class _NodePreviewState extends State<NodePreview> {
                     // Help icon (question mark)
                     IconButton(
                       icon: const Icon(Icons.help), // Help icon
+                      tooltip: "Device Information",
                       onPressed: () {
                         setState(() {
                           currentDisplayState = DisplayState.help; // Show help information

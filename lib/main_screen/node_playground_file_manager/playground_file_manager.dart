@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -35,14 +36,36 @@ class _JsonFileManagerState extends State<JsonFileManager> {
   void initState() {
     super.initState();
     _initializeFileManager();
+    _startSavingState();
     setState(() {
       
     });
   }
 
   void _initializeFileManager() async {
-//    await _restoreFilesFromInternalDatabase();
+    final zipData = await widget.userdataDatabase.getFileManagerData();
+    _importZipFile( Uint8List.fromList(zipData));
   }
+
+  Timer? _timer;
+  void _startSavingState() {
+    // Set up a periodic timer that runs every 2 minutes
+    _timer = Timer.periodic(Duration(minutes: 2), (Timer timer) {
+      _saveFileManagerState();
+    });
+  }
+
+  void _stopSavingState() {
+    // Cancel the timer when you no longer need it
+    _timer?.cancel();
+  }
+
+  void _saveFileManagerState() async {
+    print("saved");
+    Uint8List zipData = auttyJsonFileFolder.exportAsZip();
+    await widget.userdataDatabase.saveFileManagerData(zipData);
+  }
+
 
 Future<void> _executeAllFiles() async { //TODO move to playgrpund file interface
   for (int i = 0; i < auttyJsonFileFolder.files.length; i++) {
@@ -65,6 +88,8 @@ Future<void> _executeAllFiles() async { //TODO move to playgrpund file interface
   setState(() {
     executingIndex = null; // Reset executing index
   });
+
+  _saveFileManagerState();
 }
 
 
@@ -83,24 +108,35 @@ Future<void> _pickFiles() async {
 
   if (result != null) {
     for (var file in result.files) {
-      if (file.path != null) {
-        final File selectedFile = File(file.path!);
 
-        if (file.extension == 'json') {
-          await _importJsonFile(selectedFile, file.name);
+      Uint8List? fileBytes;
 
-        } else if (file.extension == 'zip') {
-          await _importZipFile(selectedFile);
+      if (file.bytes != null){
+        fileBytes = file.bytes;
+      }
+      else if (file.path != null){
+        fileBytes = await File(file.path!).readAsBytes();
+      }
 
-        } else {
-          print('Unsupported file type: ${file.name}');
-        }
+      if(fileBytes == null){
+        print("import failed");
+        return;
+      }
+
+      if (file.extension == 'json') {
+          await _importJsonFile(fileBytes, file.name);
+
+      } else if (file.extension == 'zip') {
+        await _importZipFile(fileBytes);
+
+      } else {
+        print('Unsupported file type: ${file.name}');
       }
     }
   }
 }
 
-Future<void> _importJsonFile(File selectedFile, String fileName) async {
+Future<void> _importJsonFile(Uint8List selectedFile, String fileName) async {
   try {
     // Ensure unique filename
     String uniqueFileName = fileName;
@@ -109,7 +145,7 @@ Future<void> _importJsonFile(File selectedFile, String fileName) async {
     }
 
     // Read and decode JSON content
-    String jsonString = await selectedFile.readAsString();
+    String jsonString = utf8.decode(selectedFile);
     AuttyJsonFile auttyJsonFile = AuttyJsonFile.fromJsonString(jsonString);
 
 
@@ -121,9 +157,9 @@ Future<void> _importJsonFile(File selectedFile, String fileName) async {
   }
 }
 
-Future<void> _importZipFile(File selectedFile) async {
+Future<void> _importZipFile(Uint8List selectedFile) async {
   try {
-    final zipData = await selectedFile.readAsBytes();
+    final zipData = selectedFile;
     final archive = ZipDecoder().decodeBytes(zipData);
 
     // Parse JSON files and store them temporarily
@@ -201,6 +237,7 @@ Future<void> _renameFile(String currentName) async {
       auttyJsonFileFolder.renameFile(currentName, '${newName!}.json');
     });
   }
+  _saveFileManagerState();
 }
 
   bool _doesFileNameExist(String name) {
@@ -286,6 +323,7 @@ Future<void> _renameFile(String currentName) async {
     setState(() {
       auttyJsonFileFolder.removeFile(filename: fileName);
     });
+    _saveFileManagerState();
   }
 
 
@@ -371,6 +409,8 @@ void _savePlayground() async {
       SnackBar(content: Text('$newFileName.json saved!')),
     );
   }
+
+  _saveFileManagerState();
 }
 
 
@@ -396,6 +436,7 @@ Widget build(BuildContext context) {
                   height: 32,
                   color: const Color.fromARGB(255, 58, 58, 58),
                 ),
+                tooltip: "Execute All",
                 onPressed: _executeAllFiles,
               ),
               IconButton(
@@ -405,6 +446,7 @@ Widget build(BuildContext context) {
                   height: 24,
                   color: const Color.fromARGB(255, 58, 58, 58),
                 ),
+                tooltip: "Save all as ZIP",
                 onPressed: _downloadAllAsZip,
               ),
               IconButton(
@@ -414,6 +456,7 @@ Widget build(BuildContext context) {
                   height: 24,
                   color: const Color.fromARGB(255, 58, 58, 58),
                 ),
+                tooltip: "Upload json/zip",
                 onPressed: _pickFiles,
               ),
               IconButton(
@@ -423,6 +466,7 @@ Widget build(BuildContext context) {
                   height: 24,
                   color: const Color.fromARGB(255, 58, 58, 58),
                 ),
+                tooltip: "Save Playground as",
                 onPressed: _savePlayground,
               ),
             ],
@@ -464,23 +508,47 @@ Widget build(BuildContext context) {
                             if (hoverIndex != index)
                               const Icon(Icons.insert_drive_file, size: 18, color: Color.fromARGB(255, 58, 58, 58)),
                             const SizedBox(width: 8),
-                            Expanded(
-                              child: hoverIndex != index
-                                  ? Marquee(
-                                      text: auttyJsonFileFolder.files[index].filename,
-                                      style: const TextStyle(fontSize: 14, color: Colors.black87),
-                                      scrollAxis: Axis.horizontal,
-                                      blankSpace: 30.0,
-                                      velocity: 50.0, // Controls the speed of scrolling
-                                      pauseAfterRound: const Duration(seconds: 1), // Optional pause after a full scroll
-                                      startPadding: 0, // Space before starting
-                                      accelerationDuration: const Duration(milliseconds: 500), // Optional acceleration effect
-                                      accelerationCurve: Curves.linear,
-                                      decelerationDuration: const Duration(milliseconds: 500), // Optional deceleration effect
-                                      decelerationCurve: Curves.easeOut,
-                                    )
-                                  : const SizedBox(), // Empty space when hoverIndex matches index
-                            ),
+Expanded(
+  child: index == hoverIndex
+      ? const SizedBox() // Hide text when index == hoverIndex
+      : Builder(
+          builder: (context) {
+            // Measure the available width for the text
+            final textPainter = TextPainter(
+              text: TextSpan(
+                text: file.filename,
+                style: const TextStyle(fontSize: 14, color: Colors.black87),
+              ),
+              maxLines: 1,
+              textDirection: TextDirection.ltr,
+            );
+            textPainter.layout(maxWidth: double.infinity); // Measure text width
+
+            // Get the parent container's width
+            const containerWidth = 125; // Adjust as needed
+            
+            return textPainter.size.width > containerWidth
+                ? Marquee(
+                    text: file.filename,
+                    style: const TextStyle(fontSize: 14, color: Colors.black87),
+                    scrollAxis: Axis.horizontal,
+                    blankSpace: 30.0,
+                    velocity: 50.0,
+                    pauseAfterRound: const Duration(seconds: 1),
+                    startPadding: 0,
+                    accelerationDuration: const Duration(milliseconds: 500),
+                    accelerationCurve: Curves.linear,
+                    decelerationDuration: const Duration(milliseconds: 500),
+                    decelerationCurve: Curves.easeOut,
+                  )
+                : Text(
+                    file.filename,
+                    style: const TextStyle(fontSize: 14, color: Colors.black87),
+                    overflow: TextOverflow.ellipsis,
+                  );
+          },
+        ),
+),
                           ],
                         ),
                         if (index == hoverIndex)
@@ -500,6 +568,7 @@ Widget build(BuildContext context) {
                                       size: 20,
                                       color: Color.fromARGB(255, 58, 58, 58)),
                                   onPressed: () => _loadFileToPlayground(index),
+                                  tooltip: "Open",
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.edit,
@@ -507,6 +576,7 @@ Widget build(BuildContext context) {
                                       color: Color.fromARGB(255, 58, 58, 58)),
                                   onPressed: () =>
                                       _renameFile(file.filename),
+                                  tooltip: "Rename",
                                 ),
                                 IconButton(
                                   icon: SvgPicture.asset(
@@ -517,12 +587,14 @@ Widget build(BuildContext context) {
                                         const Color.fromARGB(255, 58, 58, 58),
                                   ),
                                   onPressed: () => _downloadFile(index),
+                                  tooltip: "Download json",
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.delete,
                                       size: 20,
                                       color: Color.fromARGB(255, 58, 58, 58)),
                                   onPressed: () => _deleteFile(index),
+                                  tooltip: "Delete",
                                 ),
                               ],
                             ),

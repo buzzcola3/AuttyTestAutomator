@@ -162,6 +162,7 @@ class _DebugConsoleState extends State<DebugConsole>
                         // Switch to the first tab
                         _tabController.animateTo(0);
                       },
+                      tooltip: "Communication Log",
                     ),
                     IconButton(
                       icon: Icon(Icons.play_arrow),
@@ -169,6 +170,7 @@ class _DebugConsoleState extends State<DebugConsole>
                         // Switch to the second tab
                         _tabController.animateTo(1);
                       },
+                      tooltip: "Execution Log",
                     ),
                     IconButton(
                       icon: Icon(Icons.list),
@@ -176,6 +178,7 @@ class _DebugConsoleState extends State<DebugConsole>
                         // Switch to the third tab
                         _tabController.animateTo(2);
                       },
+                      tooltip: "Autty Log",
                     ),
                   ],
                 ),

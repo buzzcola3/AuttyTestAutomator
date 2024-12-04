@@ -228,6 +228,7 @@ Widget build(BuildContext context) {
               height: 18.0,
               child: IconButton(
                 padding: EdgeInsets.zero,
+                tooltip: "Add device",
                 icon: const Icon(Icons.add, color: Color.fromARGB(255, 58, 58, 58)),
                 iconSize: 18.0,
                 onPressed: _toggleManualConnectionMenu,

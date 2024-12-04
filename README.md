@@ -13,10 +13,9 @@ TODO:
 - implement: make status colors on files and message type colors be vertical pill shaped color dots
 - implement: user action node (user gets prompted to decide, measure something or similar)
 
-- fix: ip scanner on Web
-- fix: file upload on Web
+- fix: clickable area of inPort/outPort not to be cut by the edge of the node
 
 - implement: device list svg icon
-- implement: delete playground file (w/ apropriate warning)
+- implement: delete playground warning
 - implement: load playground gives a hint to save unless the playground is empty
 - implement: ctrl/shift selection on playground files (delete, run)

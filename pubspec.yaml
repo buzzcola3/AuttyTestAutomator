@@ -42,6 +42,7 @@ dependencies:
   idb_sqflite: ^1.3.3+6
   sqlite3_flutter_libs: ^0.5.26
   sqflite_common_ffi: ^2.3.4
+  sqflite_common_ffi_web: ^0.4.5+4
   uuid: ^4.4.2
   dropdown_search: ^6.0.1
   marquee: ^2.3.0

@@ -1,9 +1,9 @@
-import 'dart:io';
 import 'dart:convert';
 import 'dart:async';
 
 import 'package:Autty/global_datatypes/ip_address.dart';
 import 'package:Autty/global_datatypes/json.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 class IPScanner {
   // Properties
@@ -76,14 +76,16 @@ class IPScanner {
     pendingDevices.add(ip);
     scanning = true;
     try {
-      WebSocket socket = await WebSocket.connect('ws://$ip');
+      final socket = WebSocketChannel.connect(Uri.parse('ws://$ip'));
+
+      //WebSocket socket = await WebSocket.connect('ws://$ip');
       print('Connected to server!');
   
       bool responded = false;
       bool stopPinging = false;
       
       late StreamSubscription subscription;
-      subscription = socket.listen((message) {
+      subscription = socket.stream.listen((message) {
         Json decodedMessage = jsonDecode(message);
         print('Received message: $message');
   
@@ -104,7 +106,7 @@ class IPScanner {
 
           responded = true;
           stopPinging = true; // Stop further ping attempts
-          socket.close();
+          socket.sink.close();
           subscription.cancel();
         }
       });
@@ -113,7 +115,7 @@ class IPScanner {
       for (int i = 0; i < 40; i++) {
         if (stopPinging) break; // Stop if server responded
         String request = """{"COMMAND": "PING", "PARAMETERS": ""}""";
-        socket.add(jsonEncode({"REQUEST": request, "PARAMETERS": "", "UUID": "PING"}));
+        socket.sink.add(jsonEncode({"REQUEST": request, "PARAMETERS": "", "UUID": "PING"}));
         await Future.delayed(Duration(seconds: 1));
       }
   
@@ -133,7 +135,7 @@ class IPScanner {
         notifyChangeIPScanner!();
 
         print('No response after 40 seconds. Disconnecting...');
-        socket.close();
+        socket.sink.close();
         subscription.cancel();
       }
     } catch (e) {

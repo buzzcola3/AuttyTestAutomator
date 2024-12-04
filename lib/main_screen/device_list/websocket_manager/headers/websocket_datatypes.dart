@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:async';
 
 import 'package:Autty/global_datatypes/json.dart';
@@ -7,7 +6,7 @@ import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
 import 'package:Autty/global_datatypes/device_info.dart';
 import 'package:Autty/global_datatypes/ip_address.dart';
 import 'package:uuid/uuid.dart';
-
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 class WsMessage {
   // Properties
@@ -96,7 +95,7 @@ class WsDevice {
   DebugConsoleController? debugConsole;
 
   final IPAddress ipAddress;
-  WebSocket? socket;
+  WebSocketChannel? socket;
   DeviceInfo? deviceInfo;
   bool ready = false;
   
@@ -123,7 +122,7 @@ class WsDevice {
       resendRequest: resendRequest,
     );
 
-    socket?.add(jsonEncode({"REQUEST": wsMessage.message, "UUID": wsMessage.uuid}));
+    socket?.sink.add(jsonEncode({"REQUEST": wsMessage.message, "UUID": wsMessage.uuid}));
 
     wsMessageList.addMessage(wsMessage);
     debugConsole?.addWsCommunicationMessage(wsMessage, MessageType.request);
@@ -132,7 +131,7 @@ class WsDevice {
 
   void resendRequest(String uuid){
     WsMessage? message = wsMessageList.searchMessage(uuid);
-    socket?.add(jsonEncode({"REQUEST": message?.message, "UUID": message?.uuid}));
+    socket?.sink.add(jsonEncode({"REQUEST": message?.message, "UUID": message?.uuid}));
   }
 
   Future<WsMessage> sendAwaitedRequest(String command, List<String> parameters) async {
@@ -186,11 +185,12 @@ class WsDevice {
     bool connectionFailed = true;
 
     try {
-      socket = await WebSocket.connect('ws://$ipAddress');
+      socket = WebSocketChannel.connect(Uri.parse('ws://$ipAddress'));
+      //socket = await WebSocket.connect('ws://$ipAddress');
       print('WebSocket connected to $ipAddress');
       connectionFailed = false;
   
-      socket?.listen(
+      socket?.stream.listen(
         (incomingMessage) {
           print("{___________________RXXXXXXXXXXXXXXXX}");
           receiveResponse(incomingMessage);
@@ -226,11 +226,11 @@ class WsDevice {
   }
 
 
-  WebSocket? get getWebSocket{
+  WebSocketChannel? get getWebSocket{
     return socket;
   }
 
-  set setWebSocket(WebSocket? newSocket){
+  set setWebSocket(WebSocketChannel? newSocket){
     socket = newSocket;
   }
 }

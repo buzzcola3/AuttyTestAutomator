@@ -3,6 +3,7 @@ import 'package:Autty/main_screen/device_list/websocket_manager/headers/websocke
 import 'package:Autty/main_screen/device_list/websocket_manager/ip_scanner/ip_scanner.dart';
 import 'package:Autty/global_datatypes/ip_address.dart';
 
+
 class WebsocketManager {
   late IPScanner ipScanner;
   final WsDeviceList deviceList = WsDeviceList();

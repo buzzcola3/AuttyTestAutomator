@@ -263,8 +263,8 @@ Widget? fabricateNode({
         svgIconString: svgIconString
       );
 
-    case "buttonNode":
-      return buttonNode(
+    case "outputNode":
+      return outputNode(
         isDummy: isDummy, 
         nodeName: nodeName, 
         color: getNodeColor(nodeColor), 
@@ -392,7 +392,7 @@ child: Container(
 }
 
 
-Widget buttonNode({
+Widget outputNode({
   bool isDummy = false,
   Color accentColor = Colors.lightBlue,
   Color color = Colors.lightBlueAccent,
@@ -419,50 +419,35 @@ Widget buttonNode({
             decoration: BoxDecoration(
               color: color, // Apply the main color to the node
               border: Border.all(color: Colors.grey, width: 1), // Thin border
-              borderRadius: BorderRadius.circular(_NODE_EDGE_RADIUS), // Rounded corners for the node
+              borderRadius: BorderRadius.circular(_NODE_EDGE_RADIUS), // Rounded corners for both sides
             ),
             child: Row(
               children: [
-                // Left side button with accent color and rounded square edges
+                // Left side accent color section with rounded corners
                 Container(
-                  width: 40, // Fixed width for the button section
+                  width: 40, // Fixed width for accent color section
                   decoration: BoxDecoration(
-                    color: accentColor, // Apply the accent color to the button section
+                    color: accentColor, // Apply the accent color to the left side
                     borderRadius: const BorderRadius.horizontal(left: Radius.circular(_NODE_EDGE_RADIUS)), // Rounded corners for the left side
                   ),
                   child: Center(
-                    child: SizedBox(
-                      width: 24.0,
-                      height: 24.0, // Make the button a square
-                      child: ElevatedButton(
-                        onPressed: () {
-                          //nodeExecutor(nodeCommand, deviceUniqueId);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          padding: EdgeInsets.zero, // Remove default padding
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(5), // Rounded edges for the square
+                    child: svgIconString != null
+                        ? SvgPicture.string(
+                            svgIconString, // Use the SVG string
+                            color: Colors.white, // Adjust color if necessary
+                            width: 16.0, // Adjust the size of the SVG
+                            height: 16.0,
+                          )
+                        : const Icon(
+                            Icons.warning, // Fallback icon if SVG string is null
+                            color: Colors.white,
+                            size: 16.0, // Adjust the icon size
                           ),
-                        ),
-                        child: svgIconString != null
-                          ? SvgPicture.string(
-                              svgIconString, // Use the SVG string
-                              color: color, // Adjust color if necessary
-                              width: 16.0, // Adjust the size of the SVG
-                              height: 16.0,
-                            )
-                          : Icon(
-                              Icons.warning, // Fallback icon if SVG string is null
-                              color: color,
-                              size: 16.0, // Adjust the icon size
-                            ),
-                      ),
-                    ),
                   ),
                 ),
                 // Vertical divider where the blue meets the accent blue
                 Container(
-                  width: 1, // Thin width for the divider
+                  width: 0.7, // Thin width for the divider
                   color: Colors.grey, // Same color as the border
                 ),
                 // Right side main section for the node content
@@ -483,6 +468,7 @@ child: Container(
     ),
   ),
 ),
+
                 ),
               ],
             ),
@@ -490,7 +476,7 @@ child: Container(
         ),
         // Overlay for out-ports (right side)
         Positioned(
-          right: -9.5, // Stick out by 9.5px (half of port size)
+          right: -9.5, // Stick out by -9.5px (half of port size)
           top: 0,
           bottom: 0,
           child: Column(
