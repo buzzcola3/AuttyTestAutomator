@@ -1,4 +1,6 @@
+import 'package:Autty/alert_manager.dart';
 import 'package:Autty/global_datatypes/json.dart';
+import 'package:Autty/main.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/websocket_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:node_editor/node_editor.dart';
@@ -12,14 +14,15 @@ import 'package:Autty/main_screen/node_playground/playground_file_interface.dart
 import 'package:Autty/userdata_database.dart';
 
 class MainScreen extends StatefulWidget {
-  MainScreen({super.key, required this.title});
-
-  final String title;
+  MainScreen({
+    super.key,
+  });
 
   final WsDeviceList wsDeviceList = WsDeviceList();
   final WsMessageList globalWsMessageList = WsMessageList();
   final NodeEditorController nodeController = NodeEditorController();
   final NodeEditorWidgetController nodeEditorWidgetController = NodeEditorWidgetController();
+  final DebugConsoleController debugConsoleController = DebugConsoleController();
 
   @override
   State<MainScreen> createState() => _MainScreen();
@@ -29,7 +32,6 @@ class _MainScreen extends State<MainScreen> {
   late PlaygroundExecutor playgroundExecutor;
   late WebsocketManager websocketManager;
   late Json nodesDNA;
-  late DebugConsoleController debugConsole;
   late PlaygroundFileInterface playgroundFileInterface;
   late UserdataDatabase userdataDatabase;
 
@@ -37,23 +39,18 @@ class _MainScreen extends State<MainScreen> {
   void initState() {
     super.initState();
 
-    debugConsole = DebugConsoleController();
-
-    websocketManager = WebsocketManager(
-      debugConsole: debugConsole
-    );
+    websocketManager = WebsocketManager();
 
     nodesDNA = {};
     
     playgroundExecutor = PlaygroundExecutor(
       wsDeviceList: widget.wsDeviceList,
-      debugConsole: debugConsole,
       websocketManager: websocketManager,
       controller: widget.nodeController,
       nodesDNA: nodesDNA
     );
 
-    playgroundFileInterface = PlaygroundFileInterface(widget.nodeController, nodesDNA, widget.nodeEditorWidgetController, playgroundExecutor, debugConsole);
+    playgroundFileInterface = PlaygroundFileInterface(widget.nodeController, nodesDNA, widget.nodeEditorWidgetController, playgroundExecutor);
 
     userdataDatabase = UserdataDatabase();
 
@@ -135,7 +132,7 @@ class _MainScreen extends State<MainScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: DebugConsole(
-                    key: debugConsole.key,
+                    key: debugConsoleController.key,
                   ),
                 ),
               ),

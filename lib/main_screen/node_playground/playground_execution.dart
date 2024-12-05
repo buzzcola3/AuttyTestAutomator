@@ -1,4 +1,5 @@
 import 'package:Autty/global_datatypes/json.dart';
+import 'package:Autty/main.dart';
 import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
 import 'package:Autty/main_screen/device_list/internal_device.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/websocket_manager.dart';
@@ -34,7 +35,6 @@ class ExecutableNode {
 
 class PlaygroundExecutor {
   final WsDeviceList wsDeviceList;
-  final DebugConsoleController debugConsole;
   final WebsocketManager websocketManager;
   final NodeEditorController controller;
   final Json nodesDNA;
@@ -43,7 +43,6 @@ class PlaygroundExecutor {
 
   PlaygroundExecutor({
     required this.wsDeviceList,
-    required this.debugConsole,
     required this.websocketManager,
     required this.controller,
     required this.nodesDNA
@@ -63,8 +62,8 @@ class PlaygroundExecutor {
   Future<bool> execute(AuttyJsonFile file) async {
     executingFile = file;
 
-    debugConsole.addInternalTabMessage("Started execution", MessageType.info);
-    debugConsole.clearTabMessages(ConsoleTab.execute);
+    debugConsoleController.addInternalTabMessage("Started execution", MessageType.info);
+    debugConsoleController.clearTabMessages(ConsoleTab.execute);
     file.executionData = [];
     overallExecuteSuccess = true;
 
@@ -74,7 +73,7 @@ class PlaygroundExecutor {
     // Find the start node with deviceUniqueId = "internal" and nodeCommand = "{RUN}"
     ExecutableNode? startNode = _findStartNode(playgroundNodes);
     if (startNode == null) {
-      debugConsole.addInternalTabMessage("No start node found.", MessageType.error);
+      debugConsoleController.addInternalTabMessage("No start node found.", MessageType.error);
       return false;
     }
   
@@ -138,7 +137,7 @@ Future<void> _executeNode(String node, Map<String, List<String>> execNodeTree, L
 
       if(result["OUTCOME"] == "SUCCESS") resultMessageType = MessageType.generic;
       
-      debugConsole.addExecutionTabMessage(resultMessage, resultNode, resultMessageType, controller.selectNodeAction);
+      debugConsoleController.addExecutionTabMessage(resultMessage, resultNode, resultMessageType, controller.selectNodeAction);
       executingFile?.addExecuteData(resultMessage, resultNode, resultMessageType);
         
       
@@ -146,7 +145,7 @@ Future<void> _executeNode(String node, Map<String, List<String>> execNodeTree, L
     }
   }
 
-  if(_DEBUG_EXECUTOR) debugConsole.addInternalTabMessage("", MessageType.info);
+  if(_DEBUG_EXECUTOR) debugConsoleController.addInternalTabMessage("", MessageType.info);
 }
 
 
@@ -254,7 +253,7 @@ Future<void> _executeNode(String node, Map<String, List<String>> execNodeTree, L
         ExecutableNode node = ExecutableNode(nodeUuid: key, node: nodes[key], command: nodesDNA[key]["nodeCommand"], deviceUniqueId: nodesDNA[key]["deviceUniqueId"]);
         decodedList.add(node);
       } catch (e) {
-        if(_DEBUG_EXECUTOR) debugConsole.addInternalTabMessage("Error decoding key: $key - $e", MessageType.info);
+        if(_DEBUG_EXECUTOR) debugConsoleController.addInternalTabMessage("Error decoding key: $key - $e", MessageType.info);
       }
     }
 

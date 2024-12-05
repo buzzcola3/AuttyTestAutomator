@@ -220,11 +220,10 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
     return [];
   }
 
-  Widget getParameterWidget(dynamic parameter){
-    String parameterType = parameter["Type"]?.toString() ?? '';
-    String parameterName = parameter["Name"]?.toString() ?? '';
-    String initialValue = parameter["Value"]?.toString() ?? '';
-
+Widget getParameterWidget(dynamic parameter) {
+  String parameterType = parameter["Type"]?.toString() ?? '';
+  String parameterName = parameter["Name"]?.toString() ?? '';
+  String initialValue = parameter["Value"]?.toString() ?? '';
 
   if (parameterType == 'List') {
     final List<String> availableValues = List<String>.from(parameter["AvailableValues"])
@@ -260,35 +259,55 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
         ],
       ),
     );
-  }
-
-    else if(parameterType == 'Int'){
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(child: Text(parameterName)),
-            Expanded(
-              child: TextField(
-                decoration: InputDecoration(
-                  border: const OutlineInputBorder(),
-                  hintText: initialValue,
-                ),
-                onSubmitted: (value) {
-                  _updateParameter(_selectedNodeName!, parameterName, value);
-                },
+  } else if (parameterType == 'Int') {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(child: Text(parameterName)),
+          Expanded(
+            child: TextField(
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                hintText: initialValue,
               ),
+              keyboardType: TextInputType.number,
+              onSubmitted: (value) {
+                _updateParameter(_selectedNodeName!, parameterName, value);
+              },
             ),
-          ],
-        ),
-      );
-    }
-
-    else return const SizedBox.shrink();
-
-
+          ),
+        ],
+      ),
+    );
+  } else if (parameterType == 'String') {
+    // Handling for String parameter type
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(child: Text(parameterName)),
+          Expanded(
+            child: TextField(
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                hintText: initialValue,
+              ),
+              onSubmitted: (value) {
+                _updateParameter(_selectedNodeName!, parameterName, value);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  } else {
+    return const SizedBox.shrink();
   }
+}
+
 
 @override
 Widget build(BuildContext context) {

@@ -1,4 +1,3 @@
-import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/ip_scanner/ip_scanner.dart';
 import 'package:Autty/global_datatypes/ip_address.dart';
@@ -7,13 +6,10 @@ import 'package:Autty/global_datatypes/ip_address.dart';
 class WebsocketManager {
   late IPScanner ipScanner;
   final WsDeviceList deviceList = WsDeviceList();
-  final DebugConsoleController debugConsole;
 
   List<Function()> deviceListChangeCallbacks = [];
 
-  WebsocketManager({
-    required this.debugConsole
-  }) {
+  WebsocketManager() {
 
     ipScanner = IPScanner(notifyChangeIPScanner: ipScannerChangeHandle);
   }
@@ -42,7 +38,7 @@ class WebsocketManager {
       }
     }
 
-    WsDevice newDevice = WsDevice(ipAddress: deviceIp, debugConsole: debugConsole);
+    WsDevice newDevice = WsDevice(ipAddress: deviceIp);
 
     while (newDevice.ready == false) {
       await Future.delayed(const Duration(milliseconds: 100)); // adjust delay as needed

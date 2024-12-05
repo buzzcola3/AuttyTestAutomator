@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:node_editor/node_editor.dart';
@@ -212,6 +214,12 @@ Color getNodeAccentColor(String colorName) {
   // Normalize the input (convert to lowercase to handle case-insensitive input)
   String normalizedColorName = colorName.toLowerCase();
 
+  // If the input is "random", generate a random accent color
+  if (normalizedColorName == "random") {
+    List<Color> availableColors = colorMap.values.toList();
+    return availableColors[Random().nextInt(availableColors.length)];
+  }
+
   // Return the accent color if it's found in the map, or a default accent color if not found
   return colorMap[normalizedColorName] ?? Colors.blueAccent; // Default to blueAccent if not found
 }
@@ -233,6 +241,12 @@ Color getNodeColor(String colorName) {
 
   // Normalize the input (convert to lowercase to handle case-insensitive input)
   String normalizedColorName = colorName.toLowerCase();
+
+  // If the input is "random", generate a random color
+  if (normalizedColorName == "random") {
+    List<Color> availableColors = colorMap.values.toList();
+    return availableColors[Random().nextInt(availableColors.length)];
+  }
 
   // Return the color if found in the map, or a default color if not found
   return colorMap[normalizedColorName] ?? Colors.blue; // Default to blue if not found

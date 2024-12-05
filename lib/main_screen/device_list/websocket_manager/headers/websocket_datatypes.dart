@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:Autty/global_datatypes/json.dart';
+import 'package:Autty/main.dart';
 import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
 import 'package:Autty/global_datatypes/device_info.dart';
 import 'package:Autty/global_datatypes/ip_address.dart';
@@ -100,7 +101,6 @@ class WsDevice {
   bool ready = false;
   
   WsDevice({
-    this.debugConsole,
     required this.ipAddress,
     this.deviceInfo,
     }){
@@ -125,7 +125,7 @@ class WsDevice {
     socket?.sink.add(jsonEncode({"REQUEST": wsMessage.message, "UUID": wsMessage.uuid}));
 
     wsMessageList.addMessage(wsMessage);
-    debugConsole?.addWsCommunicationMessage(wsMessage, MessageType.request);
+    debugConsoleController.addWsCommunicationMessage(wsMessage, MessageType.request);
     return wsMessage;
   }
 

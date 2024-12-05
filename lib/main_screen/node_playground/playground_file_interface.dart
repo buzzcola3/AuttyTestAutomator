@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:Autty/global_datatypes/json.dart';
+import 'package:Autty/main.dart';
 import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
 import 'package:Autty/main_screen/device_list/node_generation/node_generator.dart';
 import 'package:Autty/main_screen/node_playground/playground.dart';
@@ -14,9 +15,8 @@ class PlaygroundFileInterface {
   final NodeEditorController playgroundController;
   NodeEditorWidgetController nodeEditorWidgetController;
   Json nodesDNA;
-  final DebugConsoleController debugConsole; //TODO rename to ConsoleController
   PlaygroundExecutor playgroundExecutor;
-  PlaygroundFileInterface(this.playgroundController, this.nodesDNA, this.nodeEditorWidgetController, this.playgroundExecutor, this.debugConsole);
+  PlaygroundFileInterface(this.playgroundController, this.nodesDNA, this.nodeEditorWidgetController, this.playgroundExecutor);
 
   AuttyJsonFile loadedFile = AuttyJsonFile(filename: "*current.json", executionData: [], nodePlaygroundData: "", filePosition: 0);
 
@@ -40,7 +40,7 @@ class PlaygroundFileInterface {
     for (var line in file.executionData) {
       //executionData.add({"message": resultMessage, "sourceNode": sourceNode, "messageType": messageType.toJson()});
       MessageType type = MessageTypeExtension.fromJson(line["messageType"]);
-      debugConsole.addExecutionTabMessage(line["message"], line["sourceNode"], type, playgroundController.selectNodeAction); 
+      debugConsoleController.addExecutionTabMessage(line["message"], line["sourceNode"], type, playgroundController.selectNodeAction); 
     }
   }
 
@@ -91,7 +91,7 @@ class PlaygroundFileInterface {
       playgroundController.connections.add(newConnection);
     }
   
-    debugConsole.clearTabMessages(ConsoleTab.execute);
+    debugConsoleController.clearTabMessages(ConsoleTab.execute);
     _loadLastExecutionResult(file);
     nodeEditorWidgetController.refreshUI();
   }

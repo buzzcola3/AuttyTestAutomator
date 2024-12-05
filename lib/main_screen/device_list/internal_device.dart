@@ -1,6 +1,8 @@
 
 
 import 'dart:convert';
+import 'package:Autty/main.dart';
+import 'package:flutter/material.dart';
 
 import 'package:Autty/global_datatypes/device_info.dart';
 import 'package:Autty/global_datatypes/ip_address.dart';
@@ -41,7 +43,7 @@ Json internalDevice = {
       "Type": "outputNode",
       "Command": "RUN",
       "Parameters": [],
-      "Color": "green",
+      "Color": "red",
       "InPorts": [],
       "OutPorts": ["start_outport"],
       "SvgIcon": startNodeIcon
@@ -81,11 +83,62 @@ Json internalDevice = {
           "AvailableValues": [">", ">=", "==", "<=", "<" ],
         },
       ],
-      "Color": "pink",
+      "Color": "green",
       "InPorts": ["delay_inport"],
       "OutPorts": ["delay_outport"],
       "SvgIcon": startNodeIcon
-    }
+    },
+    {
+      "Name": "User Input",
+      "Type": "basicNode",
+      "Command": "USER INPUT",
+      "Parameters": 
+      [
+        {
+          "Name": "Text",
+          "Type": "String",
+          "Value": "User input text",
+        },
+      ],
+      "Color": "yellow",
+      "InPorts": ["user_input_inport"],
+      "OutPorts": ["user_input_outport"],
+      "SvgIcon": startNodeIcon
+    },
+    {
+      "Name": "User Confirm",
+      "Type": "basicNode",
+      "Command": "USER CONFIRM",
+      "Parameters": 
+      [
+        {
+          "Name": "Text",
+          "Type": "String",
+          "Value": "User input text",
+        },
+      ],
+      "Color": "purple",
+      "InPorts": ["user_input_inport"],
+      "OutPorts": ["user_input_outport"],
+      "SvgIcon": startNodeIcon
+    },
+    {
+      "Name": "User Decide",
+      "Type": "basicNode",
+      "Command": "USER DECIDE",
+      "Parameters": 
+      [
+        {
+          "Name": "Text",
+          "Type": "String",
+          "Value": "User input text",
+        },
+      ],
+      "Color": "cyan",
+      "InPorts": ["user_input_inport"],
+      "OutPorts": ["user_input_outport"],
+      "SvgIcon": startNodeIcon
+    },
   ],
 };
 
@@ -108,7 +161,7 @@ Future<Json> internalDeviceCommandProcessor(String command, List<dynamic> params
     result["RESPONSE"] = "ok";
   }
   else if(command == "COMPARE NUMBER"){
-    double measuredValue = double.parse(dependencyResult["RESPONSE"]);
+    double? measuredValue = double.tryParse(dependencyResult["RESPONSE"] ?? '');
     double expectedValue = double.parse(params[0]);
     String compareType = params[1];
 
@@ -124,7 +177,7 @@ Future<Json> internalDeviceCommandProcessor(String command, List<dynamic> params
       }
     }
     else if(compareType == ">"){
-      if(measuredValue > expectedValue){
+      if(measuredValue! > expectedValue){
         result["OUTCOME"] = "SUCCESS";
       }
       else{
@@ -132,7 +185,7 @@ Future<Json> internalDeviceCommandProcessor(String command, List<dynamic> params
       }
     }
     else if(compareType == "<"){
-      if(measuredValue < expectedValue){
+      if(measuredValue! < expectedValue){
         result["OUTCOME"] = "SUCCESS";
       }
       else{
@@ -140,7 +193,7 @@ Future<Json> internalDeviceCommandProcessor(String command, List<dynamic> params
       }
     }
     else if(compareType == ">="){
-      if(measuredValue >= expectedValue){
+      if(measuredValue! >= expectedValue){
         result["OUTCOME"] = "SUCCESS";
       }
       else{
@@ -148,7 +201,7 @@ Future<Json> internalDeviceCommandProcessor(String command, List<dynamic> params
       }
     }
     else if(compareType == "<="){
-      if(measuredValue <= expectedValue){
+      if(measuredValue! <= expectedValue){
         result["OUTCOME"] = "SUCCESS";
       }
       else{
@@ -156,6 +209,119 @@ Future<Json> internalDeviceCommandProcessor(String command, List<dynamic> params
       }
     }
   }
+else if (command == "USER INPUT") {
+  String userInput = ""; // To store user input from the TextField
+  
+  // Make the dialog blocking using showDialog and await
+  await showDialog(
+    context: alertDialogManager.navigatorKey.currentState!.context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text(params[0], style: TextStyle(fontSize: 16)), // Display params[0] as instruction
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            TextField(
+              onChanged: (value) {
+                userInput = value; // Update userInput with the text field's value
+              },
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: "Enter your input here",
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              // When "OK" is clicked, update the result map
+              result["RESPONSE"] = userInput;
+              result["OUTCOME"] = "SUCCESS";
+  
+              // Close the dialog
+              Navigator.of(context).pop();
+            },
+            child: const Text("OK"),
+          ),
+        ],
+      );
+    },
+  );
+}
+else if (command == "USER CONFIRM") {
+  // Display an alert with Pass/Fail buttons
+  await showDialog(
+    context: alertDialogManager.navigatorKey.currentState!.context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text(params[0], style: TextStyle(fontSize: 16)), // Title is params[0]
+        content: const Text("Do you confirm this decision?"), // Prompt text
+        actions: [
+          TextButton(
+            onPressed: () {
+              // When "Fail" is clicked, set the result accordingly
+              result["RESPONSE"] = "Fail";
+              result["OUTCOME"] = "ERROR"; // Outcome is "ERROR" if Fail
+  
+              // Close the dialog
+              Navigator.of(context).pop();
+            },
+            child: const Text("Fail"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // When "Pass" is clicked, set the result accordingly
+              result["RESPONSE"] = "Pass";
+              result["OUTCOME"] = "SUCCESS"; // Outcome is "SUCCESS" if Pass
+  
+              // Close the dialog
+              Navigator.of(context).pop();
+            },
+            child: const Text("Pass"),
+          ),
+        ],
+      );
+    },
+  );
+}
+else if (command == "USER DECIDE") {
+  // Display a confirmation dialog with Pass/Fail buttons
+  await showDialog(
+    context: alertDialogManager.navigatorKey.currentState!.context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text(params[0], style: TextStyle(fontSize: 16)), // Title is params[0]
+        content: Text(dependencyResult["RESPONSE"] ?? "No response"), // Text is from dependencyResult["RESPONSE"]
+        actions: [
+          TextButton(
+            onPressed: () {
+              // When "Fail" is clicked, set the result accordingly
+              result["RESPONSE"] = "Fail";
+              result["OUTCOME"] = "ERROR"; // Outcome is "ERROR" if Fail
+  
+              // Close the dialog
+              Navigator.of(context).pop();
+            },
+            child: const Text("Fail"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // When "Pass" is clicked, set the result accordingly
+              result["RESPONSE"] = "Pass";
+              result["OUTCOME"] = "SUCCESS"; // Outcome is "SUCCESS" if Pass
+  
+              // Close the dialog
+              Navigator.of(context).pop();
+            },
+            child: const Text("Pass"),
+          ),
+        ],
+      );
+    },
+  );
+}
 
   return result;
 }
