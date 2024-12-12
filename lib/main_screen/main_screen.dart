@@ -1,4 +1,3 @@
-import 'package:Autty/alert_manager.dart';
 import 'package:Autty/global_datatypes/json.dart';
 import 'package:Autty/main.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/websocket_manager.dart';

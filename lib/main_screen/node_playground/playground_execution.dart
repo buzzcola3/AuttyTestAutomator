@@ -93,7 +93,7 @@ class PlaygroundExecutor {
     }
 
     for (var execNode in execNodeTree[startNode] ?? []) {
-      await _executeNodeTree(execNodeTree, execNode, playgroundNodes);
+      _executeNodeTree(execNodeTree, execNode, playgroundNodes);
     }
   }
 
@@ -105,6 +105,7 @@ Future<void> _executeNode(String node, Map<String, List<String>> execNodeTree, L
   for (var playgroundNode in playgroundNodes) {
     
     if (playgroundNode.nodeUuid == node) {
+      if(playgroundNode.executed) return;
 
       List<String> parameters = [];
       if (nodesDNA[node] != null) {
