@@ -50,6 +50,8 @@ class PlaygroundExecutor {
 
   bool overallExecuteSuccess = false;
 
+  int nodesExecuting = 0;
+
   ExecutableNode? _findStartNode(List<ExecutableNode> decodedList) {
     for (var node in decodedList) {
       if (node.deviceUniqueId == 'internal' && node.command == 'RUN') {
@@ -60,6 +62,7 @@ class PlaygroundExecutor {
   }
 
   Future<bool> execute(AuttyJsonFile file) async {
+    print("execstart");
     executingFile = file;
 
     debugConsoleController.addInternalTabMessage("Started execution", MessageType.info);
@@ -82,20 +85,27 @@ class PlaygroundExecutor {
 
     await _executeNodeTree(execNodeTree, startNode.nodeUuid, playgroundNodes);
 
+    print("execdone");
+
     return overallExecuteSuccess;
   }
 
-  Future<void> _executeNodeTree(Map<String, List<String>> execNodeTree, String startNode, List<ExecutableNode> playgroundNodes) async {
-    if (_dependentNodesAlreadyExecuted(startNode, execNodeTree, playgroundNodes)) {
-      await _executeNode(startNode, execNodeTree, playgroundNodes);
-    } else {
-      return;
-    }
-
-    for (var execNode in execNodeTree[startNode] ?? []) {
-      _executeNodeTree(execNodeTree, execNode, playgroundNodes);
-    }
+Future<void> _executeNodeTree(Map<String, List<String>> execNodeTree, String startNode, List<ExecutableNode> playgroundNodes) async {
+  if (_dependentNodesAlreadyExecuted(startNode, execNodeTree, playgroundNodes)) {
+    await _executeNode(startNode, execNodeTree, playgroundNodes);
+  } else {
+    return; // Dependency not ready, return early
   }
+
+  // Collect futures from recursive calls
+  List<Future<void>> futures = [];
+  for (var execNode in execNodeTree[startNode] ?? []) {
+    futures.add(_executeNodeTree(execNodeTree, execNode, playgroundNodes));
+  }
+
+  // Wait for all recursive calls to complete
+  await Future.wait(futures);
+}
 
 Future<void> _executeNode(String node, Map<String, List<String>> execNodeTree, List<ExecutableNode> playgroundNodes) async {
   
@@ -103,7 +113,7 @@ Future<void> _executeNode(String node, Map<String, List<String>> execNodeTree, L
 
 
   for (var playgroundNode in playgroundNodes) {
-    
+
     if (playgroundNode.nodeUuid == node) {
       if(playgroundNode.executed) return;
 
