@@ -11,6 +11,7 @@ TODO:
 - implement: 3 execute result types, "SUCCESS", "FAIL", "ERROR"
 - implement: message state, i.e wsMessage can be "pending execution", "executing", "executed"
 - implement: selectable outPort type... i.e: trigger next node on "done", on "start", on "execution start"
+- implement: make nodes a class, with predefined enums for color, type, params --> and it, has a member to generate the json representation
 
 - implement: make status colors on files and message type colors be vertical pill shaped color dots
 - implement: user action node (user gets prompted to decide, measure something or similar)

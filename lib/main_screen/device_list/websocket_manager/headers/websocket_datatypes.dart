@@ -92,6 +92,106 @@ class WsMessageList {
   }
 }
 
+/* Request-Response Process:
+
+A request is sent, and a confirmation response is awaited.
+The system checks the response status every 2 seconds, which can be one of the following states:
+Pending: The response is still being processed.
+Fulfilled: The response is ready.
+Once the status is fulfilled, the actual response is sent.
+Response Structure:
+
+Type: Specifies the data type of the response (e.g., string, integer, or float).
+Result: Indicates the outcome of the request, which can be:
+Success: The operation was completed successfully.
+Fail: The operation did not complete successfully.
+Error: An error occurred during processing.
+
+ +-------------------------+
+ |          AUTTY          |
+ +-------------------------+
+              |
+        Send Request
+              |
+              v
+ +-------------------------+
+ |        WS Device        |
+ +-------------------------+
+              |
+     Wait for Confirmation
+              |
+              v
+ +-------------------------+
+ |  Response Status Check  |
+ |    Every 2 Seconds:     |
+ |  [Pending | Fulfilled]  |
+ +-------------------------+
+             |
+     When "Fulfilled"
+             |
+             v               
++----------------------------+    
+|       SEND RESPONSE        |    
+|----------------------------|    
+| Type: [string/int/float]   |  
+| Result: [success/fail/err] | 
++----------------------------+    
+
+
+Client:
+Listen for requests: The client continuously listens for incoming requests from the server.
+
+When a request comes: Once a request is received, the client triggers the execution process to handle the request.
+
+After execution: When the execution is complete, the client triggers the process to send the response back to the server.
+
+On status request: The client responds to status requests with:
+
+Pending (0x00): If the request is still being processed or not yet fulfilled.
+Fulfilled (0x01): If the request has been completed and the response is ready.
+Response behavior:
+
+If the request is fulfilled, the client prepares the response and sends it back to the server.
+If the request is still pending, the client sends the "pending" status (0x00) until the request is completed.
+
+
++----------------------------+
+|         IDLE                |
+| (Waiting for Request)       |
++----------------------------+
+           |
+           | Request Received
+           v
++----------------------------+
+|     EXECUTING REQUEST      |
+| (Trigger Executor)         |
++----------------------------+
+           |
+           | Execution Done
+           v
++----------------------------+
+|     WAITING FOR RESPONSE   |
+| (Send Fulfilled/ Pending)  |
++----------------------------+
+           |
+   +----------------------+
+   |                      |
+   | Status Request       |
+   v                      v
++-------------------+  +-------------------+
+|     PENDING (0x00)|  |   FULFILLED (0x01) |
++-------------------+  +-------------------+
+           |                    |
+  (Continue Waiting)        (Send Response)
+           |                    |
+           +--------------------+
+           |
+           v
++----------------------------+
+|     BACK TO IDLE           |
++----------------------------+
+*/
+
 class WsDevice {
   DebugConsoleController? debugConsole;
 

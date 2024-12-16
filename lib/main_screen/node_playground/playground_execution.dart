@@ -62,7 +62,6 @@ class PlaygroundExecutor {
   }
 
   Future<bool> execute(AuttyJsonFile file) async {
-    print("execstart");
     executingFile = file;
 
     debugConsoleController.addInternalTabMessage("Started execution", MessageType.info);
@@ -85,7 +84,6 @@ class PlaygroundExecutor {
 
     await _executeNodeTree(execNodeTree, startNode.nodeUuid, playgroundNodes);
 
-    print("execdone");
 
     return overallExecuteSuccess;
   }
