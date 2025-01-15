@@ -1,3 +1,6 @@
+import 'package:Autty/main.dart';
+import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
+import 'package:Autty/main_screen/device_list/websocket_manager/communication_handler.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/ip_scanner/ip_scanner.dart';
 import 'package:Autty/global_datatypes/ip_address.dart';
@@ -5,7 +8,7 @@ import 'package:Autty/global_datatypes/ip_address.dart';
 
 class WebsocketManager {
   late IPScanner ipScanner;
-  final WsDeviceList deviceList = WsDeviceList();
+  final Map<String, RemoteDevice> deviceList = {};
 
   List<Function()> deviceListChangeCallbacks = [];
 
@@ -19,31 +22,40 @@ class WebsocketManager {
       connectDevice(respondingDevice);
     }
 
-    for (var callback in deviceListChangeCallbacks) { //TODO workarround to get loading indicator to work, make a standalone callback in ipScanner
+    for (var callback in deviceListChangeCallbacks) { //TODO workaround to get loading indicator to work, make a standalone callback in ipScanner
       callback();
     }
   }
 
-  Future<WsMessage?> sendAwaitedRequest(String deviceUniqueId, command, parameters) async {
-    WsDevice? targetDevice = deviceList.findDevice(deviceUniqueId);
-    WsMessage? requestMessage = await targetDevice?.sendAwaitedRequest(command, parameters);
+  Future<WsMessage?> sendAwaitedRequest(String deviceUniqueId, String command, Map<String, dynamic> parameters) async {
+    RemoteDevice? targetDevice = deviceList[deviceUniqueId];
+    WsMessage? requestMessage = await targetDevice?.callRemoteFunction(command, parameters);
     return requestMessage;
   }
 
   Future<void> connectDevice(IPAddress deviceIp) async {
 
-    for (var existingDevice in deviceList.devices) {
-      if(existingDevice.getIPAddress == deviceIp){
+    for (var existingDevice in deviceList.values) {
+      if(existingDevice.deviceIp == deviceIp){
         return;
       }
     }
 
-    WsDevice newDevice = WsDevice(ipAddress: deviceIp);
+    RemoteDevice newDevice = RemoteDevice(deviceIp: deviceIp);
+    await newDevice.open();
 
-    while (newDevice.ready == false) {
+    int timeoutCount = 0;
+
+    while (newDevice.state != RemoteDeviceState.open) { 
       await Future.delayed(const Duration(milliseconds: 100)); // adjust delay as needed
+      timeoutCount += 1;
+
+      if(timeoutCount >= 50){
+        debugConsoleController.addInternalTabMessage("failed to connecto to ${deviceIp.toString()}", MessageType.error);
+        return;
+      } //5 seconds
     }
-    deviceList.addDevice(newDevice);
+    deviceList[newDevice.deviceInfo.deviceUniqueId] = newDevice;
 
     for (var callback in deviceListChangeCallbacks) {
       print("CALLBACK");

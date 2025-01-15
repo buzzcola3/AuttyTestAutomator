@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 import 'package:Autty/main.dart';
+import 'package:Autty/main_screen/device_list/websocket_manager/communication_handler.dart';
 import 'package:flutter/material.dart';
 
 import 'package:Autty/global_datatypes/device_info.dart';
@@ -142,9 +143,9 @@ Json internalDevice = {
   ],
 };
 
-WsDevice internalWsDevice = WsDevice(ipAddress: IPAddress('', 0), deviceInfo: DeviceInfo(jsonEncode(internalDevice)));
+RemoteDevice internalWsDevice = RemoteDevice.dummy(deviceIp: IPAddress('', 0), deviceInfo: DeviceInfo(jsonEncode(internalDevice)));
 
-Future<Json> internalDeviceCommandProcessor(String command, List<dynamic> params, Json dependencyResult) async {
+Future<Json> internalDeviceCommandProcessor(String command, Map<String, dynamic> params, Json dependencyResult) async {
   print(command);
   print(params);
 
@@ -152,7 +153,7 @@ Future<Json> internalDeviceCommandProcessor(String command, List<dynamic> params
 
   
   if(command == "DELAY"){
-    await Future.delayed(Duration(milliseconds: int.parse(params[0])));
+    await Future.delayed(Duration(milliseconds: int.parse(params["Delay(ms)"])));
     result["OUTCOME"] = "SUCCESS";
     result["RESPONSE"] = "ok";
   }
@@ -162,8 +163,8 @@ Future<Json> internalDeviceCommandProcessor(String command, List<dynamic> params
   }
   else if(command == "COMPARE NUMBER"){
     double? measuredValue = double.tryParse(dependencyResult["RESPONSE"] ?? '');
-    double expectedValue = double.parse(params[0]);
-    String compareType = params[1];
+    double expectedValue = double.parse(params["expected value"]);
+    String compareType = params["compare type"];
 
     result["RESPONSE"] = "$measuredValue $compareType $expectedValue";
     print(result["RESPONSE"]);
@@ -217,7 +218,7 @@ else if (command == "USER INPUT") {
     context: alertDialogManager.navigatorKey.currentState!.context,
     builder: (BuildContext context) {
       return AlertDialog(
-        title: Text(params[0], style: TextStyle(fontSize: 16)), // Display params[0] as instruction
+        title: Text(params["Text"], style: TextStyle(fontSize: 16)), // Display params[0] as instruction
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -256,7 +257,7 @@ else if (command == "USER CONFIRM") {
     context: alertDialogManager.navigatorKey.currentState!.context,
     builder: (BuildContext context) {
       return AlertDialog(
-        title: Text(params[0], style: TextStyle(fontSize: 16)), // Title is params[0]
+        title: Text(params["Text"], style: TextStyle(fontSize: 16)), // Title is params[0]
         content: const Text("Do you confirm this decision?"), // Prompt text
         actions: [
           TextButton(
@@ -292,7 +293,7 @@ else if (command == "USER DECIDE") {
     context: alertDialogManager.navigatorKey.currentState!.context,
     builder: (BuildContext context) {
       return AlertDialog(
-        title: Text(params[0], style: TextStyle(fontSize: 16)), // Title is params[0]
+        title: Text(params["Text"], style: TextStyle(fontSize: 16)), // Title is params[0]
         content: Text(dependencyResult["RESPONSE"] ?? "No response"), // Text is from dependencyResult["RESPONSE"]
         actions: [
           TextButton(

@@ -86,10 +86,9 @@ class IPScanner {
       
       late StreamSubscription subscription;
       subscription = socket.stream.listen((message) {
-        Json decodedMessage = jsonDecode(message);
         print('Received message: $message');
   
-        if (decodedMessage["RESPONSE"] == 'OK' && decodedMessage["UUID"] == 'PING') {
+        if (message == "pong") {
           print('Server responded to ping.');
 
           if (!respondingDevices.contains(ip)) {
@@ -114,8 +113,7 @@ class IPScanner {
       // Timer to send pings every second for 20 seconds
       for (int i = 0; i < 40; i++) {
         if (stopPinging) break; // Stop if server responded
-        String request = """{"COMMAND": "PING", "PARAMETERS": ""}""";
-        socket.sink.add(jsonEncode({"REQUEST": request, "PARAMETERS": "", "UUID": "PING"}));
+        socket.sink.add("ping");
         await Future.delayed(Duration(seconds: 1));
       }
   

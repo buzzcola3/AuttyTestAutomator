@@ -1,6 +1,8 @@
+import "package:Autty/main_screen/device_list/websocket_manager/communication_handler.dart";
 import 'package:flutter/material.dart';
 import 'dart:async';
 import "package:Autty/main_screen/device_list/node_preview.dart";
+import "package:flutter_svg/flutter_svg.dart";
 import "websocket_manager/websocket_manager.dart";
 import "websocket_manager/headers/websocket_datatypes.dart";
 import 'internal_device.dart';
@@ -25,7 +27,7 @@ class DeviceScanner extends StatefulWidget {
 class DeviceScannerState extends State<DeviceScanner> {
   bool showOverlay = false;
   bool showGreenBox = false;
-  WsDevice? selectedDevice;
+  RemoteDevice? selectedDevice;
   late Future<Json> userdataDatabase;
   List<Json>? previouslyConnected;
 
@@ -78,9 +80,9 @@ Future<void> updateDeviceList() async {
     previouslyConnected = List<Json>.from(list['connectedDevices'] ?? []);
   }
 
-  for (var device in widget.websocketManager.deviceList.devices) {
+  for (var device in widget.websocketManager.deviceList.values) {
     int existingIndex = previouslyConnected!.indexWhere((ipMap) =>
-        IPAddress.fromMap(ipMap) == device.ipAddress);
+        IPAddress.fromMap(ipMap) == device.deviceIp);
 
     // If the device is already in the list, remove it
     if (existingIndex != -1) {
@@ -93,14 +95,14 @@ Future<void> updateDeviceList() async {
     }
 
     // Add the new device
-    final ip = device.ipAddress.toMap();
+    final ip = device.deviceIp.toMap();
     previouslyConnected!.add(ip);
   }
 
   await widget.userdataDatabase.saveDeviceListData({'connectedDevices': previouslyConnected});
 }
 
-  void _handleDeviceTap(WsDevice device) {
+  void _handleDeviceTap(RemoteDevice device) {
     setState(() {
       showOverlay = true;
       selectedDevice = device;
@@ -108,7 +110,7 @@ Future<void> updateDeviceList() async {
   }
 
   void _handleFunctionDeviceTap() {
-    WsDevice dummyDevice = internalWsDevice;
+    RemoteDevice dummyDevice = internalWsDevice;
     setState(() {
       showOverlay = true;
       selectedDevice = dummyDevice;
@@ -132,7 +134,7 @@ Future<void> updateDeviceList() async {
 Widget build(BuildContext context) {
   return Scaffold(
     body: Container(
-      padding: const EdgeInsets.all(2.0),
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
       decoration: BoxDecoration(
         border: Border.all(color: Colors.grey, width: 2.0),
         borderRadius: BorderRadius.circular(8.0),
@@ -142,61 +144,68 @@ Widget build(BuildContext context) {
           Column(
             children: [
               Expanded(
-                child: ListView.builder(
-                  itemCount: widget.websocketManager.deviceList.devices.length + 1,
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-                        elevation: 2.0,
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
-                          tileColor: Colors.blueGrey[50],
-                          title: const Text(
-                            "Functions",
-                            style: TextStyle(color: Colors.black87, fontSize: 14.0),
-                          ),
-                          leading: const Icon(
-                            Icons.functions,
-                            color: Color.fromARGB(255, 58, 58, 58),
-                            size: 20.0,
-                          ),
-                          onTap: _handleFunctionDeviceTap,
-                        ),
-                      );
-                    } else {
-                      int deviceIndex = index - 1;
-                      final device = widget.websocketManager.deviceList.devices[deviceIndex];
-                      final isReady = device.ready;
+child: ListView.builder(
+  itemCount: widget.websocketManager.deviceList.keys.length + 1,
+  itemBuilder: (context, index) {
+    if (index == 0) {
+      return Container(
+        width: double.infinity,
+        child: Card(
+          margin: EdgeInsets.zero, // No margin for full-width span
+          elevation: 0, // Remove shadow
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+            tileColor: Colors.blueGrey[50],
+            title: const Text(
+              "Functions",
+              style: TextStyle(color: Colors.black87, fontSize: 14.0),
+            ),
+            leading: const Icon(
+              Icons.functions,
+              color: Color.fromARGB(255, 58, 58, 58),
+              size: 20.0,
+            ),
+            onTap: _handleFunctionDeviceTap,
+          ),
+        ),
+      );
+    } else {
+      int deviceIndex = index - 1;
+      String deviceUuid = widget.websocketManager.deviceList.keys.elementAt(deviceIndex);
+      final device = widget.websocketManager.deviceList[deviceUuid];
+      final isReady = true;
 
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-                        elevation: 2.0,
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
-                          tileColor: isReady ? Colors.blueGrey[50] : Colors.grey[300],
-                          title: Text(
-                            device.deviceInfo!.deviceName,
-                            style: TextStyle(
-                              color: isReady ? Colors.black87 : Colors.grey[700],
-                              fontSize: 14.0,
-                            ),
-                          ),
-                          leading: Icon(
-                            Icons.devices,
-                            color: isReady
-                                ? const Color.fromARGB(255, 58, 58, 58)
-                                : Colors.grey[600],
-                            size: 20.0,
-                          ),
-                          onTap: isReady
-                              ? () => _handleDeviceTap(device)
-                              : null, // Disable tap if not ready
-                        ),
-                      );
-                    }
-                  },
-                ),
+      return Container(
+        width: double.infinity,
+        child: Card(
+          margin: EdgeInsets.fromLTRB(0, 8, 0, 0), // No margin for full-width span
+          elevation: 0, // Remove shadow
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
+            tileColor: isReady ? Colors.blueGrey[50] : Colors.grey[300],
+            title: Text(
+              device!.deviceInfo.deviceName,
+              style: TextStyle(
+                color: isReady ? Colors.black87 : Colors.grey[700],
+                fontSize: 14.0,
+              ),
+            ),
+            leading: SvgPicture.string(
+              device.deviceInfo.deviceIconSvg,
+              color: Color.fromARGB(255, 58, 58, 58),
+              width: 20,
+              height: 20,
+            ),
+            onTap: isReady
+                ? () => _handleDeviceTap(device)
+                : null, // Disable tap if not ready
+          ),
+        ),
+      );
+    }
+  },
+),
+
               ),
             ],
           ),

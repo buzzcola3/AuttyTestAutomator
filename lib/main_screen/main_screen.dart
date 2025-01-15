@@ -1,5 +1,6 @@
 import 'package:Autty/global_datatypes/json.dart';
 import 'package:Autty/main.dart';
+import 'package:Autty/main_screen/device_list/websocket_manager/communication_handler.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/websocket_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:node_editor/node_editor.dart';
@@ -17,7 +18,7 @@ class MainScreen extends StatefulWidget {
     super.key,
   });
 
-  final WsDeviceList wsDeviceList = WsDeviceList();
+  final Map<String, RemoteDevice> wsDeviceList = {};
   final WsMessageList globalWsMessageList = WsMessageList();
   final NodeEditorController nodeController = NodeEditorController();
   final NodeEditorWidgetController nodeEditorWidgetController = NodeEditorWidgetController();

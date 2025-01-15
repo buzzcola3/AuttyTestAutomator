@@ -2,6 +2,7 @@ import 'package:Autty/global_datatypes/json.dart';
 import 'package:Autty/main.dart';
 import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
 import 'package:Autty/main_screen/device_list/internal_device.dart';
+import 'package:Autty/main_screen/device_list/websocket_manager/communication_handler.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/websocket_manager.dart';
 import 'package:Autty/main_screen/node_playground_file_manager/file_datatypes.dart';
 import 'package:node_editor/node_editor.dart';
@@ -34,7 +35,7 @@ class ExecutableNode {
 
 
 class PlaygroundExecutor {
-  final WsDeviceList wsDeviceList;
+  final Map<String, RemoteDevice> wsDeviceList;
   final WebsocketManager websocketManager;
   final NodeEditorController controller;
   final Json nodesDNA;
@@ -115,10 +116,10 @@ Future<void> _executeNode(String node, Map<String, List<String>> execNodeTree, L
     if (playgroundNode.nodeUuid == node) {
       if(playgroundNode.executed) return;
 
-      List<String> parameters = [];
+      Map<String, dynamic> parameters = {};
       if (nodesDNA[node] != null) {
         for (var parameter in nodesDNA[node]["nodeParameters"] ?? []) {
-          parameters.add(parameter['Value']);
+          parameters[parameter["Name"]] = parameter["Value"];
         }
       }
   

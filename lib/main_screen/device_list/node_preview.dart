@@ -1,3 +1,4 @@
+import 'package:Autty/main_screen/device_list/websocket_manager/communication_handler.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/websocket_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:Autty/main_screen/device_list/node_generation/node_generator.dart';
@@ -6,7 +7,7 @@ import 'package:Autty/global_datatypes/json.dart';
 
 class NodePreview extends StatefulWidget {
   final VoidCallback onClose;
-  final WsDevice? deviceData;
+  final RemoteDevice? deviceData;
   final WebsocketManager websocketManager;
 
   const NodePreview({
@@ -43,7 +44,7 @@ class _NodePreviewState extends State<NodePreview> {
               children: [
                 // Thin text above the buttons, with reduced vertical space
                 Text(
-                  widget.deviceData != null ? widget.deviceData!.deviceInfo!.deviceName : 'Control Bar',
+                  widget.deviceData != null ? widget.deviceData!.deviceInfo.deviceName : 'Control Bar',
                   style: const TextStyle(
                     fontSize: 12.0, // Reduced font size
                     color: Colors.black54,
@@ -126,9 +127,9 @@ Widget _buildHelpContent() {
     return const Center(child: Text('No device data available.'));
   }
 
-  String description = widget.deviceData!.deviceInfo!.deviceName;
-  String ipAddress = widget.deviceData!.ipAddress.toString();
-  String uniqueId = widget.deviceData!.deviceInfo!.deviceUniqueId;
+  String description = widget.deviceData!.deviceInfo.deviceName;
+  String ipAddress = widget.deviceData!.deviceIp.toString();
+  String uniqueId = widget.deviceData!.deviceInfo.deviceUniqueId;
 
   return Padding(
     padding: const EdgeInsets.all(16.0),
@@ -152,7 +153,7 @@ Widget _buildCommandList() {
   if (widget.deviceData == null) {
     return const Center(child: Text('No commands available.'));
   }
-  List<String> commands = List<String>.from(widget.deviceData!.deviceInfo!.deviceAvailableCommands);
+  List<String> commands = List<String>.from(widget.deviceData!.deviceInfo.deviceAvailableCommands);
   
   return ListView.builder(
       itemCount: commands.length,
@@ -162,7 +163,7 @@ Widget _buildCommandList() {
           child: ElevatedButton(
             onPressed: () {
               // Handle the command action here
-              widget.deviceData!.sendRequest(commands[index], []);
+              widget.deviceData!.callRemoteFunction(commands[index], {});
               //sendMessage
               print("Executing command: ${commands[index]}"); // Replace with actual command execution logic
             },
@@ -180,7 +181,7 @@ Widget _buildNodeList() {
     return const Center(child: Text('No nodes available.'));
   }
 
-  List<Json> nodes = widget.deviceData!.deviceInfo!.deviceAvailableNodes;
+  List<Json> nodes = widget.deviceData!.deviceInfo.deviceAvailableNodes;
 
   return ListView.builder(
     itemCount: nodes.length, // Set the item count based on the number of nodes
@@ -189,7 +190,7 @@ Widget _buildNodeList() {
       Json singleNode = nodes[index];
 
       Json nodeDNA = {
-        "deviceUniqueId": widget.deviceData!.deviceInfo!.deviceUniqueId,
+        "deviceUniqueId": widget.deviceData!.deviceInfo.deviceUniqueId,
         "nodeUuid": null,
         "nodeCommand": singleNode["Command"],
         "nodeParameters": singleNode["Parameters"],
