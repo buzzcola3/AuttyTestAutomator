@@ -27,6 +27,11 @@ class PlaygroundFileInterface {
   Offset getNodePosition(String nodeUniqueName){
     return playgroundController.nodes[nodeUniqueName]?.pos ?? Offset.zero;
   }
+  
+  bool nodeExists(String nodeUniqueName) {
+    return playgroundController.nodes.containsKey(nodeUniqueName);
+  }
+
 
   Json? getSingleDNA(nodeUniqueName){
     if(nodesDNA[nodeUniqueName] != null){
@@ -142,7 +147,9 @@ class PlaygroundFileInterface {
     List<Json> jsonableNodes = [];
       
     for (var nodeName in nodeNameList) {
-      jsonableNodes.add(_saveNode(nodeName));
+      if(nodeExists(nodeName)){
+        jsonableNodes.add(_saveNode(nodeName));
+      }
     }
    
     return jsonableNodes;
