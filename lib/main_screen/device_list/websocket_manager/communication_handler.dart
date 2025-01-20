@@ -67,7 +67,8 @@ class RemoteDevice {
     
       try {
         // Fetch device information using the "DEVINFO" method
-        deviceInfo = await callRemoteFunction("DEVINFO", {});
+        final rawDeviceInfo = await callRemoteFunction("DEVINFO", {});
+        deviceInfo = DeviceInfo(rawDeviceInfo);
     
         // Return true to indicate success
         return true;

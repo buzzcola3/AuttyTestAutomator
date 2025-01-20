@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:Autty/global_datatypes/device_info.dart';
 import 'package:Autty/global_datatypes/json.dart';
 import 'package:Autty/main.dart';
 import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
@@ -66,11 +67,10 @@ class PlaygroundFileInterface {
         nodeName: nodeDNA["nodeName"],
         nodeColor: nodeDNA["nodeColor"],
         nodeType: nodeDNA["nodeType"],
-        inPorts: nodeDNA["inPorts"],
-        outPorts: nodeDNA["outPorts"],
+        nodeFunction: FunctionNode.fromJson(nodeDNA["nodeFunction"]),
         svgIconString: nodeDNA["svgIconString"],
         isDummy: false,
-      )!; // Adding the null assertion operator
+      )!;
     
       nodeEditorWidgetController.addNodeAtPosition(nodePosition: position, nodeDNA: nodeDNA, nodeWidget: nodeWidget);
     }

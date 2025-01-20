@@ -27,10 +27,10 @@ class WebsocketManager {
     }
   }
 
-  Future<WsMessage?> sendAwaitedRequest(String deviceUniqueId, String command, Map<String, dynamic> parameters) async {
+  dynamic sendAwaitedRequest(String deviceUniqueId, String command, Map<String, dynamic> parameters) async {
     RemoteDevice? targetDevice = deviceList[deviceUniqueId];
-    WsMessage? requestMessage = await targetDevice?.callRemoteFunction(command, parameters);
-    return requestMessage;
+
+    return await targetDevice?.callRemoteFunction(command, parameters);
   }
 
   Future<void> connectDevice(IPAddress deviceIp) async {

@@ -17,7 +17,7 @@ class ExecutableNode {
   final String command;
   final String deviceUniqueId;
   bool executed = false;
-  late Json executionResult;
+  late dynamic executionResult;
   final dynamic node;
   
   late List inPortResults;
@@ -123,29 +123,45 @@ Future<void> _executeNode(String node, Map<String, List<String>> execNodeTree, L
         }
       }
   
-      Json result;
-      controller.selectNodeAction(node); // highlight the node when executing
-      if (nodesDNA[node]["deviceUniqueId"] != 'internal') {
-        WsMessage? resultWsMessage = await websocketManager.sendAwaitedRequest(nodesDNA[node]["deviceUniqueId"], nodesDNA[node]["nodeCommand"], parameters);
-        result = resultWsMessage?.response;
-      } else {
-        
-        result = await internalDeviceCommandProcessor(nodesDNA[node]["nodeCommand"], parameters, dependencyResult);
-        
-      }
+  dynamic result;
+  controller.selectNodeAction(node); // Highlight the node when executing
+  
+  try {
+    if (nodesDNA[node]["deviceUniqueId"] != 'internal') {
+      // Await the WebSocketManager operation
+      result = await websocketManager.sendAwaitedRequest(
+        nodesDNA[node]["deviceUniqueId"],
+        nodesDNA[node]["nodeCommand"],
+        parameters,
+      );
+    } else {
+      // Process internal device commands
+      result = await internalDeviceCommandProcessor(
+        nodesDNA[node]["nodeCommand"],
+        parameters,
+        dependencyResult,
+      );
+    }
+  } catch (e) {
+    // Log the error if necessary
+    print('Error occurred: $e');
+    
+    // Set the overall success flag to false on error
+    overallExecuteSuccess = false;
+  }
+
 
       playgroundNode.executionResult = result;
 
-      if(result["OUTCOME"] == "ERROR") overallExecuteSuccess = false;
 
 
       playgroundNode.executed = true;
 
       final resultNode = playgroundNode.nodeUuid;
-      final resultMessage = "${result["RESPONSE"]} --> ${result["OUTCOME"]}";
+      final resultMessage = "--> $result";
       MessageType resultMessageType = MessageType.error;
 
-      if(result["OUTCOME"] == "SUCCESS") resultMessageType = MessageType.generic;
+      if(overallExecuteSuccess == true) resultMessageType = MessageType.generic;
       
       debugConsoleController.addExecutionTabMessage(resultMessage, resultNode, resultMessageType, controller.selectNodeAction);
       executingFile?.addExecuteData(resultMessage, resultNode, resultMessageType);

@@ -1,3 +1,4 @@
+import 'package:Autty/global_datatypes/device_info.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/communication_handler.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/websocket_manager.dart';
 import 'package:flutter/material.dart';
@@ -153,7 +154,7 @@ Widget _buildCommandList() {
   if (widget.deviceData == null) {
     return const Center(child: Text('No commands available.'));
   }
-  List<String> commands = List<String>.from(widget.deviceData!.deviceInfo.deviceAvailableCommands);
+  List<String> commands = [];
   
   return ListView.builder(
       itemCount: commands.length,
@@ -181,44 +182,39 @@ Widget _buildNodeList() {
     return const Center(child: Text('No nodes available.'));
   }
 
-  List<Json> nodes = widget.deviceData!.deviceInfo.deviceAvailableNodes;
+  AvailableNodes nodes = widget.deviceData!.deviceInfo.deviceAvailableNodes;
 
   return ListView.builder(
-    itemCount: nodes.length, // Set the item count based on the number of nodes
+    itemCount: nodes.nodes.length, // Set the item count based on the number of nodes
     itemBuilder: (context, index) {
       // Get the command name to display
-      Json singleNode = nodes[index];
+      Node singleNode = nodes.nodes[index];
 
       Json nodeDNA = {
         "deviceUniqueId": widget.deviceData!.deviceInfo.deviceUniqueId,
         "nodeUuid": null,
-        "nodeCommand": singleNode["Command"],
-        "nodeParameters": singleNode["Parameters"],
-        "nodeName": singleNode["Name"],
-        "nodeColor": singleNode["Color"],
-        "nodeType": singleNode["Type"],
-        "inPorts": singleNode["InPorts"],
-        "outPorts": singleNode["OutPorts"],
-        "svgIconString": singleNode["SvgIcon"],
+        "nodeFunction": singleNode.function,
+        "nodeName": singleNode.name,
+        "nodeColor": singleNode.color,
+        "nodeType": singleNode.type,
+        "svgIconString": singleNode.svgIcon,
       };
 
       Widget? fabricatedDummyNode = fabricateNode(
-          nodeName: singleNode["Name"],
-          nodeColor: singleNode["Color"],
-          nodeType: singleNode["Type"],
-          inPorts: singleNode["InPorts"],
-          outPorts: singleNode["OutPorts"],
-          svgIconString: singleNode["SvgIcon"],
+          nodeName: singleNode.name,
+          nodeColor: singleNode.color,
+          nodeType: singleNode.type,
+          svgIconString: singleNode.svgIcon,
+          nodeFunction: singleNode.function,
           isDummy: true
         );
 
       Widget? fabricatedNode = fabricateNode(
-          nodeName: singleNode["Name"],
-          nodeColor: singleNode["Color"],
-          nodeType: singleNode["Type"],
-          inPorts: singleNode["InPorts"],
-          outPorts: singleNode["OutPorts"],
-          svgIconString: singleNode["SvgIcon"],
+          nodeName: singleNode.name,
+          nodeColor: singleNode.color,
+          nodeType: singleNode.type,
+          svgIconString: singleNode.svgIcon,
+          nodeFunction: singleNode.function,
           isDummy: false
         );
 

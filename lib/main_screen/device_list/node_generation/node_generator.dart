@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:Autty/global_datatypes/device_info.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:node_editor/node_editor.dart';
@@ -56,16 +57,16 @@ Container generatePreviewNode({
 Widget generateInPort({ bool isDummy = false, required String name }) {
   if (isDummy) {
     return Container(
-      width: 19,
-      height: 19,
+      width: 10,
+      height: 10,
       decoration: BoxDecoration(
         color: Colors.transparent, // Transparent background
         borderRadius: BorderRadius.circular(4), // Rounded edges
       ),
       child: Center(
         child: Container(
-          width: 12,
-          height: 12,
+          width: 10,
+          height: 10,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(4), // Rounded edges
@@ -79,16 +80,16 @@ Widget generateInPort({ bool isDummy = false, required String name }) {
       name: name,
       onConnect: (String name, String port) => true,
       icon: Container(
-        width: 19,
-        height: 19,
+        width: 10,
+        height: 10,
         decoration: BoxDecoration(
           color: Colors.transparent, // Transparent background
           borderRadius: BorderRadius.circular(4), // Rounded edges
         ),
         child: Center(
           child: Container(
-            width: 12,
-            height: 12,
+            width: 10,
+            height: 10,
             decoration: BoxDecoration(
               color: Colors.white, // White background
               borderRadius: BorderRadius.circular(4), // Rounded edges
@@ -98,16 +99,16 @@ Widget generateInPort({ bool isDummy = false, required String name }) {
         ),
       ),
       iconConnected: Container(
-        width: 19,
-        height: 19,
+        width: 10,
+        height: 10,
         decoration: BoxDecoration(
           color: Colors.transparent, // Transparent background
           borderRadius: BorderRadius.circular(4), // Rounded edges
         ),
         child: Center(
           child: Container(
-            width: 12,
-            height: 12,
+            width: 10,
+            height: 10,
             decoration: BoxDecoration(
               color: Colors.white, // Background color when connected
               borderRadius: BorderRadius.circular(4), // Rounded edges
@@ -128,16 +129,16 @@ Widget generateInPort({ bool isDummy = false, required String name }) {
 Widget generateOutPort({ bool isDummy = false, required String name }) {
   if (isDummy) {
     return Container(
-      width: 19,
-      height: 19,
+      width: 10,
+      height: 10,
       decoration: BoxDecoration(
         color: Colors.transparent, // Transparent background
         borderRadius: BorderRadius.circular(4), // Rounded edges
       ),
       child: Center(
         child: Container(
-          width: 12,
-          height: 12,
+          width: 10,
+          height: 10,
           decoration: BoxDecoration(
             color: Colors.white, // Color for dummy port
             borderRadius: BorderRadius.circular(4), // Rounded edges
@@ -150,16 +151,16 @@ Widget generateOutPort({ bool isDummy = false, required String name }) {
     return OutPortWidget(
       name: name,
       icon: Container(
-        width: 19,
-        height: 19,
+        width: 10,
+        height: 10,
         decoration: BoxDecoration(
           color: Colors.transparent, // Transparent background
           borderRadius: BorderRadius.circular(4), // Rounded edges
         ),
         child: Center(
           child: Container(
-            width: 12,
-            height: 12,
+            width: 10,
+            height: 10,
             decoration: BoxDecoration(
               color: Colors.white, // White background
               borderRadius: BorderRadius.circular(4), // Rounded edges
@@ -169,16 +170,16 @@ Widget generateOutPort({ bool isDummy = false, required String name }) {
         ),
       ),
       iconConnected: Container(
-        width: 19,
-        height: 19,
+        width: 10,
+        height: 10,
         decoration: BoxDecoration(
           color: Colors.transparent, // Transparent background
           borderRadius: BorderRadius.circular(4), // Rounded edges
         ),
         child: Center(
           child: Container(
-            width: 12,
-            height: 12,
+            width: 10,
+            height: 10,
             decoration: BoxDecoration(
               color: Colors.white, // Background color when connected
               borderRadius: BorderRadius.circular(4), // Rounded edges
@@ -255,35 +256,29 @@ Color getNodeColor(String colorName) {
 Widget? fabricateNode({
   String nodeName = "",
   String nodeColor = "",
-  String nodeType = "",
-  dynamic inPorts = null,  // Initially dynamic to accept any type
-  dynamic outPorts = null, // Initially dynamic to accept any type
+  NodeType nodeType = NodeType.basicNode,
+  FunctionNode? nodeFunction = null,
   bool isDummy = false,
   String svgIconString = ""
 }) {
-  // Ensure inPorts and outPorts are cast to List<String>?
-  List<String>? inPortsCast = (inPorts as List?)?.cast<String>();
-  List<String>? outPortsCast = (outPorts as List?)?.cast<String>();
-
   switch(nodeType) {
-    case "basicNode":
-      return basicNode(
+    case NodeType.basicNode:
+      return BasicNode(
         isDummy: isDummy, 
         nodeName: nodeName,  
         color: getNodeColor(nodeColor), 
         accentColor: getNodeAccentColor(nodeColor), 
-        inPorts: inPortsCast,  // Cast inPorts
-        outPorts: outPortsCast, // Cast outPorts
+        nodeFunction: nodeFunction,
         svgIconString: svgIconString
       );
 
-    case "outputNode":
+    case NodeType.outputNode: //TODO delete this, make just a start node
       return outputNode(
         isDummy: isDummy, 
         nodeName: nodeName, 
         color: getNodeColor(nodeColor), 
         accentColor: getNodeAccentColor(nodeColor), 
-        outPorts: outPortsCast,  // Cast outPorts
+        nodeFunction: nodeFunction,
         svgIconString: svgIconString
       );
   }
@@ -291,119 +286,275 @@ Widget? fabricateNode({
 }
 
 
+class BasicNode extends StatelessWidget {
+  final bool isDummy;
+  final Color accentColor;
+  final Color color;
+  final String? nodeName;
+  final String? svgIconString;
+  final FunctionNode? nodeFunction;
 
-Widget basicNode({
-  bool isDummy = false,
-  Color accentColor = Colors.lightBlue,
-  Color color = Colors.lightBlueAccent,
-  String? nodeName, // New parameter for node text
-  String? svgIconString, // SVG string for the icon
-  List<String>? inPorts, // Nullable lists
-  List<String>? outPorts,
-}) {
-  inPorts ??= ["inPort0"]; // Default value if not provided
-  outPorts ??= ["outPort0"]; // Default value if not provided
+  // Constructor for BasicNode
+  const BasicNode({
+    super.key,
+    this.isDummy = false,
+    this.accentColor = Colors.lightBlue,
+    this.color = Colors.lightBlueAccent,
+    this.nodeName,
+    this.svgIconString,
+    this.nodeFunction
+  });
 
-  // Calculate the height based on the number of inPorts and outPorts
-  int numberOfPorts = (inPorts.length > outPorts.length) ? inPorts.length : outPorts.length;
-  double calculatedHeight = 20 * numberOfPorts + 20;
+  static const double _NODE_EDGE_RADIUS = 8.0;
 
-  return Container(
-    height: calculatedHeight, // Set the height for the transparent container
-    color: Colors.transparent, // Make the container transparent
-    child: Stack(
-      clipBehavior: Clip.none, // Allow the ports to overflow the node bounds
-      children: [
-        // Main node container with border and radius, wrapped in a Center widget
-        Center(
-          child: Container(
-            height: calculatedHeight - 3, // Set the calculated height for the entire node
-            decoration: BoxDecoration(
-              color: color, // Apply the main color to the node
-              border: Border.all(color: Colors.grey, width: 1), // Thin border
-              borderRadius: BorderRadius.circular(_NODE_EDGE_RADIUS), // Rounded corners for both sides
+
+List<Widget> getInPorts(FunctionNode nodeFunction) {
+  return [
+    // only if parameter.type is not "void", add it to the return list
+    // Dynamically add rows for each parameter
+    ...?nodeFunction.parameters?.map((parameter) {
+      if (parameter.hardSet){
+        return SizedBox.shrink();
+      }
+      return SizedBox(
+        height: 25,
+        child: Row(
+          children: [
+            // Rectangle that sticks out
+            Transform.translate(
+              offset: Offset(-2, 0), // Move 2 pixels to the left
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click, // Change cursor to 'click' style
+                child: generateInPort(isDummy: isDummy, name: parameter.name)
+              ),
             ),
-            child: Row(
-              children: [
-                // Left side accent color section with rounded corners
-                Container(
-                  width: 40, // Fixed width for accent color section
-                  decoration: BoxDecoration(
-                    color: accentColor, // Apply the accent color to the left side
-                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(_NODE_EDGE_RADIUS)), // Rounded corners for the left side
-                  ),
-                  child: Center(
-                    child: svgIconString != null
-                        ? SvgPicture.string(
-                            svgIconString, // Use the SVG string
-                            color: Colors.white, // Adjust color if necessary
-                            width: 16.0, // Adjust the size of the SVG
-                            height: 16.0,
-                          )
-                        : const Icon(
-                            Icons.warning, // Fallback icon if SVG string is null
-                            color: Colors.white,
-                            size: 16.0, // Adjust the icon size
-                          ),
+            // Text next to the rectangle
+            Text(
+              parameter.name, // Display the parameter's name
+              style: TextStyle(fontSize: 10, color: Colors.white, fontFamily: 'CascadiaCode',),
+            ),
+          ],
+        ),
+      );
+    }).toList(),
+
+    // Always include the "Trigger in" row
+    SizedBox(
+      height: 25,
+      child: Row(
+        children: [
+          // Rectangle that sticks out
+          Transform.translate(
+            offset: Offset(-2, 0), // Move 2 pixels to the left
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click, // Change cursor to 'click' style
+              child: generateInPort(isDummy: isDummy, name: "Trigger In")
+            ),
+          ),
+          // Text next to the rectangle
+          Text(
+            "Trigger In", // Static text for the trigger
+            style: TextStyle(fontSize: 10, color: Colors.white, fontFamily: 'CascadiaCode'),
+          ),
+        ],
+      ),
+    ),
+
+  ];
+}
+
+
+
+
+
+List<Widget> getOutPorts(FunctionNode nodeFunction, bool isDummy) {
+  // List of widgets for outports
+  List<Widget> outPortWidgets = [];
+
+  // Add the return port row if the return type is not void
+  if (nodeFunction.returnType != "void") {
+    outPortWidgets.add(
+      SizedBox(
+        height: 25,
+        child: Row(
+          children: [
+            // Text on the right
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  nodeFunction.returnName!, // Display the parameter's name
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.white,
+                    fontFamily: 'CascadiaCode',
                   ),
                 ),
-                // Vertical divider where the blue meets the accent blue
-                Container(
-                  width: 0.7, // Thin width for the divider
-                  color: Colors.grey, // Same color as the border
+              ),
+            ),
+            // Rectangle that sticks out
+            Transform.translate(
+              offset: Offset(2, 0), // Move 2 pixels to the right
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click, // Change cursor to 'click' style
+                child: generateOutPort(isDummy: isDummy, name: nodeFunction.returnName!),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Always include the "Trigger Out" row
+  outPortWidgets.add(
+    SizedBox(
+      height: 25,
+      child: Row(
+        children: [
+          // Text on the right
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                "Trigger Out", // Static text for the trigger
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.white,
+                  fontFamily: 'CascadiaCode',
                 ),
-                // Right side main section for the node content
-                Expanded(
-child: Container(
-  color: Colors.transparent, // Keep transparent to let the border show
-  child: Align(
-    alignment: Alignment.centerLeft, // Align the text to the right
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 5.0), // Add 5px space on left and right
-      child: Text(
-        nodeName ?? '', // Display the node text, default to empty string if null
-        style: const TextStyle(
-          color: Colors.black,
-          fontFamily: 'CascadiaCode',
-        ), // Customize the text style as needed
+              ),
+            ),
+          ),
+          // Rectangle that sticks out
+          Transform.translate(
+            offset: Offset(2, 0), // Move 2 pixels to the right
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click, // Change cursor to 'click' style
+              child: generateOutPort(isDummy: isDummy, name: "Trigger Out"),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  return outPortWidgets;
+}
+
+
+
+  @override
+Widget build(BuildContext context) {
+  return Container(
+decoration: BoxDecoration(
+  color: color, // Background color
+  borderRadius: const BorderRadius.all(Radius.circular(8)),
+),
+
+    child: Column(
+      children: [
+        // First container: Transparent container with spacing around the row
+Container(
+  color: Colors.transparent, // Vivid color for the main container
+  height: 22,
+  child: Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      // First item: SVG icon with square aspect ratio
+      Container(
+    decoration: const BoxDecoration(
+    border: Border(
+      right: BorderSide(
+        color: Colors.white, // White color for the border
+        width: 1, // Border width of 1px
       ),
     ),
   ),
+        child: Padding(
+          padding: const EdgeInsets.all(3.0), // Padding for the first item
+          child: svgIconString != null
+              ? Container(
+                  width: 16,
+                  alignment: Alignment.center,
+                  color: Colors.transparent, // Debugging color for this container
+                  child: SvgPicture.string(
+                    svgIconString!,
+                    color: Colors.white,
+                    ),
+                )
+              : Container(
+                  width: 16,
+                  alignment: Alignment.center,
+                  color: Colors.transparent, // Debugging color for this container
+                  child: const Icon(Icons.image_not_supported, size: 16),
+                ),
+        ),
+      ),
+
+      // Second item: Node name text in the center
+
+  Text(
+    nodeName ?? "Unknown Node",
+    style: const TextStyle(fontSize: 14, color: Colors.white, fontFamily: 'CascadiaCode',),
+  ),
+
+
+      // Third item: Loading circle with square aspect ratio
+      Padding(
+        padding: const EdgeInsets.all(4.0), // Padding for the loading circle
+        child: Container(
+          width: 14,
+          alignment: Alignment.center,
+          color: Colors.transparent, // Debugging color for this container
+          child: const CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
+        ),
+      ),
+    ],
+  ),
 ),
 
-                ),
-              ],
-            ),
-          ),
+// Second container: Empty transparent container
+Container(
+  decoration: const BoxDecoration(
+    border: Border(
+      top: BorderSide(
+        color: Colors.white, // White color for the border
+        width: 1, // Border width of 1px
+      ),
+    ),
+  ),
+  child: Row(
+    children: [
+      // First column
+      Expanded(
+        child: Column(
+          children: getInPorts(nodeFunction!), // Get the children from getPorts() for the first column
         ),
-        // Overlay for in-ports (left side)
-        Positioned(
-          left: -9.5, // Stick out by 9.5px (half of port size)
-          top: 0,
-          bottom: 0,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly, // Evenly space in-ports vertically
-            children: inPorts.map((portName) {
-              return generateInPort(isDummy: isDummy, name: portName);
-            }).toList(),
-          ),
+      ),
+      // Second column
+      Expanded(
+        child: Column(
+          children: getOutPorts(nodeFunction!, isDummy), // Get the children from getPorts() for the second column
         ),
-        // Overlay for out-ports (right side)
-        Positioned(
-          right: -9.5, // Stick out by -9.5px (half of port size)
-          top: 0,
-          bottom: 0,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly, // Evenly space out-ports vertically
-            children: outPorts.map((portName) {
-              return generateOutPort(isDummy: isDummy, name: portName);
-            }).toList(),
-          ),
-        ),
+      ),
+    ],
+  ),
+),
+
+        
       ],
     ),
   );
 }
+}
+
+
+
+
 
 
 Widget outputNode({
@@ -412,16 +563,15 @@ Widget outputNode({
   Color color = Colors.lightBlueAccent,
   String? nodeName, // Parameter for node text
   String? svgIconString, // SVG string for the icon
-  List<String>? outPorts, // Nullable list for outPorts
+  FunctionNode? nodeFunction,
 }) {
-  outPorts ??= ["outPort0"]; // Default value if not provided
 
   // Calculate the height based on the number of outPorts
-  int numberOfPorts = outPorts.length;
-  double calculatedHeight = 20 * numberOfPorts + 20;
+  //int numberOfPorts = outPorts.length;
+  //double calculatedHeight = 20 * numberOfPorts + 20;
+  double calculatedHeight = 20 * 1 + 20;
 
   return Container(
-    height: calculatedHeight, // Set the height for the transparent container
     color: Colors.transparent, // Make the container transparent
     child: Stack(
       clipBehavior: Clip.none, // Allow the ports to overflow the node bounds
@@ -489,17 +639,17 @@ child: Container(
           ),
         ),
         // Overlay for out-ports (right side)
-        Positioned(
-          right: -9.5, // Stick out by -9.5px (half of port size)
-          top: 0,
-          bottom: 0,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly, // Evenly space out-ports vertically
-            children: outPorts.map((portName) {
-              return generateOutPort(isDummy: isDummy, name: portName);
-            }).toList(),
-          ),
-        ),
+//        Positioned(
+//          right: -9.5, // Stick out by -9.5px (half of port size)
+//          top: 0,
+//          bottom: 0,
+//          child: Column(
+//            mainAxisAlignment: MainAxisAlignment.spaceEvenly, // Evenly space out-ports vertically
+//            children: outPorts.map((portName) {
+//              return generateOutPort(isDummy: isDummy, name: portName);
+//            }).toList(),
+//          ),
+//        ),
       ],
     ),
   );

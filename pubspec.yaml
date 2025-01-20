@@ -47,6 +47,7 @@ dependencies:
   dropdown_search: ^6.0.1
   marquee: ^2.3.0
   json_rpc_2: ^3.0.3
+  json_annotation: ^4.9.0
 
 
 
@@ -56,6 +57,9 @@ dependencies:
   # cupertino_icons: ^1.0.8
 
 dev_dependencies:
+  json_serializable: ^6.9.3
+  build_runner: ^2.4.14
+
   flutter_test:
     sdk: flutter
 

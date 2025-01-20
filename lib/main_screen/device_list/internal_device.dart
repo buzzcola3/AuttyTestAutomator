@@ -32,115 +32,139 @@ String startNodeIcon = """
 </svg>
 """;
 
+AvailableNodes internalNodes = AvailableNodes(
+  nodes: 
+    [
+      Node(
+        name: "Start",
+        type: NodeType.outputNode,
+        color: "red",
+        svgIcon: startNodeIcon,
+        function: FunctionNode(
+          command: "RUN",
+          returnType: NodeFunctionReturnType.none,
+          returnName: "void",
+          parameters: [
+            Parameter(
+              name: "void",
+              type: NodeParameterType.none,
+            )
+          ]
+        )
+      ),
+
+      Node(
+        name: "Delay",
+        type: NodeType.basicNode,
+        color: "blue",
+        svgIcon: startNodeIcon,
+        function: FunctionNode(
+          command: "DELAY",
+          returnType: NodeFunctionReturnType.none,
+          returnName: "void",
+          settings: [
+            NodeSetting(
+              name: "Delay(ms)",
+              type: NodeSettingType.number,
+              value: "1000",
+            )
+          ]
+        )
+      ),
+
+      Node(
+        name: "Compare Number",
+        type: NodeType.basicNode,
+        color: "green",
+        svgIcon: startNodeIcon,
+        function: FunctionNode(
+          command: "COMPARE NUMBER",
+          returnType: NodeFunctionReturnType.boolean,
+          returnName: "void",
+          parameters: [
+            Parameter(
+              name: "input value",
+              type: NodeParameterType.number,
+              hardSet: false
+            )
+          ],
+          settings: [
+            NodeSetting(
+              name: "Compare Type",
+              type: NodeSettingType.list,
+              options: [">", ">=", "==", "<=", "<" ],
+              value: "=="
+            )
+          ]
+        )
+      ),
+
+      Node(
+        name: "User Input",
+        type: NodeType.basicNode,
+        color: "yellow",
+        svgIcon: startNodeIcon,
+        function: FunctionNode(
+          command: "USER INPUT",
+          returnType: NodeFunctionReturnType.string,
+          returnName: "User Input",
+          settings: [
+            NodeSetting(
+              name: "Text",
+              type: NodeSettingType.string,
+              value: "Enter your input here",
+            )
+          ]
+        )
+      ),
+
+      Node(
+        name: "User Confirm",
+        type: NodeType.basicNode,
+        color: "purple",
+        svgIcon: startNodeIcon,
+        function: FunctionNode(
+          command: "USER CONFIRM",
+          returnType: NodeFunctionReturnType.none,
+          returnName: "User Confirm",
+          settings: [
+            NodeSetting(
+              name: "Text",
+              type: NodeSettingType.string,
+              value: "Do you confirm this decision?"
+            )
+          ]
+        )
+      ),
+
+      Node(
+        name: "User Decide",
+        type: NodeType.basicNode,
+        color: "cyan",
+        svgIcon: startNodeIcon,
+        function: FunctionNode(
+          command: "USER DECIDE",
+          returnType: NodeFunctionReturnType.none,
+          returnName: "void",
+          settings: [
+            NodeSetting(
+              name: "Text",
+              type: NodeSettingType.string,
+              value: "Do you confirm this decision?"
+            )
+          ]
+        )
+      ),
+    ]
+);
+
+
 Json internalDevice = {
   "DEVICE_NAME": "Functions",
   "UNIQUE_ID": "internal",
   "DEVICE_DESCRIPTION": "This is an internal device, that allows usage of internal nodes functions",
   "DEVICE_ICON_SVG": "",
-  "DEVICE_AVAILABLE_COMMANDS": [],
-  "DEVICE_AVAILABLE_NODES": [
-    {
-      "Name": "Start",
-      "Type": "outputNode",
-      "Command": "RUN",
-      "Parameters": [],
-      "Color": "red",
-      "InPorts": [],
-      "OutPorts": ["start_outport"],
-      "SvgIcon": startNodeIcon
-    },
-    {
-      "Name": "Delay",
-      "Type": "basicNode",
-      "Command": "DELAY",
-      "Parameters": 
-      [
-        {
-          "Name": "Delay(ms)",
-          "Type": "Int",
-          "Value": "1000",
-        }
-      ],
-      "Color": "blue",
-      "InPorts": ["delay_inport"],
-      "OutPorts": ["delay_outport"],
-      "SvgIcon": startNodeIcon
-    },
-    {
-      "Name": "Compare Number",
-      "Type": "basicNode",
-      "Command": "COMPARE NUMBER",
-      "Parameters": 
-      [
-        {
-          "Name": "expected value",
-          "Type": "Int",
-          "Value": "0",
-        },
-        {
-          "Name": "compare type",
-          "Type": "List",
-          "Value": "==",
-          "AvailableValues": [">", ">=", "==", "<=", "<" ],
-        },
-      ],
-      "Color": "green",
-      "InPorts": ["delay_inport"],
-      "OutPorts": ["delay_outport"],
-      "SvgIcon": startNodeIcon
-    },
-    {
-      "Name": "User Input",
-      "Type": "basicNode",
-      "Command": "USER INPUT",
-      "Parameters": 
-      [
-        {
-          "Name": "Text",
-          "Type": "String",
-          "Value": "User input text",
-        },
-      ],
-      "Color": "yellow",
-      "InPorts": ["user_input_inport"],
-      "OutPorts": ["user_input_outport"],
-      "SvgIcon": startNodeIcon
-    },
-    {
-      "Name": "User Confirm",
-      "Type": "basicNode",
-      "Command": "USER CONFIRM",
-      "Parameters": 
-      [
-        {
-          "Name": "Text",
-          "Type": "String",
-          "Value": "User input text",
-        },
-      ],
-      "Color": "purple",
-      "InPorts": ["user_input_inport"],
-      "OutPorts": ["user_input_outport"],
-      "SvgIcon": startNodeIcon
-    },
-    {
-      "Name": "User Decide",
-      "Type": "basicNode",
-      "Command": "USER DECIDE",
-      "Parameters": 
-      [
-        {
-          "Name": "Text",
-          "Type": "String",
-          "Value": "User input text",
-        },
-      ],
-      "Color": "cyan",
-      "InPorts": ["user_input_inport"],
-      "OutPorts": ["user_input_outport"],
-      "SvgIcon": startNodeIcon
-    },
-  ],
+  "DEVICE_AVAILABLE_NODES": internalNodes.toJson()
 };
 
 RemoteDevice internalWsDevice = RemoteDevice.dummy(deviceIp: IPAddress('', 0), deviceInfo: DeviceInfo(jsonEncode(internalDevice)));
