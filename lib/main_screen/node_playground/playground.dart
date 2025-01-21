@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:Autty/global_datatypes/device_info.dart';
 import 'package:Autty/global_datatypes/json.dart';
 import 'package:Autty/main_screen/node_playground/playground_file_interface.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +22,7 @@ class NodeEditorWidgetController {
 
   void addNodeAtPosition({
     required Offset nodePosition,
-    required Json nodeDNA,
+    required NodeDNA nodeDNA,
     required dynamic nodeWidget,
   }) {
     _nodeEditorWidgetState?.addNodeAtPosition(
@@ -39,7 +40,7 @@ class NodeEditorWidgetController {
 
 class NodeEditorWidget extends StatefulWidget {
   final NodeEditorController controller;
-  final Json nodesDNA;
+  final Map<String, NodeDNA> nodesDNA;
   final NodeEditorWidgetController customController;
   final PlaygroundFileInterface playgroundFileInterface;
 
@@ -131,24 +132,28 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
 
   void addNodeAtPosition({
       required Offset nodePosition,
-      required Json nodeDNA,
+      required NodeDNA nodeDNA,
       required dynamic nodeWidget
     }) {
 
-    Json nodeDNACopy = jsonDecode(jsonEncode(nodeDNA));
+    NodeDNA nodeDNACopy = NodeDNA.fromJson(nodeDNA.toJson());
     
 
-    var uuid = const Uuid();
-    nodeDNACopy["nodeUuid"] ??= uuid.v1();
+    
+    if (nodeDNACopy.nodeUuid == "") {
+      // ignore: prefer_const_constructors
+      Uuid uuid = Uuid(); //Can not be CONST!!!
+      nodeDNACopy.nodeUuid = uuid.v1();
+    }
 
-    widget.nodesDNA[nodeDNACopy["nodeUuid"]] = nodeDNACopy;
+    widget.nodesDNA[nodeDNACopy.nodeUuid] = nodeDNACopy;
 
     _controller.addNode(
       generateNode(
         nodeType: nodeWidget,
-        nodeUuid: nodeDNACopy["nodeUuid"],
+        nodeUuid: nodeDNACopy.nodeUuid,
         onPanStart: (details) {
-          _currentDraggedNodeId = nodeDNACopy["nodeUuid"];
+          _currentDraggedNodeId = nodeDNACopy.nodeUuid;
           _currentDraggedPosition = details.globalPosition;
         },
         onPanUpdate: (details) {
@@ -162,13 +167,13 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
         },
         onTap: () {
           setState(() {
-            if (_selectedNodeName == nodeDNACopy["nodeUuid"]) {
+            if (_selectedNodeName == nodeDNACopy.nodeUuid) {
               _selectedNodeName = null;
             } else {
-              _selectedNodeName = nodeDNACopy["nodeUuid"];
+              _selectedNodeName = nodeDNACopy.nodeUuid;
             }
           });
-          widget.controller.selectNodeAction(nodeDNACopy["nodeUuid"]);
+          widget.controller.selectNodeAction(nodeDNACopy.nodeUuid);
         },
       ),
       NodePosition.custom(nodePosition),
@@ -197,11 +202,11 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
     return List<Json>.from(decodedFunction['nodeParameters'] ?? []);
   }
 
-  void _updateParameter(String targetNode, String parameterName, String newParameterValue) {
+  void _updateSettings(String targetNode, String parameterName, String newParameterValue) {
       if (widget.nodesDNA[targetNode] != null) {
-        for (var parameter in widget.nodesDNA[targetNode]["nodeParameters"]) {
-          if (parameter["Name"] == parameterName) {
-            parameter["Value"] = newParameterValue;
+        for (var setting in widget.nodesDNA[targetNode]?.nodeFunction.settings ?? []) {
+          if (setting.name == parameterName) {
+            setting.value = newParameterValue;
             return;
           }
         }
@@ -209,24 +214,24 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
     
   }
 
-  List getNodeParameterList(String targetNode) {
+  List getNodeSettingList(String targetNode) {
 
     if (widget.nodesDNA[targetNode] != null) {
-      if (widget.nodesDNA[targetNode]["nodeParameters"]!= null){
-        return widget.nodesDNA[targetNode]["nodeParameters"];
+      if (widget.nodesDNA[targetNode]!.nodeFunction.settings != []){
+        return widget.nodesDNA[targetNode]!.nodeFunction.settings ?? [];
       }
     }
     
     return [];
   }
 
-Widget getParameterWidget(dynamic parameter) {
-  String parameterType = parameter["Type"]?.toString() ?? '';
-  String parameterName = parameter["Name"]?.toString() ?? '';
-  String initialValue = parameter["Value"]?.toString() ?? '';
+Widget getParameterWidget(NodeSetting parameter) { //TODO move out of playgroumd file
+  NodeSettingType parameterType = parameter.type;
+  String parameterName = parameter.name;
+  String initialValue = parameter.value;
 
-  if (parameterType == 'List') {
-    final List<String> availableValues = List<String>.from(parameter["AvailableValues"])
+  if (parameterType == NodeSettingType.list) {
+    final List<String> availableValues = List<String>.from(parameter.options!)
       ..sort((a, b) => a.compareTo(b)); // Sort alphabetically
 
     String? selectedValue = initialValue;
@@ -247,7 +252,7 @@ Widget getParameterWidget(dynamic parameter) {
               items: (String? filter, _) => availableValues,
               onChanged: (newValue) {
                 selectedValue = newValue;
-                _updateParameter(_selectedNodeName!, parameterName, newValue!);
+                _updateSettings(_selectedNodeName!, parameterName, newValue!);
               },
               popupProps: PopupProps.menu(
                 fit: FlexFit.loose,
@@ -259,7 +264,7 @@ Widget getParameterWidget(dynamic parameter) {
         ],
       ),
     );
-  } else if (parameterType == 'Int') {
+  } else if (parameterType == NodeSettingType.number) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -274,14 +279,14 @@ Widget getParameterWidget(dynamic parameter) {
               ),
               keyboardType: TextInputType.number,
               onSubmitted: (value) {
-                _updateParameter(_selectedNodeName!, parameterName, value);
+                _updateSettings(_selectedNodeName!, parameterName, value);
               },
             ),
           ),
         ],
       ),
     );
-  } else if (parameterType == 'String') {
+  } else if (parameterType == NodeSettingType.string) {
     // Handling for String parameter type
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -296,7 +301,7 @@ Widget getParameterWidget(dynamic parameter) {
                 hintText: initialValue,
               ),
               onSubmitted: (value) {
-                _updateParameter(_selectedNodeName!, parameterName, value);
+                _updateSettings(_selectedNodeName!, parameterName, value);
               },
             ),
           ),
@@ -366,7 +371,7 @@ Widget build(BuildContext context) {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    ...getNodeParameterList(_selectedNodeName!).map((parameter) {
+                    ...getNodeSettingList(_selectedNodeName!).map((parameter) {
                       return getParameterWidget(parameter);
                     }),
                   ],

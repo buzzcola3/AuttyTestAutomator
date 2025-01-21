@@ -1,3 +1,4 @@
+import 'package:Autty/global_datatypes/device_info.dart';
 import 'package:Autty/global_datatypes/json.dart';
 import 'package:Autty/main.dart';
 import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
@@ -6,7 +7,6 @@ import 'package:Autty/main_screen/device_list/websocket_manager/communication_ha
 import 'package:Autty/main_screen/device_list/websocket_manager/websocket_manager.dart';
 import 'package:Autty/main_screen/node_playground_file_manager/file_datatypes.dart';
 import 'package:node_editor/node_editor.dart';
-import 'package:Autty/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
 
 // ignore: constant_identifier_names
 const bool _DEBUG_EXECUTOR = true;
@@ -19,20 +19,18 @@ class ExecutableNode {
   bool executed = false;
   late dynamic executionResult;
   final dynamic node;
-  
+
   late List inPortResults;
-  
 
   // Constructor
   ExecutableNode({
     required this.nodeUuid,
     required this.node,
     required this.command,
-    required this. deviceUniqueId,
+    required this.deviceUniqueId,
     this.executed = false,
   });
 }
-
 
 class PlaygroundExecutor {
   final Map<String, RemoteDevice> wsDeviceList;
@@ -42,12 +40,11 @@ class PlaygroundExecutor {
 
   AuttyJsonFile? executingFile;
 
-  PlaygroundExecutor({
-    required this.wsDeviceList,
-    required this.websocketManager,
-    required this.controller,
-    required this.nodesDNA
-  });
+  PlaygroundExecutor(
+      {required this.wsDeviceList,
+      required this.websocketManager,
+      required this.controller,
+      required this.nodesDNA});
 
   bool overallExecuteSuccess = false;
 
@@ -65,7 +62,8 @@ class PlaygroundExecutor {
   Future<bool> execute(AuttyJsonFile file) async {
     executingFile = file;
 
-    debugConsoleController.addInternalTabMessage("Started execution", MessageType.info);
+    debugConsoleController.addInternalTabMessage(
+        "Started execution", MessageType.info);
     debugConsoleController.clearTabMessages(ConsoleTab.execute);
     file.executionData = [];
     overallExecuteSuccess = true;
@@ -76,104 +74,115 @@ class PlaygroundExecutor {
     // Find the start node with deviceUniqueId = "internal" and nodeCommand = "{RUN}"
     ExecutableNode? startNode = _findStartNode(playgroundNodes);
     if (startNode == null) {
-      debugConsoleController.addInternalTabMessage("No start node found.", MessageType.error);
+      debugConsoleController.addInternalTabMessage(
+          "No start node found.", MessageType.error);
       return false;
     }
-  
+
     Map<String, List<String>> nodeStructure = {};
-    var execNodeTree = _buildNodeConnectionStructure(startNode, controller.connections, nodeStructure);
+    var execNodeTree = _buildNodeConnectionStructure(
+        startNode, controller.connections, nodeStructure);
 
     await _executeNodeTree(execNodeTree, startNode.nodeUuid, playgroundNodes);
-
 
     return overallExecuteSuccess;
   }
 
-Future<void> _executeNodeTree(Map<String, List<String>> execNodeTree, String startNode, List<ExecutableNode> playgroundNodes) async {
-  if (_dependentNodesAlreadyExecuted(startNode, execNodeTree, playgroundNodes)) {
-    await _executeNode(startNode, execNodeTree, playgroundNodes);
-  } else {
-    return; // Dependency not ready, return early
-  }
-
-  // Collect futures from recursive calls
-  List<Future<void>> futures = [];
-  for (var execNode in execNodeTree[startNode] ?? []) {
-    futures.add(_executeNodeTree(execNodeTree, execNode, playgroundNodes));
-  }
-
-  // Wait for all recursive calls to complete
-  await Future.wait(futures);
-}
-
-Future<void> _executeNode(String node, Map<String, List<String>> execNodeTree, List<ExecutableNode> playgroundNodes) async {
-  
-  Json dependencyResult = _dependentNodesResult(node, execNodeTree, playgroundNodes);
-
-
-  for (var playgroundNode in playgroundNodes) {
-
-    if (playgroundNode.nodeUuid == node) {
-      if(playgroundNode.executed) return;
-
-      Map<String, dynamic> parameters = {};
-      if (nodesDNA[node] != null) {
-        for (var parameter in nodesDNA[node]["nodeParameters"] ?? []) {
-          parameters[parameter["Name"]] = parameter["Value"];
-        }
-      }
-  
-  dynamic result;
-  controller.selectNodeAction(node); // Highlight the node when executing
-  
-  try {
-    if (nodesDNA[node]["deviceUniqueId"] != 'internal') {
-      // Await the WebSocketManager operation
-      result = await websocketManager.sendAwaitedRequest(
-        nodesDNA[node]["deviceUniqueId"],
-        nodesDNA[node]["nodeCommand"],
-        parameters,
-      );
+  Future<void> _executeNodeTree(Map<String, List<String>> execNodeTree,
+      String startNode, List<ExecutableNode> playgroundNodes) async {
+    if (_dependentNodesAlreadyExecuted(
+        startNode, execNodeTree, playgroundNodes)) {
+      await _executeNode(startNode, execNodeTree, playgroundNodes);
     } else {
-      // Process internal device commands
-      result = await internalDeviceCommandProcessor(
-        nodesDNA[node]["nodeCommand"],
-        parameters,
-        dependencyResult,
-      );
+      return; // Dependency not ready, return early
     }
-  } catch (e) {
-    // Log the error if necessary
-    print('Error occurred: $e');
-    
-    // Set the overall success flag to false on error
-    overallExecuteSuccess = false;
+
+    // Collect futures from recursive calls
+    List<Future<void>> futures = [];
+    for (var execNode in execNodeTree[startNode] ?? []) {
+      futures.add(_executeNodeTree(execNodeTree, execNode, playgroundNodes));
+    }
+
+    // Wait for all recursive calls to complete
+    await Future.wait(futures);
   }
 
+  Future<void> _executeNode(String node, Map<String, List<String>> execNodeTree,
+      List<ExecutableNode> playgroundNodes) async {
+    Json dependencyResult =
+        _dependentNodesResult(node, execNodeTree, playgroundNodes);
 
-      playgroundNode.executionResult = result;
+    for (var playgroundNode in playgroundNodes) {
+      if (playgroundNode.nodeUuid == node) {
+        if (playgroundNode.executed) return;
 
+        Json passedParams = {};
 
+        List<NodeSetting> settings = [];
+        if (nodesDNA[node] != null) {
+          settings = nodesDNA[node].nodeFunction.settings;
+        }
+        for (NodeSetting setting in settings) {
+          passedParams[setting.name] = setting.value;
+        }
 
-      playgroundNode.executed = true;
+        List<Parameter> parameters = [];
+        if (nodesDNA[node] != null) {
+          parameters = nodesDNA[node].nodeFunction.parameters;
+        }
+        for (Parameter parameter in parameters) {
+          passedParams[parameter.name] = dependencyResult[parameter.name];
+        }
 
-      final resultNode = playgroundNode.nodeUuid;
-      final resultMessage = "--> $result";
-      MessageType resultMessageType = MessageType.error;
+        dynamic result;
+        controller.selectNodeAction(node); // Highlight the node when executing
 
-      if(overallExecuteSuccess == true) resultMessageType = MessageType.generic;
-      
-      debugConsoleController.addExecutionTabMessage(resultMessage, resultNode, resultMessageType, controller.selectNodeAction);
-      executingFile?.addExecuteData(resultMessage, resultNode, resultMessageType);
-        
-      
-      return;
+        try {
+          if (nodesDNA[node].deviceUuid!= 'internal') {
+            // Await the WebSocketManager operation
+            result = await websocketManager.sendAwaitedRequest(
+              nodesDNA[node].deviceUuid,
+              nodesDNA[node].nodeFunction.command,
+              passedParams,
+            );
+          } else {
+            // Process internal device commands
+            result = await internalDeviceCommandProcessor(
+              nodesDNA[node].nodeFunction.command,
+              passedParams,
+              dependencyResult,
+            );
+          }
+        } catch (e) {
+          // Log the error if necessary
+          print('Error occurred: $e');
+          // Set the overall success flag to false on error
+          overallExecuteSuccess = false;
+        }
+
+        playgroundNode.executionResult = result;
+
+        playgroundNode.executed = true;
+
+        final resultNode = playgroundNode.nodeUuid;
+        final resultMessage = "--> $result";
+        MessageType resultMessageType = MessageType.error;
+
+        if (overallExecuteSuccess == true)
+          resultMessageType = MessageType.generic;
+
+        debugConsoleController.addExecutionTabMessage(resultMessage, resultNode,
+            resultMessageType, controller.selectNodeAction);
+        executingFile?.addExecuteData(
+            resultMessage, resultNode, resultMessageType);
+
+        return;
+      }
     }
+
+    if (_DEBUG_EXECUTOR)
+      debugConsoleController.addInternalTabMessage("", MessageType.info);
   }
-
-  if(_DEBUG_EXECUTOR) debugConsoleController.addInternalTabMessage("", MessageType.info);
-}
-
 
   Map<String, List<String>> _buildNodeConnectionStructure(
     ExecutableNode startNode,
@@ -184,7 +193,8 @@ Future<void> _executeNode(String node, Map<String, List<String>> execNodeTree, L
       nodeStructure[startNode.nodeUuid] = [];
     }
 
-    List<ExecutableNode> connectedNodes = _getOutPortNodes(startNode, connections);
+    List<ExecutableNode> connectedNodes =
+        _getOutPortNodes(startNode, connections);
 
     for (var connectedNode in connectedNodes) {
       nodeStructure[startNode.nodeUuid]!.add(connectedNode.nodeUuid);
@@ -194,12 +204,17 @@ Future<void> _executeNode(String node, Map<String, List<String>> execNodeTree, L
     return nodeStructure;
   }
 
-  List<ExecutableNode> _getOutPortNodes(ExecutableNode node, List<dynamic> connections) {
+  List<ExecutableNode> _getOutPortNodes(
+      ExecutableNode node, List<dynamic> connections) {
     List<ExecutableNode> inNodes = [];
 
     for (var connection in connections) {
       if (connection.outNode.name == node.nodeUuid) {
-        ExecutableNode execNode = ExecutableNode(nodeUuid: connection.inNode.name, node: connection.inNode, command: nodesDNA[node.nodeUuid]["nodeCommand"], deviceUniqueId: nodesDNA[node.nodeUuid]["deviceUniqueId"]);
+        ExecutableNode execNode = ExecutableNode(
+            nodeUuid: connection.inNode.name,
+            node: connection.inNode,
+            command: nodesDNA[node.nodeUuid].nodeFunction.command,
+            deviceUniqueId: nodesDNA[node.nodeUuid].deviceUuid);
         inNodes.add(execNode);
       }
     }
@@ -207,17 +222,17 @@ Future<void> _executeNode(String node, Map<String, List<String>> execNodeTree, L
     return inNodes;
   }
 
-  bool _dependentNodesAlreadyExecuted(String node, Map<String, List<String>> execNodeTree, List<ExecutableNode> playgroundNodes){
+  bool _dependentNodesAlreadyExecuted(
+      String node,
+      Map<String, List<String>> execNodeTree,
+      List<ExecutableNode> playgroundNodes) {
     List<String> dependencies = [];
 
     execNodeTree.forEach((key, connectedNodes) {
-      
       for (var connectedNode in connectedNodes) {
-
-        if(connectedNode == node){
+        if (connectedNode == node) {
           dependencies.add(key);
         }
-        
       }
     });
 
@@ -227,29 +242,28 @@ Future<void> _executeNode(String node, Map<String, List<String>> execNodeTree, L
 
     for (var dependency in dependencies) {
       for (var playgroundNode in playgroundNodes) {
-        if(playgroundNode.nodeUuid == dependency){
-          if(!playgroundNode.executed){
+        if (playgroundNode.nodeUuid == dependency) {
+          if (!playgroundNode.executed) {
             return false;
           }
         }
       }
-
     }
 
     return true;
   }
 
-  Json _dependentNodesResult(String node, Map<String, List<String>> execNodeTree, List<ExecutableNode> playgroundNodes){
+  Json _dependentNodesResult(
+      String node,
+      Map<String, List<String>> execNodeTree,
+      List<ExecutableNode> playgroundNodes) {
     List<String> dependencies = [];
 
     execNodeTree.forEach((key, connectedNodes) {
-      
       for (var connectedNode in connectedNodes) {
-
-        if(connectedNode == node){
+        if (connectedNode == node) {
           dependencies.add(key);
         }
-        
       }
     });
 
@@ -259,13 +273,10 @@ Future<void> _executeNode(String node, Map<String, List<String>> execNodeTree, L
 
     for (var dependency in dependencies) {
       for (var playgroundNode in playgroundNodes) {
-        if(playgroundNode.nodeUuid == dependency){
-          
+        if (playgroundNode.nodeUuid == dependency) {
           return playgroundNode.executionResult;
-          
         }
       }
-
     }
 
     return {};
@@ -276,10 +287,16 @@ Future<void> _executeNode(String node, Map<String, List<String>> execNodeTree, L
 
     for (var key in nodes.keys) {
       try {
-        ExecutableNode node = ExecutableNode(nodeUuid: key, node: nodes[key], command: nodesDNA[key]["nodeCommand"], deviceUniqueId: nodesDNA[key]["deviceUniqueId"]);
+        ExecutableNode node = ExecutableNode(
+            nodeUuid: key,
+            node: nodes[key],
+            command: nodesDNA[key].nodeFunction.command,
+            deviceUniqueId: nodesDNA[key].deviceUuid);
         decodedList.add(node);
       } catch (e) {
-        if(_DEBUG_EXECUTOR) debugConsoleController.addInternalTabMessage("Error decoding key: $key - $e", MessageType.info);
+        if (_DEBUG_EXECUTOR)
+          debugConsoleController.addInternalTabMessage(
+              "Error decoding key: $key - $e", MessageType.info);
       }
     }
 

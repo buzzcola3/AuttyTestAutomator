@@ -190,17 +190,17 @@ Widget _buildNodeList() {
       // Get the command name to display
       Node singleNode = nodes.nodes[index];
 
-      Json nodeDNA = {
-        "deviceUniqueId": widget.deviceData!.deviceInfo.deviceUniqueId,
-        "nodeUuid": null,
-        "nodeFunction": singleNode.function,
-        "nodeName": singleNode.name,
-        "nodeColor": singleNode.color,
-        "nodeType": singleNode.type,
-        "svgIconString": singleNode.svgIcon,
-      };
+      NodeDNA nodeDNA = NodeDNA(
+        deviceUuid: widget.deviceData!.deviceInfo.deviceUniqueId,
+        nodeUuid: '',
+        nodeFunction: singleNode.function!,
+        nodeName: singleNode.name,
+        nodeColor: singleNode.color,
+        nodeType: singleNode.type,
+        svgIconString: singleNode.svgIcon,
+      );
 
-      Widget? fabricatedDummyNode = fabricateNode(
+      Widget? fabricatedDummyNode = fabricateNode( //TODO NodeDNA as input
           nodeName: singleNode.name,
           nodeColor: singleNode.color,
           nodeType: singleNode.type,

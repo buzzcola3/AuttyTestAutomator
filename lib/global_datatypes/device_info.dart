@@ -4,6 +4,48 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'device_info.g.dart';
 
+@JsonSerializable(explicitToJson: true)
+class NodeDNA {
+  String deviceUuid;
+  String nodeUuid;
+  FunctionNode nodeFunction;
+  String nodeName;
+  String nodeColor;
+  NodeType nodeType;
+  String svgIconString;
+
+  NodeDNA({
+    required this.deviceUuid,
+    required this.nodeUuid,
+    required this.nodeFunction,
+    required this.nodeName,
+    required this.nodeColor,
+    required this.nodeType,
+    required this.svgIconString,
+  });
+
+  // Factory constructor for creating a NodeDNA from JSON
+  factory NodeDNA.fromJson(Map<String, dynamic> json) => _$NodeDNAFromJson(json);
+
+  // Converts a NodeDNA instance to JSON
+  Map<String, dynamic> toJson() => _$NodeDNAToJson(this);
+}
+
+@JsonEnum(alwaysCreate: true)
+enum NodeParameterType {
+  string,
+  number,
+  boolean,
+  none
+}
+
+extension NodeParameterTypeExtension on NodeParameterType {
+  String toJson() => _$NodeParameterTypeEnumMap[this]!;
+  static NodeParameterType fromJson(String json) => _$NodeParameterTypeEnumMap.entries
+      .firstWhere((element) => element.value == json)
+      .key;
+}
+
 @JsonSerializable()
 class DeviceInfo {
 
@@ -16,9 +58,7 @@ class DeviceInfo {
   late AvailableNodes _deviceAvailableNodes;
   late String _deviceIconSvg;
 
-
-
-  DeviceInfo(this.devInfoMessage){
+  DeviceInfo(this.devInfoMessage) {
     _devInfo = jsonDecode(devInfoMessage);
 
     _deviceUniqueId = _devInfo["UNIQUE_ID"];
@@ -26,7 +66,6 @@ class DeviceInfo {
     _deviceDescription = _devInfo["DEVICE_DESCRIPTION"];
     _deviceAvailableNodes = AvailableNodes.fromJson(_devInfo["DEVICE_AVAILABLE_NODES"]);
     _deviceIconSvg = _devInfo["DEVICE_ICON_SVG"];
-    
   }
 
   String get deviceUniqueId => _deviceUniqueId;
@@ -35,21 +74,13 @@ class DeviceInfo {
   AvailableNodes get deviceAvailableNodes => _deviceAvailableNodes;
   String get deviceIconSvg => _deviceIconSvg;
 
+  // Factory constructor for creating a DeviceInfo from JSON
+  factory DeviceInfo.fromJson(Map<String, dynamic> json) => _$DeviceInfoFromJson(json);
+
+  // Converts a DeviceInfo instance to JSON
+  Map<String, dynamic> toJson() => _$DeviceInfoToJson(this);
 }
 
-@JsonEnum(alwaysCreate: true)
-enum NodeParameterType {
-  string,
-  number,
-  boolean,
-  none
-}
-extension NodeParameterTypeExtension on NodeParameterType {
-  String toJson() => _$NodeParameterTypeEnumMap[this]!;
-  static NodeParameterType fromJson(String json) => _$NodeParameterTypeEnumMap.entries
-      .firstWhere((element) => element.value == json)
-      .key;
-}
 // Represents a parameter for a function
 @JsonSerializable()
 class Parameter {
@@ -100,7 +131,7 @@ class NodeSetting {
   List<String>? options;
   
 
-  NodeSetting({required this.name, required this.type, this.value ,this.options});
+  NodeSetting({required this.name, required this.type, required this.value ,this.options});
 
   // Factory constructor for creating a Parameter from JSON
   factory NodeSetting.fromJson(Map<String, dynamic> json) {
@@ -117,6 +148,7 @@ class NodeSetting {
     return {
       'Name': name,
       'Type': type.toJson(),
+      'Value': value,
       'Options': options,
     };
   }
@@ -224,10 +256,10 @@ class Node {
   Map<String, dynamic> toJson() {
     return {
       'Name': name,
-      'Type': type.toJson(),
+      'Type': type.toJson(), // Ensure toJson is called here
       'Color': color,
       'SvgIcon': svgIcon,
-      'Function': function?.toJson(),
+      'Function': function!.toJson(),
     };
   }
 }

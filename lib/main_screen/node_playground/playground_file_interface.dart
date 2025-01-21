@@ -15,7 +15,7 @@ import 'dart:async';
 class PlaygroundFileInterface {
   final NodeEditorController playgroundController;
   NodeEditorWidgetController nodeEditorWidgetController;
-  Json nodesDNA;
+  Map<String, NodeDNA> nodesDNA;
   PlaygroundExecutor playgroundExecutor;
   PlaygroundFileInterface(this.playgroundController, this.nodesDNA, this.nodeEditorWidgetController, this.playgroundExecutor);
 
@@ -34,7 +34,7 @@ class PlaygroundFileInterface {
   }
 
 
-  Json? getSingleDNA(nodeUniqueName){
+  NodeDNA? getSingleDNA(nodeUniqueName){
     if(nodesDNA[nodeUniqueName] != null){
       return nodesDNA[nodeUniqueName];
     }
@@ -61,14 +61,14 @@ class PlaygroundFileInterface {
     // Load nodes
     for (var node in playgroundData["nodes"]) {
       Offset position = Offset(node["nodePosition"]["dx"], node["nodePosition"]["dy"]);
-      Json nodeDNA = node["nodeDNA"];
+      NodeDNA nodeDNA = NodeDNA.fromJson(node["nodeDNA"]);
   
       Widget nodeWidget = fabricateNode(
-        nodeName: nodeDNA["nodeName"],
-        nodeColor: nodeDNA["nodeColor"],
-        nodeType: nodeDNA["nodeType"],
-        nodeFunction: FunctionNode.fromJson(nodeDNA["nodeFunction"]),
-        svgIconString: nodeDNA["svgIconString"],
+        nodeName: nodeDNA.nodeName,
+        nodeColor: nodeDNA.nodeColor,
+        nodeType: nodeDNA.nodeType,
+        nodeFunction: nodeDNA.nodeFunction,
+        svgIconString: nodeDNA.svgIconString,
         isDummy: false,
       )!;
     
@@ -156,13 +156,13 @@ class PlaygroundFileInterface {
   }
   
   Json _saveNode(String nodeUniqueName){
-    Json? nodeDNA = getSingleDNA(nodeUniqueName);
+    NodeDNA? nodeDNA = getSingleDNA(nodeUniqueName);
     Offset nodePosition = getNodePosition(nodeUniqueName);
 
     Json jsonableNode = {
       "nodeName": nodeUniqueName,
       "nodePosition": {"dx": nodePosition.dx, "dy": nodePosition.dy},
-      "nodeDNA": nodeDNA
+      "nodeDNA": nodeDNA?.toJson()
     };
 
     return jsonableNode;

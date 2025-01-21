@@ -44,12 +44,7 @@ AvailableNodes internalNodes = AvailableNodes(
           command: "RUN",
           returnType: NodeFunctionReturnType.none,
           returnName: "void",
-          parameters: [
-            Parameter(
-              name: "void",
-              type: NodeParameterType.none,
-            )
-          ]
+          parameters: []
         )
       ),
 
@@ -79,7 +74,7 @@ AvailableNodes internalNodes = AvailableNodes(
         svgIcon: startNodeIcon,
         function: FunctionNode(
           command: "COMPARE NUMBER",
-          returnType: NodeFunctionReturnType.boolean,
+          returnType: NodeFunctionReturnType.none,
           returnName: "void",
           parameters: [
             Parameter(

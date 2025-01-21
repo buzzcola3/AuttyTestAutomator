@@ -1,3 +1,4 @@
+import 'package:Autty/global_datatypes/device_info.dart';
 import 'package:Autty/global_datatypes/json.dart';
 import 'package:Autty/main.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/communication_handler.dart';
@@ -31,7 +32,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreen extends State<MainScreen> {
   late PlaygroundExecutor playgroundExecutor;
   late WebsocketManager websocketManager;
-  late Json nodesDNA;
+  late Map<String, NodeDNA> nodesDNA;
   late PlaygroundFileInterface playgroundFileInterface;
   late UserdataDatabase userdataDatabase;
 

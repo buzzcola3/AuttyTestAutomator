@@ -6,6 +6,32 @@ part of 'device_info.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+NodeDNA _$NodeDNAFromJson(Map<String, dynamic> json) => NodeDNA(
+      deviceUuid: json['deviceUuid'] as String,
+      nodeUuid: json['nodeUuid'] as String,
+      nodeFunction:
+          FunctionNode.fromJson(json['nodeFunction'] as Map<String, dynamic>),
+      nodeName: json['nodeName'] as String,
+      nodeColor: json['nodeColor'] as String,
+      nodeType: $enumDecode(_$NodeTypeEnumMap, json['nodeType']),
+      svgIconString: json['svgIconString'] as String,
+    );
+
+Map<String, dynamic> _$NodeDNAToJson(NodeDNA instance) => <String, dynamic>{
+      'deviceUuid': instance.deviceUuid,
+      'nodeUuid': instance.nodeUuid,
+      'nodeFunction': instance.nodeFunction.toJson(),
+      'nodeName': instance.nodeName,
+      'nodeColor': instance.nodeColor,
+      'nodeType': _$NodeTypeEnumMap[instance.nodeType]!,
+      'svgIconString': instance.svgIconString,
+    };
+
+const _$NodeTypeEnumMap = {
+  NodeType.basicNode: 'basicNode',
+  NodeType.outputNode: 'outputNode',
+};
+
 DeviceInfo _$DeviceInfoFromJson(Map<String, dynamic> json) => DeviceInfo(
       json['devInfoMessage'] as String,
     );
@@ -103,11 +129,6 @@ Map<String, dynamic> _$NodeToJson(Node instance) => <String, dynamic>{
       'svgIcon': instance.svgIcon,
       'function': instance.function,
     };
-
-const _$NodeTypeEnumMap = {
-  NodeType.basicNode: 'basicNode',
-  NodeType.outputNode: 'inputNode',
-};
 
 AvailableNodes _$AvailableNodesFromJson(Map<String, dynamic> json) =>
     AvailableNodes(
