@@ -11,24 +11,29 @@ import 'package:node_editor/node_editor.dart';
 // ignore: constant_identifier_names
 const bool _DEBUG_EXECUTOR = true;
 
+enum ExecutionState {
+  pending,
+  executing,
+  finished
+}
+enum ExecutionResult {
+  success,
+  failure,
+  unknown
+}
 class ExecutableNode {
   // Members
   final String nodeUuid;
-  final String command;
   final String deviceUniqueId;
-  bool executed = false;
-  late dynamic executionResult;
-  final dynamic node;
 
-  late List inPortResults;
+  ExecutionState state = ExecutionState.pending;
+  ExecutionResult result = ExecutionResult.unknown;
+  dynamic resultValue;
 
   // Constructor
   ExecutableNode({
     required this.nodeUuid,
-    required this.node,
-    required this.command,
     required this.deviceUniqueId,
-    this.executed = false,
   });
 }
 
@@ -38,21 +43,25 @@ class PlaygroundExecutor {
   final NodeEditorController controller;
   final Json nodesDNA;
 
+  List<ExecutableNode> unexecutedNodes = [];
+  List<ExecutableNode> executedNodes = [];
+  Map<String, ExecutableNode> allNodes = {};
+  ExecutableNode? startNode;
+
   AuttyJsonFile? executingFile;
 
   PlaygroundExecutor(
-      {required this.wsDeviceList,
-      required this.websocketManager,
-      required this.controller,
-      required this.nodesDNA});
-
-  bool overallExecuteSuccess = false;
-
-  int nodesExecuting = 0;
+      {
+        required this.wsDeviceList,
+        required this.websocketManager,
+        required this.controller,
+        required this.nodesDNA
+      }
+    );
 
   ExecutableNode? _findStartNode(List<ExecutableNode> decodedList) {
     for (var node in decodedList) {
-      if (node.deviceUniqueId == 'internal' && node.command == 'RUN') {
+      if (node.deviceUniqueId == 'internal' && nodesDNA[node.nodeUuid].nodeFunction.command == 'RUN') {
         return node;
       }
     }
@@ -60,194 +69,129 @@ class PlaygroundExecutor {
   }
 
   Future<bool> execute(AuttyJsonFile file) async {
+    unexecutedNodes = [];
+    executedNodes = [];
+    allNodes = {};
+
     executingFile = file;
 
     debugConsoleController.addInternalTabMessage(
         "Started execution", MessageType.info);
     debugConsoleController.clearTabMessages(ConsoleTab.execute);
     file.executionData = [];
-    overallExecuteSuccess = true;
 
     // Decode the nodes using the controller
     List<ExecutableNode> playgroundNodes = _decodeNodes(controller.nodes);
 
     // Find the start node with deviceUniqueId = "internal" and nodeCommand = "{RUN}"
-    ExecutableNode? startNode = _findStartNode(playgroundNodes);
+    startNode = _findStartNode(playgroundNodes);
     if (startNode == null) {
       debugConsoleController.addInternalTabMessage(
           "No start node found.", MessageType.error);
       return false;
     }
 
-    Map<String, List<String>> nodeStructure = {};
-    var execNodeTree = _buildNodeConnectionStructure(
-        startNode, controller.connections, nodeStructure);
-
-    await _executeNodeTree(execNodeTree, startNode.nodeUuid, playgroundNodes);
-
-    return overallExecuteSuccess;
-  }
-
-  Future<void> _executeNodeTree(Map<String, List<String>> execNodeTree,
-      String startNode, List<ExecutableNode> playgroundNodes) async {
-    if (_dependentNodesAlreadyExecuted(
-        startNode, execNodeTree, playgroundNodes)) {
-      await _executeNode(startNode, execNodeTree, playgroundNodes);
-    } else {
-      return; // Dependency not ready, return early
+    unexecutedNodes = _getRelevantNodes(playgroundNodes, controller.connections, startNode!);
+    for (var node in unexecutedNodes) {
+      allNodes[node.nodeUuid] = node;
     }
 
-    // Collect futures from recursive calls
-    List<Future<void>> futures = [];
-    for (var execNode in execNodeTree[startNode] ?? []) {
-      futures.add(_executeNodeTree(execNodeTree, execNode, playgroundNodes));
-    }
-
-    // Wait for all recursive calls to complete
-    await Future.wait(futures);
+    return _execute();
   }
 
-  Future<void> _executeNode(String node, Map<String, List<String>> execNodeTree,
-      List<ExecutableNode> playgroundNodes) async {
-    Json dependencyResult =
-        _dependentNodesResult(node, execNodeTree, playgroundNodes);
+  bool _execute(){
+    if (unexecutedNodes.isEmpty) {
+      debugConsoleController.addInternalTabMessage(
+          "No nodes to execute.", MessageType.error);
+      return false;
+    }
 
-    for (var playgroundNode in playgroundNodes) {
-      if (playgroundNode.nodeUuid == node) {
-        if (playgroundNode.executed) return;
+    // Execute the start node
+    _executeNode(startNode!.nodeUuid);
+    unexecutedNodes.remove(startNode);
+    executedNodes.add(startNode!);
 
-        Json passedParams = {};
-
-        List<NodeSetting> settings = [];
-        if (nodesDNA[node] != null) {
-          settings = nodesDNA[node].nodeFunction.settings;
+    // Execute the rest of the nodes
+    while (unexecutedNodes.isNotEmpty) {
+      List<ExecutableNode> nodesToExecute = [];
+      for (var node in unexecutedNodes) {
+        if (_dependentNodesAlreadyExecuted(
+            node.nodeUuid)) {
+          nodesToExecute.add(node);
         }
-        for (NodeSetting setting in settings) {
-          passedParams[setting.name] = setting.value;
-        }
+      }
 
-        List<Parameter> parameters = [];
-        if (nodesDNA[node] != null) {
-          parameters = nodesDNA[node].nodeFunction.parameters;
-        }
-        for (Parameter parameter in parameters) {
-          passedParams[parameter.name] = dependencyResult[parameter.name];
-        }
-
-        dynamic result;
-        controller.selectNodeAction(node); // Highlight the node when executing
-
-        try {
-          if (nodesDNA[node].deviceUuid!= 'internal') {
-            // Await the WebSocketManager operation
-            result = await websocketManager.sendAwaitedRequest(
-              nodesDNA[node].deviceUuid,
-              nodesDNA[node].nodeFunction.command,
-              passedParams,
-            );
-          } else {
-            // Process internal device commands
-            result = await internalDeviceCommandProcessor(
-              nodesDNA[node].nodeFunction.command,
-              passedParams,
-              dependencyResult,
-            );
-          }
-        } catch (e) {
-          // Log the error if necessary
-          print('Error occurred: $e');
-          // Set the overall success flag to false on error
-          overallExecuteSuccess = false;
-        }
-
-        playgroundNode.executionResult = result;
-
-        playgroundNode.executed = true;
-
-        final resultNode = playgroundNode.nodeUuid;
-        final resultMessage = "--> $result";
-        MessageType resultMessageType = MessageType.error;
-
-        if (overallExecuteSuccess == true)
-          resultMessageType = MessageType.generic;
-
-        debugConsoleController.addExecutionTabMessage(resultMessage, resultNode,
-            resultMessageType, controller.selectNodeAction);
-        executingFile?.addExecuteData(
-            resultMessage, resultNode, resultMessageType);
-
-        return;
+      for (var node in nodesToExecute) {
+        _executeNode(node.nodeUuid);
+        unexecutedNodes.remove(node);
+        //add only if not there already
+        if (!executedNodes.contains(node)) executedNodes.add(node);
       }
     }
+
+    return true;
+
+  }
+
+  List<ExecutableNode> _getRelevantNodes(List<ExecutableNode> playgroundNodes, List<Connection> connections, ExecutableNode startNode) {
+    List<ExecutableNode> relevantNodes = [];
+
+    for (var connection in connections) {
+      for (var playgroundNode in playgroundNodes) {
+        if (playgroundNode.nodeUuid == connection.inNode.name || playgroundNode.nodeUuid == connection.outNode.name) {
+          //if not already in the list
+          if (!relevantNodes.contains(playgroundNode)){
+            relevantNodes.add(playgroundNode);
+          }
+        }
+      }
+    }
+
+    return relevantNodes;
+  }
+
+  Future<void> _executeNode(String node) async {
+    if (allNodes[node]!.state == ExecutionState.finished || allNodes[node]!.state == ExecutionState.executing) {
+      return;
+    }
+
+    allNodes[node]!.state = ExecutionState.finished;
+    print("executed node: ${nodesDNA[node].nodeFunction.command}");
 
     if (_DEBUG_EXECUTOR)
       debugConsoleController.addInternalTabMessage("", MessageType.info);
   }
 
-  Map<String, List<String>> _buildNodeConnectionStructure(
-    ExecutableNode startNode,
-    List<dynamic> connections,
-    Map<String, List<String>> nodeStructure,
-  ) {
-    if (!nodeStructure.containsKey(startNode.nodeUuid)) {
-      nodeStructure[startNode.nodeUuid] = [];
+  List<String> _getOutPortNodes(String nodeUuid) {
+    List<String> outNodes = [];
+
+    for (var connection in controller.connections) {
+      if (connection.outNode.name == nodeUuid) {
+        outNodes.add(connection.inNode.name);
+      }
     }
 
-    List<ExecutableNode> connectedNodes =
-        _getOutPortNodes(startNode, connections);
-
-    for (var connectedNode in connectedNodes) {
-      nodeStructure[startNode.nodeUuid]!.add(connectedNode.nodeUuid);
-      _buildNodeConnectionStructure(connectedNode, connections, nodeStructure);
-    }
-
-    return nodeStructure;
+    return outNodes;
   }
 
-  List<ExecutableNode> _getOutPortNodes(
-      ExecutableNode node, List<dynamic> connections) {
-    List<ExecutableNode> inNodes = [];
+  List<String> _getInPortNodes(String nodeUuid) {
+    List<String> inNodes = [];
 
-    for (var connection in connections) {
-      if (connection.outNode.name == node.nodeUuid) {
-        ExecutableNode execNode = ExecutableNode(
-            nodeUuid: connection.inNode.name,
-            node: connection.inNode,
-            command: nodesDNA[node.nodeUuid].nodeFunction.command,
-            deviceUniqueId: nodesDNA[node.nodeUuid].deviceUuid);
-        inNodes.add(execNode);
+    for (var connection in controller.connections) {
+      if (connection.inNode.name == nodeUuid) {
+        inNodes.add(connection.outNode.name);
       }
     }
 
     return inNodes;
   }
 
-  bool _dependentNodesAlreadyExecuted(
-      String node,
-      Map<String, List<String>> execNodeTree,
-      List<ExecutableNode> playgroundNodes) {
-    List<String> dependencies = [];
+  bool _dependentNodesAlreadyExecuted(String node) {
+    List<String> inNodes = _getInPortNodes(node);
+      
 
-    execNodeTree.forEach((key, connectedNodes) {
-      for (var connectedNode in connectedNodes) {
-        if (connectedNode == node) {
-          dependencies.add(key);
-        }
-      }
-    });
-
-    if (dependencies.isEmpty) {
-      return true;
-    }
-
-    for (var dependency in dependencies) {
-      for (var playgroundNode in playgroundNodes) {
-        if (playgroundNode.nodeUuid == dependency) {
-          if (!playgroundNode.executed) {
-            return false;
-          }
-        }
-      }
+    for (String nodeUuid in inNodes) {
+      if(allNodes[nodeUuid]!.state != ExecutionState.finished) return false;
     }
 
     return true;
@@ -274,7 +218,7 @@ class PlaygroundExecutor {
     for (var dependency in dependencies) {
       for (var playgroundNode in playgroundNodes) {
         if (playgroundNode.nodeUuid == dependency) {
-          return playgroundNode.executionResult;
+          return playgroundNode.resultValue;
         }
       }
     }
@@ -289,8 +233,6 @@ class PlaygroundExecutor {
       try {
         ExecutableNode node = ExecutableNode(
             nodeUuid: key,
-            node: nodes[key],
-            command: nodesDNA[key].nodeFunction.command,
             deviceUniqueId: nodesDNA[key].deviceUuid);
         decodedList.add(node);
       } catch (e) {
