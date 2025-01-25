@@ -63,14 +63,14 @@ class PlaygroundFileInterface {
       Offset position = Offset(node["nodePosition"]["dx"], node["nodePosition"]["dy"]);
       NodeDNA nodeDNA = NodeDNA.fromJson(node["nodeDNA"]);
   
-      Widget nodeWidget = fabricateNode(
+      NodeWithNotifiers nodeWidget = fabricateNode(
         nodeName: nodeDNA.nodeName,
         nodeColor: nodeDNA.nodeColor,
         nodeType: nodeDNA.nodeType,
         nodeFunction: nodeDNA.nodeFunction,
         svgIconString: nodeDNA.svgIconString,
         isDummy: false,
-      )!;
+      );
     
       nodeEditorWidgetController.addNodeAtPosition(nodePosition: position, nodeDNA: nodeDNA, nodeWidget: nodeWidget);
     }

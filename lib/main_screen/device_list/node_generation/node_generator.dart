@@ -248,27 +248,56 @@ Color getNodeColor(String colorName) {
   return colorMap[normalizedColorName] ?? Colors.blue; // Default to blue if not found
 }
 
-Widget? fabricateNode({
-  String nodeName = "",
-  String nodeColor = "",
-  NodeType nodeType = NodeType.basicNode,
-  FunctionNode? nodeFunction = null,
-  bool isDummy = false,
-  String svgIconString = ""
+class NodeWithNotifiers {
+  late Widget node;
+  ValueNotifier<Color> colorNotifier;
+  ValueNotifier<Color> accentColorNotifier;
+  ValueNotifier<String> nodeNameNotifier;
+  ValueNotifier<String> svgIconStringNotifier;
+  ValueNotifier<FunctionNode> nodeFunctionNotifier;
+
+  NodeWithNotifiers({
+    required this.colorNotifier,
+    required this.accentColorNotifier,
+    required this.nodeNameNotifier,
+    required this.svgIconStringNotifier,
+    required this.nodeFunctionNotifier
+  });
+}
+
+NodeWithNotifiers fabricateNode({
+  required String nodeName,
+  required String nodeColor,
+  required NodeType nodeType,
+  required FunctionNode nodeFunction,
+  required bool isDummy,
+  required String svgIconString,
 }) {
+
+  NodeWithNotifiers nodeWithNotifiers = NodeWithNotifiers(
+    colorNotifier: ValueNotifier(getNodeColor(nodeColor)),
+    accentColorNotifier: ValueNotifier(getNodeAccentColor(nodeColor)),
+    nodeNameNotifier: ValueNotifier(nodeName),
+    svgIconStringNotifier: ValueNotifier(svgIconString),
+    nodeFunctionNotifier: ValueNotifier(nodeFunction),
+  );
+
+    
   switch (nodeType) {
     case NodeType.basicNode:
-      return BasicNode(
+      final basicNode = BasicNode(
         isDummy: isDummy,
-        nodeName: nodeName,
-        color: getNodeColor(nodeColor),
-        accentColor: getNodeAccentColor(nodeColor),
-        nodeFunction: nodeFunction,
-        svgIconString: svgIconString,
+        nodeName: nodeWithNotifiers.nodeNameNotifier,
+        color: nodeWithNotifiers.colorNotifier,
+        accentColor: nodeWithNotifiers.accentColorNotifier,
+        nodeFunction: nodeWithNotifiers.nodeFunctionNotifier,
+        svgIconString: nodeWithNotifiers.svgIconStringNotifier,
       );
+      nodeWithNotifiers.node = basicNode;
+      return nodeWithNotifiers;
 
-    case NodeType.outputNode: // TODO delete this, make just a start node
-      return OutputNode(
+    case NodeType.outputNode:
+      final outputNode = OutputNode(
         isDummy: isDummy,
         nodeName: nodeName,
         color: getNodeColor(nodeColor),
@@ -276,26 +305,28 @@ Widget? fabricateNode({
         nodeFunction: nodeFunction,
         svgIconString: svgIconString,
       );
+      nodeWithNotifiers.node = outputNode;
+      return nodeWithNotifiers;
   }
 }
 
 class BasicNode extends StatelessWidget {
   final bool isDummy;
-  final Color accentColor;
-  final Color color;
-  final String? nodeName;
-  final String? svgIconString;
-  final FunctionNode? nodeFunction;
+  final ValueNotifier<Color> accentColor;
+  final ValueNotifier<Color> color;
+  final ValueNotifier<String> nodeName;
+  final ValueNotifier<String> svgIconString;
+  final ValueNotifier<FunctionNode> nodeFunction;
 
   // Constructor for BasicNode
   const BasicNode({
     super.key,
     this.isDummy = false,
-    this.accentColor = Colors.lightBlue,
-    this.color = Colors.lightBlueAccent,
-    this.nodeName,
-    this.svgIconString,
-    this.nodeFunction,
+    required this.accentColor,
+    required this.color,
+    required this.nodeName,
+    required this.svgIconString,
+    required this.nodeFunction,
   });
 
   List<Widget> getInPorts(FunctionNode nodeFunction) {
@@ -438,7 +469,7 @@ class BasicNode extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: color, // Background color
+        color: color.value, // Background color
         borderRadius: const BorderRadius.all(Radius.circular(8)),
       ),
       child: Column(
@@ -462,33 +493,31 @@ class BasicNode extends StatelessWidget {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(3.0), // Padding for the first item
-                    child: svgIconString != null
-                        ? Container(
-                            width: 16,
-                            alignment: Alignment.center,
-                            color: Colors.transparent, // Debugging color for this container
-                            child: SvgPicture.string(
-                              svgIconString!,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Container(
-                            width: 16,
-                            alignment: Alignment.center,
-                            color: Colors.transparent, // Debugging color for this container
-                            child: const Icon(Icons.image_not_supported, size: 16),
-                          ),
+                    child: Container(
+                      width: 16,
+                      alignment: Alignment.center,
+                      color: Colors.transparent, // Debugging color for this container
+                      child: SvgPicture.string(
+                        svgIconString.value,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
 
                 // Second item: Node name text in the center
-                Text(
-                  nodeName ?? "Unknown Node",
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.white,
-                    fontFamily: 'CascadiaCode',
-                  ),
+                ValueListenableBuilder<String>(
+                  valueListenable: nodeName,
+                  builder: (context, value, child) {
+                    return Text(
+                      value,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.white,
+                        fontFamily: 'CascadiaCode',
+                      ),
+                    );
+                  },
                 ),
 
                 // Third item: Loading circle with square aspect ratio
@@ -522,14 +551,24 @@ class BasicNode extends StatelessWidget {
               children: [
                 // First column
                 Expanded(
-                  child: Column(
-                    children: getInPorts(nodeFunction!), // Get the children from getPorts() for the first column
+                  child: ValueListenableBuilder<FunctionNode>(
+                    valueListenable: nodeFunction,
+                    builder: (context, value, child) {
+                      return Column(
+                        children: getInPorts(value), // Get the children from getPorts() for the first column
+                      );
+                    },
                   ),
                 ),
                 // Second column
                 Expanded(
-                  child: Column(
-                    children: getOutPorts(nodeFunction!, isDummy), // Get the children from getPorts() for the second column
+                  child: ValueListenableBuilder<FunctionNode>(
+                    valueListenable: nodeFunction,
+                    builder: (context, value, child) {
+                      return Column(
+                        children: getOutPorts(value, isDummy), // Get the children from getPorts() for the second column
+                      );
+                    },
                   ),
                 ),
               ],
@@ -541,7 +580,7 @@ class BasicNode extends StatelessWidget {
   }
 }
 
-class OutputNode extends StatelessWidget {
+class OutputNode extends StatefulWidget {
   final bool isDummy;
   final Color accentColor;
   final Color color;
@@ -549,7 +588,7 @@ class OutputNode extends StatelessWidget {
   final String? svgIconString;
   final FunctionNode? nodeFunction;
 
-  // Constructor for BasicNode
+  // Constructor for OutputNode
   const OutputNode({
     super.key,
     this.isDummy = false,
@@ -560,6 +599,11 @@ class OutputNode extends StatelessWidget {
     this.nodeFunction,
   });
 
+  @override
+  _OutputNodeState createState() => _OutputNodeState();
+}
+
+class _OutputNodeState extends State<OutputNode> {
   List<Widget> getOutPorts(FunctionNode nodeFunction, bool isDummy) {
     // List of widgets for outports
     List<Widget> outPortWidgets = [];
@@ -589,7 +633,9 @@ class OutputNode extends StatelessWidget {
               offset: Offset(2, 0), // Move 2 pixels to the right
               child: MouseRegion(
                 cursor: SystemMouseCursors.click, // Change cursor to 'click' style
-                child: generateOutPort(isDummy: isDummy, name: "Trigger Out"),
+                child: GestureDetector(
+                  child: generateOutPort(isDummy: isDummy, name: "Trigger Out"),
+                ),
               ),
             ),
           ],
@@ -604,7 +650,7 @@ class OutputNode extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: color, // Background color
+        color: widget.color, // Background color
         borderRadius: const BorderRadius.all(Radius.circular(8)),
       ),
       child: Column(
@@ -628,13 +674,13 @@ class OutputNode extends StatelessWidget {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(3.0), // Padding for the first item
-                    child: svgIconString != null
+                    child: widget.svgIconString != null
                         ? Container(
                             width: 16,
                             alignment: Alignment.center,
                             color: Colors.transparent, // Debugging color for this container
                             child: SvgPicture.string(
-                              svgIconString!,
+                              widget.svgIconString!,
                               color: Colors.white,
                             ),
                           )
@@ -649,7 +695,7 @@ class OutputNode extends StatelessWidget {
 
                 // Second item: Node name text in the center
                 Text(
-                  nodeName ?? "Unknown Node",
+                  widget.nodeName ?? "Unknown Node",
                   style: const TextStyle(
                     fontSize: 14,
                     color: Colors.white,
@@ -689,7 +735,7 @@ class OutputNode extends StatelessWidget {
                 // First column
                 Expanded(
                   child: Column(
-                    children: getOutPorts(nodeFunction!, isDummy), // Get the children from getPorts() for the second column
+                    children: getOutPorts(widget.nodeFunction!, widget.isDummy), // Get the children from getPorts() for the second column
                   ),
                 ),
               ],

@@ -1,8 +1,6 @@
-import 'dart:convert';
 import 'dart:async';
 
 import 'package:Autty/global_datatypes/ip_address.dart';
-import 'package:Autty/global_datatypes/json.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class IPScanner {

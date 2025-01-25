@@ -45,12 +45,24 @@ Parameter _$ParameterFromJson(Map<String, dynamic> json) => Parameter(
       name: json['name'] as String,
       type: $enumDecode(_$NodeParameterTypeEnumMap, json['type']),
       hardSet: json['hardSet'] as bool? ?? false,
+      hardSetOptionsType: $enumDecodeNullable(
+              _$HardSetOptionsTypeEnumMap, json['hardSetOptionsType']) ??
+          HardSetOptionsType.directInput,
+      hardSetOptions: (json['hardSetOptions'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
+      value: json['value'],
     );
 
 Map<String, dynamic> _$ParameterToJson(Parameter instance) => <String, dynamic>{
       'name': instance.name,
       'type': _$NodeParameterTypeEnumMap[instance.type]!,
       'hardSet': instance.hardSet,
+      'hardSetOptionsType':
+          _$HardSetOptionsTypeEnumMap[instance.hardSetOptionsType]!,
+      'hardSetOptions': instance.hardSetOptions,
+      'value': instance.value,
     };
 
 const _$NodeParameterTypeEnumMap = {
@@ -60,27 +72,9 @@ const _$NodeParameterTypeEnumMap = {
   NodeParameterType.none: 'none',
 };
 
-NodeSetting _$NodeSettingFromJson(Map<String, dynamic> json) => NodeSetting(
-      name: json['name'] as String,
-      type: $enumDecode(_$NodeSettingTypeEnumMap, json['type']),
-      value: json['value'],
-      options:
-          (json['options'] as List<dynamic>?)?.map((e) => e as String).toList(),
-    );
-
-Map<String, dynamic> _$NodeSettingToJson(NodeSetting instance) =>
-    <String, dynamic>{
-      'name': instance.name,
-      'type': _$NodeSettingTypeEnumMap[instance.type]!,
-      'value': instance.value,
-      'options': instance.options,
-    };
-
-const _$NodeSettingTypeEnumMap = {
-  NodeSettingType.string: 'string',
-  NodeSettingType.number: 'number',
-  NodeSettingType.boolean: 'boolean',
-  NodeSettingType.list: 'list',
+const _$HardSetOptionsTypeEnumMap = {
+  HardSetOptionsType.selectableList: 'selectableList',
+  HardSetOptionsType.directInput: 'directInput',
 };
 
 FunctionNode _$FunctionNodeFromJson(Map<String, dynamic> json) => FunctionNode(
@@ -91,9 +85,6 @@ FunctionNode _$FunctionNodeFromJson(Map<String, dynamic> json) => FunctionNode(
       parameters: (json['parameters'] as List<dynamic>?)
           ?.map((e) => Parameter.fromJson(e as Map<String, dynamic>))
           .toList(),
-      settings: (json['settings'] as List<dynamic>?)
-          ?.map((e) => NodeSetting.fromJson(e as Map<String, dynamic>))
-          .toList(),
     );
 
 Map<String, dynamic> _$FunctionNodeToJson(FunctionNode instance) =>
@@ -102,7 +93,6 @@ Map<String, dynamic> _$FunctionNodeToJson(FunctionNode instance) =>
       'returnType': _$NodeFunctionReturnTypeEnumMap[instance.returnType]!,
       'returnName': instance.returnName,
       'parameters': instance.parameters,
-      'settings': instance.settings,
     };
 
 const _$NodeFunctionReturnTypeEnumMap = {

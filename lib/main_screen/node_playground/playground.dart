@@ -8,7 +8,6 @@ import 'package:dropdown_search/dropdown_search.dart';
 import '../device_list/node_generation/node_generator.dart';
 import 'package:uuid/uuid.dart';
 
-
 class NodeEditorWidgetController {
   NodeEditorWidgetState? _nodeEditorWidgetState;
 
@@ -32,11 +31,10 @@ class NodeEditorWidgetController {
     );
   }
 
-  void refreshUI(){
+  void refreshUI() {
     _nodeEditorWidgetState?.refreshUI();
   }
 }
-
 
 class NodeEditorWidget extends StatefulWidget {
   final NodeEditorController controller;
@@ -44,13 +42,12 @@ class NodeEditorWidget extends StatefulWidget {
   final NodeEditorWidgetController customController;
   final PlaygroundFileInterface playgroundFileInterface;
 
-  const NodeEditorWidget({
-    super.key,
-    required this.controller,
-    required this.nodesDNA,
-    required this.customController,
-    required this.playgroundFileInterface
-  });
+  const NodeEditorWidget(
+      {super.key,
+      required this.controller,
+      required this.nodesDNA,
+      required this.customController,
+      required this.playgroundFileInterface});
 
   @override
   NodeEditorWidgetState createState() => NodeEditorWidgetState();
@@ -63,6 +60,8 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
   Offset _currentDraggedPosition = const Offset(0, 0);
   String? _selectedNodeName;
   double dragStep = 20.0;
+
+  Map<String, NodeWithNotifiers> nodeNotifiers = {};
 
   @override
   void initState() {
@@ -130,16 +129,12 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
     setState(() {}); // Calls setState from within the State class
   }
 
-  void addNodeAtPosition({
-      required Offset nodePosition,
+  void addNodeAtPosition(
+      {required Offset nodePosition,
       required NodeDNA nodeDNA,
-      required dynamic nodeWidget
-    }) {
-
+      required NodeWithNotifiers nodeWidget}) {
     NodeDNA nodeDNACopy = NodeDNA.fromJson(nodeDNA.toJson());
-    
 
-    
     if (nodeDNACopy.nodeUuid == "") {
       // ignore: prefer_const_constructors
       Uuid uuid = Uuid(); //Can not be CONST!!!
@@ -147,10 +142,11 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
     }
 
     widget.nodesDNA[nodeDNACopy.nodeUuid] = nodeDNACopy;
+    nodeNotifiers[nodeDNACopy.nodeUuid] = nodeWidget;
 
     _controller.addNode(
       generateNode(
-        nodeType: nodeWidget,
+        nodeType: nodeWidget.node,
         nodeUuid: nodeDNACopy.nodeUuid,
         onPanStart: (details) {
           _currentDraggedNodeId = nodeDNACopy.nodeUuid;
@@ -182,9 +178,9 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
     setState(() {}); // Ensure the widget updates immediately
   }
 
-
   Offset _calculateDropPosition(DragTargetDetails details) {
-    Offset playgroundAbsPos = details.offset - (_controller.stackPos ?? Offset.zero);
+    Offset playgroundAbsPos =
+        details.offset - (_controller.stackPos ?? Offset.zero);
     Offset playgroundRelPos = Offset(
       playgroundAbsPos.dx + _controller.horizontalScrollController.offset,
       playgroundAbsPos.dy + _controller.verticalScrollController.offset,
@@ -202,220 +198,263 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
     return List<Json>.from(decodedFunction['nodeParameters'] ?? []);
   }
 
-  void _updateSettings(String targetNode, String parameterName, String newParameterValue) {
-      if (widget.nodesDNA[targetNode] != null) {
-        for (var setting in widget.nodesDNA[targetNode]?.nodeFunction.settings ?? []) {
-          if (setting.name == parameterName) {
-            setting.value = newParameterValue;
-            return;
-          }
-        }
-      }
-    
-  }
-
   List getNodeSettingList(String targetNode) {
-
     if (widget.nodesDNA[targetNode] != null) {
-      if (widget.nodesDNA[targetNode]!.nodeFunction.settings != []){
-        return widget.nodesDNA[targetNode]!.nodeFunction.settings ?? [];
+      if (widget.nodesDNA[targetNode]!.nodeFunction.parameters != []) {
+        return widget.nodesDNA[targetNode]!.nodeFunction.parameters ?? [];
       }
     }
-    
+
     return [];
   }
 
-Widget getParameterWidget(NodeSetting parameter) { //TODO move out of playgroumd file
-  NodeSettingType parameterType = parameter.type;
-  String parameterName = parameter.name;
-  String initialValue = parameter.value;
-
-  if (parameterType == NodeSettingType.list) {
-    final List<String> availableValues = List<String>.from(parameter.options!)
-      ..sort((a, b) => a.compareTo(b)); // Sort alphabetically
-
-    String? selectedValue = initialValue;
-    final GlobalKey<DropdownSearchState<String>> dropDownKey = GlobalKey();
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(child: Text(parameterName)),
-          // Using SizedBox to control the dropdown width
-          SizedBox(
-            width: 130, // Adjust this value to make the selection area wider
-            child: DropdownSearch<String>(
-              key: dropDownKey,
-              selectedItem: selectedValue,
-              items: (String? filter, _) => availableValues,
-              onChanged: (newValue) {
-                selectedValue = newValue;
-                _updateSettings(_selectedNodeName!, parameterName, newValue!);
-              },
-              popupProps: PopupProps.menu(
-                fit: FlexFit.loose,
-                constraints: BoxConstraints(),
-                showSearchBox: true, // Enables search box within the dropdown
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        clipBehavior: Clip.hardEdge,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: const Color.fromARGB(255, 58, 58, 58),
+        ),
+        child: Stack(
+          children: [
+            GestureDetector(
+              onPanUpdate: (details) => _playgroundScrollHandle(details.delta),
+              child: DragTarget<Json>(
+                onAcceptWithDetails: (details) => addNodeAtPosition(
+                  nodePosition: _calculateDropPosition(details),
+                  nodeDNA: details.data["nodeDNA"],
+                  nodeWidget: details.data["nodeWidget"],
+                ),
+                builder: (context, candidateData, rejectedData) {
+                  return MouseRegion(
+                    child: NodeEditor(
+                      focusNode: _focusNode,
+                      controller: _controller,
+                      background: const GridBackground(),
+                      infiniteCanvasSize: 5000,
+                    ),
+                  );
+                },
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  } else if (parameterType == NodeSettingType.number) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(child: Text(parameterName)),
-          Expanded(
-            child: TextField(
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                hintText: initialValue,
+            if (_selectedNodeName != null)
+              Positioned(
+                top: 20,
+                right: 20,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  width: 200,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedNodeName = null;
+                            });
+                          },
+                          child: const Text("Close",
+                              style: TextStyle(
+                                  fontSize: 12, color: Colors.black54)),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      ...getNodeSettingList(_selectedNodeName!)
+                          .map((parameter) {
+                        return ParameterWidget(
+                            parameter: parameter,
+                            selectedNodeName: _selectedNodeName!,
+                            nodeDNA: widget.nodesDNA[_selectedNodeName]!,
+                            nodeWithNotifiers: nodeNotifiers[_selectedNodeName]!,
+                        );
+                      }),
+                    ],
+                  ),
+                ),
               ),
-              keyboardType: TextInputType.number,
-              onSubmitted: (value) {
-                _updateSettings(_selectedNodeName!, parameterName, value);
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  } else if (parameterType == NodeSettingType.string) {
-    // Handling for String parameter type
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(child: Text(parameterName)),
-          Expanded(
-            child: TextField(
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                hintText: initialValue,
+            // Icon buttons at the bottom right
+            Positioned(
+              bottom:
+                  3, // Extends the rectangle slightly below the visible screen
+              right: 3, // Extends the rectangle slightly to the right
+              child: ClipRRect(
+                borderRadius: const BorderRadius.all(Radius.circular(10)),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 0),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        onPressed: () =>
+                            widget.playgroundFileInterface.saveFile(),
+                        icon: const Icon(
+                          Icons.save,
+                          color: Color.fromARGB(255, 40, 40, 40),
+                        ),
+                        tooltip: 'Save',
+                      ),
+                      const SizedBox(width: 15),
+                      IconButton(
+                        onPressed: () => widget.playgroundFileInterface
+                            .executeFile(), // _runPlayground(),
+                        icon: const Icon(
+                          Icons.play_arrow,
+                          color: Color.fromARGB(255, 40, 40, 40),
+                        ),
+                        tooltip: 'Run',
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              onSubmitted: (value) {
-                _updateSettings(_selectedNodeName!, parameterName, value);
-              },
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
-  } else {
-    return const SizedBox.shrink();
   }
 }
 
+class ParameterWidget extends StatefulWidget {
+  final Parameter parameter;
+  final String selectedNodeName;
+  final NodeDNA nodeDNA;
+  final NodeWithNotifiers nodeWithNotifiers;
 
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    body: Container(
-      clipBehavior: Clip.hardEdge,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        color: const Color.fromARGB(255, 58, 58, 58),
-      ),
-      child: Stack(
-        children: [
-          GestureDetector(
-            onPanUpdate: (details) => _playgroundScrollHandle(details.delta),
-            child: DragTarget<Json>(
-              onAcceptWithDetails: (details) => addNodeAtPosition(
-                nodePosition: _calculateDropPosition(details),
-                nodeDNA: details.data["nodeDNA"],
-                nodeWidget: details.data["nodeWidget"],
+  const ParameterWidget({
+    super.key,
+    required this.parameter,
+    required this.selectedNodeName,
+    required this.nodeDNA,
+    required this.nodeWithNotifiers,
+  });
+
+  @override
+  _ParameterWidgetState createState() => _ParameterWidgetState();
+}
+
+class _ParameterWidgetState extends State<ParameterWidget> {
+  late bool isHardSet;
+
+  @override
+  void initState() {
+    super.initState();
+    isHardSet = widget.parameter.hardSet;
+  }
+
+  void _updateHardSetParameter(String targetNode, String parameterName, String newParameterValue) {
+    for (var parameter
+        in widget.nodeDNA.nodeFunction.parameters ?? []) {
+      if (parameter.name == parameterName) {
+        parameter.value = newParameterValue;
+        widget.nodeWithNotifiers.nodeFunctionNotifier.value = widget.nodeDNA.nodeFunction;
+        return;
+      }
+    }
+    }
+
+  void _setHardSet(String targetNode, String parameterName, bool isHardSet) {
+    for (var parameter
+        in widget.nodeDNA.nodeFunction.parameters ?? []) {
+      if (parameter.name == parameterName) {
+        parameter.hardSet = isHardSet;
+
+        
+        widget.nodeWithNotifiers.nodeFunctionNotifier.value = FunctionNode.fromJson(widget.nodeDNA.nodeFunction.toJson()); //TODO do this smarter, for valueNotifier. the reference has to change!!!
+        return;
+      }
+    }
+    }
+
+  @override
+  Widget build(BuildContext context) {
+    HardSetOptionsType parameterType = widget.parameter.hardSetOptionsType;
+    String parameterName = widget.parameter.name;
+    String initialValue = widget.parameter.value;
+
+    if (parameterType == HardSetOptionsType.selectableList) {
+      final List<String> availableValues =
+          List<String>.from(widget.parameter.hardSetOptions)
+            ..sort((a, b) => a.compareTo(b)); // Sort alphabetically
+
+      String? selectedValue = initialValue;
+      final GlobalKey<DropdownSearchState<String>> dropDownKey = GlobalKey();
+
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(child: Text(parameterName)),
+            // Using SizedBox to control the dropdown width
+            SizedBox(
+              width: 130, // Adjust this value to make the selection area wider
+              child: DropdownSearch<String>(
+                key: dropDownKey,
+                selectedItem: selectedValue,
+                items: (String? filter, _) => availableValues,
+                onChanged: (newValue) {
+                  selectedValue = newValue;
+                  _updateHardSetParameter(
+                      widget.selectedNodeName, parameterName, newValue!);
+                },
+                popupProps: PopupProps.menu(
+                  fit: FlexFit.loose,
+                  constraints: BoxConstraints(),
+                  showSearchBox: true, // Enables search box within the dropdown
+                ),
               ),
-              builder: (context, candidateData, rejectedData) {
-                return MouseRegion(
-                  child: NodeEditor(
-                    focusNode: _focusNode,
-                    controller: _controller,
-                    background: const GridBackground(),
-                    infiniteCanvasSize: 5000,
-                  ),
-                );
+            ),
+          ],
+        ),
+      );
+    } else if (parameterType == HardSetOptionsType.directInput) {
+      // Handling for String parameter type
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(child: Text(parameterName)),
+            Checkbox(
+              value: isHardSet,
+              onChanged: (bool? value) {
+                setState(() {
+                  isHardSet = value ?? false;
+                });
+                _setHardSet(widget.selectedNodeName, parameterName, isHardSet);
               },
             ),
-          ),
-          if (_selectedNodeName != null)
-            Positioned(
-              top: 20,
-              right: 20,
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
+            Expanded(
+              child: TextField(
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
+                  hintText: initialValue,
                 ),
-                width: 200,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Align(
-                      alignment: Alignment.topRight,
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedNodeName = null;
-                          });
-                        },
-                        child: const Text("Close", style: TextStyle(fontSize: 12, color: Colors.black54)),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ...getNodeSettingList(_selectedNodeName!).map((parameter) {
-                      return getParameterWidget(parameter);
-                    }),
-                  ],
-                ),
+                enabled: !isHardSet,
+                onSubmitted: (value) {
+                  _setHardSet(
+                      widget.selectedNodeName, parameterName, isHardSet);
+                },
               ),
             ),
-          // Icon buttons at the bottom right
-Positioned(
-  bottom: 3, // Extends the rectangle slightly below the visible screen
-  right: 3, // Extends the rectangle slightly to the right
-  child: ClipRRect(
-    borderRadius: const BorderRadius.all(Radius.circular(10)),
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 0),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            onPressed: () => widget.playgroundFileInterface.saveFile(),
-            icon: const Icon(Icons.save, color: Color.fromARGB(255, 40, 40, 40),),
-            tooltip: 'Save',
-          ),
-          const SizedBox(width: 15),
-          IconButton(
-            onPressed: () => widget.playgroundFileInterface.executeFile(), // _runPlayground(),
-            icon: const Icon(Icons.play_arrow, color: Color.fromARGB(255, 40, 40, 40),),
-            tooltip: 'Run',
-          ),
-        ],
-      ),
-    ),
-  ),
-),
-
-        ],
-      ),
-    ),
-  );
+          ],
+        ),
+      );
+    } else {
+      return const SizedBox.shrink();
+    }
+  }
 }
-
-
-}
-
-

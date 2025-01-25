@@ -3,7 +3,6 @@ import 'package:Autty/main_screen/device_list/websocket_manager/communication_ha
 import 'package:Autty/main_screen/device_list/websocket_manager/websocket_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:Autty/main_screen/device_list/node_generation/node_generator.dart';
-import "websocket_manager/headers/websocket_datatypes.dart";
 import 'package:Autty/global_datatypes/json.dart';
 
 class NodePreview extends StatefulWidget {
@@ -117,7 +116,6 @@ class _NodePreviewState extends State<NodePreview> {
       case DisplayState.commands:
         return _buildCommandList();
       case DisplayState.nodes:
-      default:
         return _buildNodeList();
     }
   }
@@ -200,21 +198,21 @@ Widget _buildNodeList() {
         svgIconString: singleNode.svgIcon,
       );
 
-      Widget? fabricatedDummyNode = fabricateNode( //TODO NodeDNA as input
+      NodeWithNotifiers? fabricatedDummyNode = fabricateNode( //TODO NodeDNA as input
           nodeName: singleNode.name,
           nodeColor: singleNode.color,
           nodeType: singleNode.type,
           svgIconString: singleNode.svgIcon,
-          nodeFunction: singleNode.function,
+          nodeFunction: singleNode.function!,
           isDummy: true
         );
 
-      Widget? fabricatedNode = fabricateNode(
+      NodeWithNotifiers? fabricatedNode = fabricateNode(
           nodeName: singleNode.name,
           nodeColor: singleNode.color,
           nodeType: singleNode.type,
           svgIconString: singleNode.svgIcon,
-          nodeFunction: singleNode.function,
+          nodeFunction: singleNode.function!,
           isDummy: false
         );
 
@@ -228,14 +226,14 @@ Widget _buildNodeList() {
                 color: Colors.transparent,
                 child: Opacity(
                   opacity: 0.7,
-                  child: generatePreviewNode(nodeType: fabricatedDummyNode),
+                  child: generatePreviewNode(nodeType: fabricatedDummyNode.node),
                 ),
               ),
               childWhenDragging: Opacity(
                 opacity: 0.5,
-                child: generatePreviewNode(nodeType: fabricatedDummyNode),
+                child: generatePreviewNode(nodeType: fabricatedDummyNode.node),
               ),
-              child: generatePreviewNode(nodeType: fabricatedDummyNode),
+              child: generatePreviewNode(nodeType: fabricatedDummyNode.node),
             ),
           ),
         )

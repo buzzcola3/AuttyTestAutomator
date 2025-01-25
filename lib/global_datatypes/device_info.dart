@@ -81,14 +81,28 @@ class DeviceInfo {
   Map<String, dynamic> toJson() => _$DeviceInfoToJson(this);
 }
 
+@JsonEnum(alwaysCreate: true)
+enum HardSetOptionsType {
+  selectableList,
+  directInput
+}
+extension HardSetOptionsTypeExtension on HardSetOptionsType {
+  String toJson() => _$HardSetOptionsTypeEnumMap[this]!;
+  static HardSetOptionsType fromJson(String json) => _$HardSetOptionsTypeEnumMap.entries
+      .firstWhere((element) => element.value == json)
+      .key;
+}
 // Represents a parameter for a function
 @JsonSerializable()
 class Parameter {
   String name;
   NodeParameterType type;
   bool hardSet = false;
+  HardSetOptionsType hardSetOptionsType = HardSetOptionsType.directInput;
+  List<String> hardSetOptions = [];
+  dynamic value;
 
-  Parameter({required this.name, required this.type, this.hardSet = false});
+  Parameter({required this.name, required this.type, this.hardSet = false, this.hardSetOptionsType = HardSetOptionsType.directInput, this.hardSetOptions = const [], this.value});
 
   // Factory constructor for creating a Parameter from JSON
   factory Parameter.fromJson(Map<String, dynamic> json) {
@@ -96,6 +110,11 @@ class Parameter {
       name: json['Name'],
       type: NodeParameterTypeExtension.fromJson(json['Type']),
       hardSet: json['HardSet'] ?? false,
+      hardSetOptionsType: HardSetOptionsTypeExtension.fromJson(json['HardSetOptionsType']),
+      hardSetOptions: json['HardSetOptions'] != null
+          ? List<String>.from(json['HardSetOptions'])
+          : [],
+      value: json['Value'],
     );
   }
 
@@ -105,52 +124,24 @@ class Parameter {
       'Name': name,
       'Type': type.toJson(),
       'HardSet': hardSet,
-    };
-  }
-}
-
-@JsonEnum(alwaysCreate: true)
-enum NodeSettingType {
-  string,
-  number,
-  boolean,
-  list,
-}
-extension NodeSettingTypeExtension on NodeSettingType {
-  String toJson() => _$NodeSettingTypeEnumMap[this]!;
-  static NodeSettingType fromJson(String json) => _$NodeSettingTypeEnumMap.entries
-      .firstWhere((element) => element.value == json)
-      .key;
-}
-// Represents a parameter for a function
-@JsonSerializable()
-class NodeSetting {
-  String name;
-  NodeSettingType type;
-  dynamic value; //TODO limit to just string? dynamic may not be json serializable
-  List<String>? options;
-  
-
-  NodeSetting({required this.name, required this.type, required this.value ,this.options});
-
-  // Factory constructor for creating a Parameter from JSON
-  factory NodeSetting.fromJson(Map<String, dynamic> json) {
-    return NodeSetting(
-      name: json['Name'],
-      type: NodeSettingTypeExtension.fromJson(json['Type']),
-      value: json['Value'],
-      options: json['Options'] != null ? List<String>.from(json['Options']) : null,
-    );
-  }
-
-  // Converts a Parameter instance to JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'Name': name,
-      'Type': type.toJson(),
+      'HardSetOptionsType': hardSetOptionsType.toJson(),
+      'HardSetOptions': hardSetOptions,
       'Value': value,
-      'Options': options,
     };
+  }
+}
+
+//function to validate if return type is valid
+bool isValidReturnType(NodeFunctionReturnType returnType, dynamic value) {
+  switch (returnType) {
+    case NodeFunctionReturnType.string:
+      return value is String;
+    case NodeFunctionReturnType.number:
+      return value is num;
+    case NodeFunctionReturnType.boolean:
+      return value is bool;
+    case NodeFunctionReturnType.none:
+      return value == null;
   }
 }
 
@@ -174,26 +165,22 @@ class FunctionNode {
   NodeFunctionReturnType returnType;
   String returnName;
   List<Parameter>? parameters;
-  List<NodeSetting>? settings;
 
   FunctionNode({
     required this.command,
     required this.returnType,
     this.returnName = "return",
     this.parameters,
-    this.settings,
   });
 
   // Factory constructor for creating a FunctionNode from JSON
   factory FunctionNode.fromJson(Map<String, dynamic> json) {
     var paramList = json['Parameters'] as List<dynamic>? ?? [];
-    var settingsList = json['Settings'] as List<dynamic>? ?? [];
     return FunctionNode(
       command: json['Command'],
       returnType: NodeFunctionReturnTypeExtension.fromJson(json['ReturnType']),
       returnName: json['ReturnName'],
       parameters: paramList.map((p) => Parameter.fromJson(p)).toList(),
-      settings: settingsList.map((s) => NodeSetting.fromJson(s)).toList(),
     );
   }
 
@@ -204,7 +191,6 @@ class FunctionNode {
       'ReturnType': returnType.toJson(), // Ensure toJson is called here
       'ReturnName': returnName,
       'Parameters': parameters?.map((p) => p.toJson()).toList(),
-      'Settings': settings?.map((s) => s.toJson()).toList(),
     };
   }
 }

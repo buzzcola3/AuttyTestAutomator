@@ -1,13 +1,7 @@
-import 'dart:convert';
 import 'dart:async';
 
-import 'package:Autty/global_datatypes/json.dart';
-import 'package:Autty/main.dart';
-import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
-import 'package:Autty/global_datatypes/device_info.dart';
 import 'package:Autty/global_datatypes/ip_address.dart';
 import 'package:uuid/uuid.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
 
 class WsMessage {
   // Properties

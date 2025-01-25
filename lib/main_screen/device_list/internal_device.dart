@@ -57,13 +57,13 @@ AvailableNodes internalNodes = AvailableNodes(
           command: "DELAY",
           returnType: NodeFunctionReturnType.none,
           returnName: "void",
-          settings: [
-            NodeSetting(
-              name: "Delay(ms)",
-              type: NodeSettingType.number,
-              value: "1000",
-            )
-          ]
+//          settings: [
+//            NodeSetting(
+//              name: "Delay(ms)",
+//              type: NodeSettingType.number,
+//              value: "1000",
+//            )
+//          ]
         )
       ),
 
@@ -74,23 +74,28 @@ AvailableNodes internalNodes = AvailableNodes(
         svgIcon: startNodeIcon,
         function: FunctionNode(
           command: "COMPARE NUMBER",
-          returnType: NodeFunctionReturnType.none,
+          returnType: NodeFunctionReturnType.string,
           returnName: "void",
           parameters: [
             Parameter(
-              name: "input value",
+              name: "first value",
+              type: NodeParameterType.number,
+              hardSet: false
+            ),
+            Parameter(
+              name: "second value",
               type: NodeParameterType.number,
               hardSet: false
             )
           ],
-          settings: [
-            NodeSetting(
-              name: "Compare Type",
-              type: NodeSettingType.list,
-              options: [">", ">=", "==", "<=", "<" ],
-              value: "=="
-            )
-          ]
+//          settings: [
+//            NodeSetting(
+//              name: "Compare Type",
+//              type: NodeSettingType.list,
+//              options: [">", ">=", "==", "<=", "<" ],
+//              value: "=="
+//            )
+//          ]
         )
       ),
 
@@ -103,11 +108,13 @@ AvailableNodes internalNodes = AvailableNodes(
           command: "USER INPUT",
           returnType: NodeFunctionReturnType.string,
           returnName: "User Input",
-          settings: [
-            NodeSetting(
+          parameters: [
+            Parameter(
               name: "Text",
-              type: NodeSettingType.string,
+              type: NodeParameterType.string,
+              hardSet: true,
               value: "Enter your input here",
+              hardSetOptionsType: HardSetOptionsType.directInput
             )
           ]
         )
@@ -122,13 +129,6 @@ AvailableNodes internalNodes = AvailableNodes(
           command: "USER CONFIRM",
           returnType: NodeFunctionReturnType.none,
           returnName: "User Confirm",
-          settings: [
-            NodeSetting(
-              name: "Text",
-              type: NodeSettingType.string,
-              value: "Do you confirm this decision?"
-            )
-          ]
         )
       ),
 
@@ -141,13 +141,6 @@ AvailableNodes internalNodes = AvailableNodes(
           command: "USER DECIDE",
           returnType: NodeFunctionReturnType.none,
           returnName: "void",
-          settings: [
-            NodeSetting(
-              name: "Text",
-              type: NodeSettingType.string,
-              value: "Do you confirm this decision?"
-            )
-          ]
         )
       ),
     ]
@@ -164,68 +157,61 @@ Json internalDevice = {
 
 RemoteDevice internalWsDevice = RemoteDevice.dummy(deviceIp: IPAddress('', 0), deviceInfo: DeviceInfo(jsonEncode(internalDevice)));
 
-Future<Json> internalDeviceCommandProcessor(String command, Map<String, dynamic> params, Json dependencyResult) async {
+Future<dynamic> internalDeviceCommandProcessor(String command, Map<String, dynamic> params) async {
   print(command);
   print(params);
 
-  Json result = {"OUTCOME": "ERROR", "RESPONSE": "internalDeviceCommandProcessor did not return"};
+  dynamic result = null;
 
   
   if(command == "DELAY"){
     await Future.delayed(Duration(milliseconds: int.parse(params["Delay(ms)"])));
-    result["OUTCOME"] = "SUCCESS";
-    result["RESPONSE"] = "ok";
   }
   else if(command == "RUN"){
-    result["OUTCOME"] = "SUCCESS";
-    result["RESPONSE"] = "ok";
   }
   else if(command == "COMPARE NUMBER"){
-    double? measuredValue = double.tryParse(dependencyResult["RESPONSE"] ?? '');
-    double expectedValue = double.parse(params["expected value"]);
-    String compareType = params["compare type"];
-
-    result["RESPONSE"] = "$measuredValue $compareType $expectedValue";
-    print(result["RESPONSE"]);
+    double? measuredValue = double.parse(params["first value"] ?? '');
+    double expectedValue = double.parse(params["second value"] ?? '');
+    String compareType = params["Compare Type"];
 
     if(compareType == "=="){
       if(measuredValue == expectedValue){
-        result["OUTCOME"] = "SUCCESS";
+        result = "$measuredValue == $expectedValue";
       }
       else{
-        result["OUTCOME"] = "ERROR";
+        throw Exception("Comparison failed: $measuredValue == $expectedValue");
       }
     }
     else if(compareType == ">"){
-      if(measuredValue! > expectedValue){
-        result["OUTCOME"] = "SUCCESS";
+      if(measuredValue > expectedValue){
+        result = "$measuredValue > $expectedValue";
       }
       else{
-        result["OUTCOME"] = "ERROR";
+        throw Exception("Comparison failed: $measuredValue > $expectedValue");
       }
     }
     else if(compareType == "<"){
-      if(measuredValue! < expectedValue){
-        result["OUTCOME"] = "SUCCESS";
+      if(measuredValue < expectedValue){
+        result = "$measuredValue < $expectedValue"; 
       }
       else{
-        result["OUTCOME"] = "ERROR";
+        throw Exception("Comparison failed: $measuredValue < $expectedValue");
       }
     }
     else if(compareType == ">="){
-      if(measuredValue! >= expectedValue){
-        result["OUTCOME"] = "SUCCESS";
+      if(measuredValue >= expectedValue){
+        result = "$measuredValue >= $expectedValue";
       }
       else{
-        result["OUTCOME"] = "ERROR";
+        throw Exception("Comparison failed: $measuredValue >= $expectedValue");
       }
     }
     else if(compareType == "<="){
-      if(measuredValue! <= expectedValue){
-        result["OUTCOME"] = "SUCCESS";
+      if(measuredValue <= expectedValue){
+        result = "$measuredValue <= $expectedValue";
       }
       else{
-        result["OUTCOME"] = "ERROR";
+        throw Exception("Comparison failed");
       }
     }
   }
@@ -257,8 +243,7 @@ else if (command == "USER INPUT") {
           TextButton(
             onPressed: () {
               // When "OK" is clicked, update the result map
-              result["RESPONSE"] = userInput;
-              result["OUTCOME"] = "SUCCESS";
+              result = userInput;
   
               // Close the dialog
               Navigator.of(context).pop();
@@ -306,42 +291,42 @@ else if (command == "USER CONFIRM") {
     },
   );
 }
-else if (command == "USER DECIDE") {
-  // Display a confirmation dialog with Pass/Fail buttons
-  await showDialog(
-    context: alertDialogManager.navigatorKey.currentState!.context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text(params["Text"], style: TextStyle(fontSize: 16)), // Title is params[0]
-        content: Text(dependencyResult["RESPONSE"] ?? "No response"), // Text is from dependencyResult["RESPONSE"]
-        actions: [
-          TextButton(
-            onPressed: () {
-              // When "Fail" is clicked, set the result accordingly
-              result["RESPONSE"] = "Fail";
-              result["OUTCOME"] = "ERROR"; // Outcome is "ERROR" if Fail
-  
-              // Close the dialog
-              Navigator.of(context).pop();
-            },
-            child: const Text("Fail"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // When "Pass" is clicked, set the result accordingly
-              result["RESPONSE"] = "Pass";
-              result["OUTCOME"] = "SUCCESS"; // Outcome is "SUCCESS" if Pass
-  
-              // Close the dialog
-              Navigator.of(context).pop();
-            },
-            child: const Text("Pass"),
-          ),
-        ],
-      );
-    },
-  );
-}
+//else if (command == "USER DECIDE") {
+//  // Display a confirmation dialog with Pass/Fail buttons
+//  await showDialog(
+//    context: alertDialogManager.navigatorKey.currentState!.context,
+//    builder: (BuildContext context) {
+//      return AlertDialog(
+//        title: Text(params["Text"], style: TextStyle(fontSize: 16)), // Title is params[0]
+//        content: Text(dependencyResult["RESPONSE"] ?? "No response"), // Text is from dependencyResult["RESPONSE"]
+//        actions: [
+//          TextButton(
+//            onPressed: () {
+//              // When "Fail" is clicked, set the result accordingly
+//              result["RESPONSE"] = "Fail";
+//              result["OUTCOME"] = "ERROR"; // Outcome is "ERROR" if Fail
+//  
+//              // Close the dialog
+//              Navigator.of(context).pop();
+//            },
+//            child: const Text("Fail"),
+//          ),
+//          ElevatedButton(
+//            onPressed: () {
+//              // When "Pass" is clicked, set the result accordingly
+//              result["RESPONSE"] = "Pass";
+//              result["OUTCOME"] = "SUCCESS"; // Outcome is "SUCCESS" if Pass
+//  
+//              // Close the dialog
+//              Navigator.of(context).pop();
+//            },
+//            child: const Text("Pass"),
+//          ),
+//        ],
+//      );
+//    },
+//  );
+//}
 
   return result;
 }
