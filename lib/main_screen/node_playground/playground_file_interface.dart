@@ -15,7 +15,7 @@ import 'dart:async';
 class PlaygroundFileInterface {
   final NodeEditorController playgroundController;
   NodeEditorWidgetController nodeEditorWidgetController;
-  Map<String, NodeDNA> nodesDNA;
+  Map<String, NodeWithNotifiers> nodesDNA;
   PlaygroundExecutor playgroundExecutor;
   PlaygroundFileInterface(this.playgroundController, this.nodesDNA, this.nodeEditorWidgetController, this.playgroundExecutor);
 
@@ -36,7 +36,7 @@ class PlaygroundFileInterface {
 
   NodeDNA? getSingleDNA(nodeUniqueName){
     if(nodesDNA[nodeUniqueName] != null){
-      return nodesDNA[nodeUniqueName];
+      return nodesDNA[nodeUniqueName]?.notifierNodeDNA.value;
     }
     
     return null;
@@ -64,11 +64,7 @@ class PlaygroundFileInterface {
       NodeDNA nodeDNA = NodeDNA.fromJson(node["nodeDNA"]);
   
       NodeWithNotifiers nodeWidget = fabricateNode(
-        nodeName: nodeDNA.nodeName,
-        nodeColor: nodeDNA.nodeColor,
-        nodeType: nodeDNA.nodeType,
-        nodeFunction: nodeDNA.nodeFunction,
-        svgIconString: nodeDNA.svgIconString,
+        nodeDNA: nodeDNA,
         isDummy: false,
       );
     

@@ -40,7 +40,7 @@ AvailableNodes internalNodes = AvailableNodes(
         type: NodeType.outputNode,
         color: "red",
         svgIcon: startNodeIcon,
-        function: FunctionNode(
+        function: NodeFunction(
           command: "RUN",
           returnType: NodeFunctionReturnType.none,
           returnName: "void",
@@ -53,63 +53,67 @@ AvailableNodes internalNodes = AvailableNodes(
         type: NodeType.basicNode,
         color: "blue",
         svgIcon: startNodeIcon,
-        function: FunctionNode(
+        function: NodeFunction(
           command: "DELAY",
           returnType: NodeFunctionReturnType.none,
           returnName: "void",
-//          settings: [
-//            NodeSetting(
-//              name: "Delay(ms)",
-//              type: NodeSettingType.number,
-//              value: "1000",
-//            )
-//          ]
-        )
+          parameters: [
+            NodeParameter(
+              name: "Delay(ms)",
+              type: NodeParameterType.number,
+              hardSet: true,
+              value: "1000",
+              hardSetOptionsType: HardSetOptionsType.directInput,
+            ),
+          ],
+        ),
       ),
 
-      Node(
-        name: "Compare Number",
-        type: NodeType.basicNode,
-        color: "green",
-        svgIcon: startNodeIcon,
-        function: FunctionNode(
-          command: "COMPARE NUMBER",
-          returnType: NodeFunctionReturnType.string,
-          returnName: "void",
-          parameters: [
-            Parameter(
-              name: "first value",
-              type: NodeParameterType.number,
-              hardSet: false
-            ),
-            Parameter(
-              name: "second value",
-              type: NodeParameterType.number,
-              hardSet: false
-            )
-          ],
-//          settings: [
-//            NodeSetting(
-//              name: "Compare Type",
-//              type: NodeSettingType.list,
-//              options: [">", ">=", "==", "<=", "<" ],
-//              value: "=="
-//            )
-//          ]
-        )
+Node(
+  name: "Compare Number",
+  type: NodeType.basicNode,
+  color: "green",
+  svgIcon: startNodeIcon,
+  function: NodeFunction(
+    command: "COMPARE NUMBER",
+    returnType: NodeFunctionReturnType.string,
+    returnName: "void",
+    parameters: [
+      NodeParameter(
+        name: "first value",
+        type: NodeParameterType.number,
+        value: "0",
+        hardSet: false
       ),
+      NodeParameter(
+        name: "second value",
+        type: NodeParameterType.number,
+        value: "0",
+        hardSet: false
+      ),
+      NodeParameter(
+        name: "Compare Type",
+        type: NodeParameterType.string,
+        hardSet: true,
+        value: "==",
+        hardSetOptionsType: HardSetOptionsType.selectableList,
+        hardSetOptions: [">", ">=", "==", "<=", "<" ]
+      )
+    ],
+  )
+),
 
       Node(
         name: "User Input",
         type: NodeType.basicNode,
         color: "yellow",
         svgIcon: startNodeIcon,
-        function: FunctionNode(
+        function: NodeFunction(
           command: "USER INPUT",
           returnType: NodeFunctionReturnType.string,
           returnName: "User Input",
           parameters: [
-            Parameter(
+            NodeParameter(
               name: "Text",
               type: NodeParameterType.string,
               hardSet: true,
@@ -125,7 +129,7 @@ AvailableNodes internalNodes = AvailableNodes(
         type: NodeType.basicNode,
         color: "purple",
         svgIcon: startNodeIcon,
-        function: FunctionNode(
+        function: NodeFunction(
           command: "USER CONFIRM",
           returnType: NodeFunctionReturnType.none,
           returnName: "User Confirm",
@@ -137,7 +141,7 @@ AvailableNodes internalNodes = AvailableNodes(
         type: NodeType.basicNode,
         color: "cyan",
         svgIcon: startNodeIcon,
-        function: FunctionNode(
+        function: NodeFunction(
           command: "USER DECIDE",
           returnType: NodeFunctionReturnType.none,
           returnName: "void",

@@ -1,16 +1,19 @@
 import 'dart:math';
-
 import 'package:Autty/global_datatypes/device_info.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:node_editor/node_editor.dart';
 
+// ignore: non_constant_identifier_names
 double _DEFAULT_WIDTH = 180;
+// ignore: constant_identifier_names
 const double _DEFAULT_NODE_PADDING = 0; // Keep 0
+// ignore: non_constant_identifier_names
 Color _NODE_CONNECTION_COLOR = const Color.fromARGB(255, 109, 109, 109);
+// ignore: constant_identifier_names
 const double _NODE_EDGE_RADIUS = 6;
 
-NodeWidgetBase generateNode({
+NodeWidgetBase generateNodeCarrier({
   required Widget nodeType,
   required String nodeUuid,
   required void Function(DragStartDetails) onPanStart,
@@ -42,7 +45,8 @@ Container generatePreviewNode({
 }) {
   return Container(
     decoration: const BoxDecoration(
-      color: Colors.transparent, // Default color for the preview node// Selected border
+      color: Colors
+          .transparent, // Default color for the preview node// Selected border
     ),
     width: _DEFAULT_WIDTH,
     child: nodeType,
@@ -217,7 +221,8 @@ Color getNodeAccentColor(String colorName) {
   }
 
   // Return the accent color if it's found in the map, or a default accent color if not found
-  return colorMap[normalizedColorName] ?? Colors.blueAccent; // Default to blueAccent if not found
+  return colorMap[normalizedColorName] ??
+      Colors.blueAccent; // Default to blueAccent if not found
 }
 
 Color getNodeColor(String colorName) {
@@ -245,96 +250,52 @@ Color getNodeColor(String colorName) {
   }
 
   // Return the color if found in the map, or a default color if not found
-  return colorMap[normalizedColorName] ?? Colors.blue; // Default to blue if not found
+  return colorMap[normalizedColorName] ??
+      Colors.blue; // Default to blue if not found
 }
 
 class NodeWithNotifiers {
   late Widget node;
-  ValueNotifier<Color> colorNotifier;
-  ValueNotifier<Color> accentColorNotifier;
-  ValueNotifier<String> nodeNameNotifier;
-  ValueNotifier<String> svgIconStringNotifier;
-  ValueNotifier<FunctionNode> nodeFunctionNotifier;
+  ValueNotifier<NodeDNA> notifierNodeDNA;
 
   NodeWithNotifiers({
-    required this.colorNotifier,
-    required this.accentColorNotifier,
-    required this.nodeNameNotifier,
-    required this.svgIconStringNotifier,
-    required this.nodeFunctionNotifier
+    required this.notifierNodeDNA,
   });
 }
 
 NodeWithNotifiers fabricateNode({
-  required String nodeName,
-  required String nodeColor,
-  required NodeType nodeType,
-  required FunctionNode nodeFunction,
+  required NodeDNA nodeDNA,
   required bool isDummy,
-  required String svgIconString,
 }) {
+  NodeWithNotifiers nodeWithNotifiers =
+      NodeWithNotifiers(notifierNodeDNA: ValueNotifier(nodeDNA));
 
-  NodeWithNotifiers nodeWithNotifiers = NodeWithNotifiers(
-    colorNotifier: ValueNotifier(getNodeColor(nodeColor)),
-    accentColorNotifier: ValueNotifier(getNodeAccentColor(nodeColor)),
-    nodeNameNotifier: ValueNotifier(nodeName),
-    svgIconStringNotifier: ValueNotifier(svgIconString),
-    nodeFunctionNotifier: ValueNotifier(nodeFunction),
-  );
-
-    
-  switch (nodeType) {
+  switch (nodeDNA.nodeType) {
     case NodeType.basicNode:
-      final basicNode = BasicNode(
-        isDummy: isDummy,
-        nodeName: nodeWithNotifiers.nodeNameNotifier,
-        color: nodeWithNotifiers.colorNotifier,
-        accentColor: nodeWithNotifiers.accentColorNotifier,
-        nodeFunction: nodeWithNotifiers.nodeFunctionNotifier,
-        svgIconString: nodeWithNotifiers.svgIconStringNotifier,
-      );
-      nodeWithNotifiers.node = basicNode;
+      nodeWithNotifiers.node = BasicNode(
+          isDummy: isDummy, nodeDNA: nodeWithNotifiers.notifierNodeDNA);
       return nodeWithNotifiers;
 
     case NodeType.outputNode:
-      final outputNode = OutputNode(
-        isDummy: isDummy,
-        nodeName: nodeName,
-        color: getNodeColor(nodeColor),
-        accentColor: getNodeAccentColor(nodeColor),
-        nodeFunction: nodeFunction,
-        svgIconString: svgIconString,
-      );
-      nodeWithNotifiers.node = outputNode;
+      nodeWithNotifiers.node = OutputNode(
+          isDummy: isDummy, nodeDNA: nodeWithNotifiers.notifierNodeDNA);
       return nodeWithNotifiers;
   }
 }
 
 class BasicNode extends StatelessWidget {
   final bool isDummy;
-  final ValueNotifier<Color> accentColor;
-  final ValueNotifier<Color> color;
-  final ValueNotifier<String> nodeName;
-  final ValueNotifier<String> svgIconString;
-  final ValueNotifier<FunctionNode> nodeFunction;
+  final ValueNotifier<NodeDNA> nodeDNA;
 
   // Constructor for BasicNode
-  const BasicNode({
-    super.key,
-    this.isDummy = false,
-    required this.accentColor,
-    required this.color,
-    required this.nodeName,
-    required this.svgIconString,
-    required this.nodeFunction,
-  });
+  const BasicNode({super.key, this.isDummy = false, required this.nodeDNA});
 
-  List<Widget> getInPorts(FunctionNode nodeFunction) {
+  List<Widget> getInPorts(NodeFunction nodeFunction) {
     return [
       // Dynamically add rows for each parameter
       ...?nodeFunction.parameters?.map((parameter) {
         if (parameter.hardSet) {
-          return SizedBox.shrink();
+          return const SizedBox.shrink();
         }
         return SizedBox(
           height: 25,
@@ -342,16 +303,17 @@ class BasicNode extends StatelessWidget {
             children: [
               // Rectangle that sticks out
               Transform.translate(
-                offset: Offset(-2, 0), // Move 2 pixels to the left
+                offset: const Offset(-2, 0), // Move 2 pixels to the left
                 child: MouseRegion(
-                  cursor: SystemMouseCursors.click, // Change cursor to 'click' style
+                  cursor: SystemMouseCursors
+                      .click, // Change cursor to 'click' style
                   child: generateInPort(isDummy: isDummy, name: parameter.name),
                 ),
               ),
               // Text next to the rectangle
               Text(
                 parameter.name, // Display the parameter's name
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 10,
                   color: Colors.white,
                   fontFamily: 'CascadiaCode',
@@ -360,7 +322,7 @@ class BasicNode extends StatelessWidget {
             ],
           ),
         );
-      }).toList(),
+      }),
 
       // Always include the "Trigger in" row
       SizedBox(
@@ -369,14 +331,15 @@ class BasicNode extends StatelessWidget {
           children: [
             // Rectangle that sticks out
             Transform.translate(
-              offset: Offset(-2, 0), // Move 2 pixels to the left
+              offset: const Offset(-2, 0), // Move 2 pixels to the left
               child: MouseRegion(
-                cursor: SystemMouseCursors.click, // Change cursor to 'click' style
+                cursor:
+                    SystemMouseCursors.click, // Change cursor to 'click' style
                 child: generateInPort(isDummy: isDummy, name: "Trigger In"),
               ),
             ),
             // Text next to the rectangle
-            Text(
+            const Text(
               "Trigger In", // Static text for the trigger
               style: TextStyle(
                 fontSize: 10,
@@ -390,7 +353,7 @@ class BasicNode extends StatelessWidget {
     ];
   }
 
-  List<Widget> getOutPorts(FunctionNode nodeFunction, bool isDummy) {
+  List<Widget> getOutPorts(NodeFunction nodeFunction, bool isDummy) {
     // List of widgets for outports
     List<Widget> outPortWidgets = [];
 
@@ -407,7 +370,7 @@ class BasicNode extends StatelessWidget {
                   alignment: Alignment.centerRight,
                   child: Text(
                     nodeFunction.returnName, // Display the parameter's name
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 10,
                       color: Colors.white,
                       fontFamily: 'CascadiaCode',
@@ -417,10 +380,12 @@ class BasicNode extends StatelessWidget {
               ),
               // Rectangle that sticks out
               Transform.translate(
-                offset: Offset(2, 0), // Move 2 pixels to the right
+                offset: const Offset(2, 0), // Move 2 pixels to the right
                 child: MouseRegion(
-                  cursor: SystemMouseCursors.click, // Change cursor to 'click' style
-                  child: generateOutPort(isDummy: isDummy, name: nodeFunction.returnName),
+                  cursor: SystemMouseCursors
+                      .click, // Change cursor to 'click' style
+                  child: generateOutPort(
+                      isDummy: isDummy, name: nodeFunction.returnName),
                 ),
               ),
             ],
@@ -436,7 +401,7 @@ class BasicNode extends StatelessWidget {
         child: Row(
           children: [
             // Text on the right
-            Expanded(
+            const Expanded(
               child: Align(
                 alignment: Alignment.centerRight,
                 child: Text(
@@ -451,9 +416,10 @@ class BasicNode extends StatelessWidget {
             ),
             // Rectangle that sticks out
             Transform.translate(
-              offset: Offset(2, 0), // Move 2 pixels to the right
+              offset: const Offset(2, 0), // Move 2 pixels to the right
               child: MouseRegion(
-                cursor: SystemMouseCursors.click, // Change cursor to 'click' style
+                cursor:
+                    SystemMouseCursors.click, // Change cursor to 'click' style
                 child: generateOutPort(isDummy: isDummy, name: "Trigger Out"),
               ),
             ),
@@ -467,144 +433,156 @@ class BasicNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: color.value, // Background color
-        borderRadius: const BorderRadius.all(Radius.circular(8)),
-      ),
-      child: Column(
-        children: [
-          // First container: Transparent container with spacing around the row
-          Container(
-            color: Colors.transparent, // Vivid color for the main container
-            height: 22,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // First item: SVG icon with square aspect ratio
-                Container(
-                  decoration: const BoxDecoration(
-                    border: Border(
-                      right: BorderSide(
-                        color: Colors.white, // White color for the border
-                        width: 1, // Border width of 1px
+    return ValueListenableBuilder<NodeDNA>(
+      valueListenable: nodeDNA,
+      builder: (context, nodeDNAValue, child) {
+        return Container(
+          decoration: BoxDecoration(
+            color: getNodeColor(nodeDNAValue.nodeColor), // Background color
+            borderRadius: const BorderRadius.all(Radius.circular(8)),
+          ),
+          child: Column(
+            children: [
+              // First container: Transparent container with spacing around the row
+              Container(
+                color: Colors.transparent, // Vivid color for the main container
+                height: 22,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // First item: SVG icon with square aspect ratio
+                    Container(
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          right: BorderSide(
+                            color: Colors.white, // White color for the border
+                            width: 1, // Border width of 1px
+                          ),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(
+                            3.0), // Padding for the first item
+                        child: Container(
+                          width: 16,
+                          alignment: Alignment.center,
+                          color: Colors
+                              .transparent, // Debugging color for this container
+                          child: SvgPicture.string(
+                            nodeDNAValue.svgIconString,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(3.0), // Padding for the first item
-                    child: Container(
-                      width: 16,
-                      alignment: Alignment.center,
-                      color: Colors.transparent, // Debugging color for this container
-                      child: SvgPicture.string(
-                        svgIconString.value,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
 
-                // Second item: Node name text in the center
-                ValueListenableBuilder<String>(
-                  valueListenable: nodeName,
-                  builder: (context, value, child) {
-                    return Text(
-                      value,
+                    // Second item: Node name text in the center
+                    Text(
+                      nodeDNAValue.nodeName,
                       style: const TextStyle(
                         fontSize: 14,
                         color: Colors.white,
                         fontFamily: 'CascadiaCode',
                       ),
-                    );
-                  },
-                ),
+                    ),
 
-                // Third item: Loading circle with square aspect ratio
-                Padding(
-                  padding: const EdgeInsets.all(4.0), // Padding for the loading circle
-                  child: Container(
-                    width: 14,
-                    alignment: Alignment.center,
-                    color: Colors.transparent, // Debugging color for this container
-                    child: const CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    // Third item: Loading circle with square aspect ratio
+                    Padding(
+                      padding: const EdgeInsets.all(
+                          4.0), // Padding for the loading circle
+                      child: Container(
+                        width: 14,
+                        alignment: Alignment.center,
+                        color: Colors
+                            .transparent, // Debugging color for this container
+                        child: Builder(
+                          builder: (context) {
+                            if(nodeDNA.value.nodeFunction.executionResult == ExecutionResult.failure){
+                              return SvgPicture.asset(
+                                'lib/svg_icons/node_blinking_alert.svg',
+                                color: Colors.white,
+                                width: 14,
+                                height: 14,
+                              );
+                            }
+                            switch (nodeDNA.value.nodeFunction.executionState) {
+                              case ExecutionState.executing:
+                                return const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                                );
+                              case ExecutionState.pending:
+                                return const Icon(
+                                  Icons.help_outline,
+                                  color: Colors.white,
+                                  size: 14,
+                                );
+                              case ExecutionState.finished:
+                                return const Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                  size: 14,
+                                );
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Second container: Empty transparent container
+              Container(
+                decoration: const BoxDecoration(
+                  border: Border(
+                    top: BorderSide(
+                      color: Colors.white, // White color for the border
+                      width: 1, // Border width of 1px
                     ),
                   ),
                 ),
-              ],
-            ),
-          ),
-
-          // Second container: Empty transparent container
-          Container(
-            decoration: const BoxDecoration(
-              border: Border(
-                top: BorderSide(
-                  color: Colors.white, // White color for the border
-                  width: 1, // Border width of 1px
+                child: Row(
+                  children: [
+                    // First column
+                    Expanded(
+                      child: Column(
+                        children: getInPorts(nodeDNAValue
+                            .nodeFunction), // Get the children from getPorts() for the first column
+                      ),
+                    ),
+                    // Second column
+                    Expanded(
+                      child: Column(
+                        children: getOutPorts(nodeDNAValue.nodeFunction,
+                            isDummy), // Get the children from getPorts() for the second column
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            child: Row(
-              children: [
-                // First column
-                Expanded(
-                  child: ValueListenableBuilder<FunctionNode>(
-                    valueListenable: nodeFunction,
-                    builder: (context, value, child) {
-                      return Column(
-                        children: getInPorts(value), // Get the children from getPorts() for the first column
-                      );
-                    },
-                  ),
-                ),
-                // Second column
-                Expanded(
-                  child: ValueListenableBuilder<FunctionNode>(
-                    valueListenable: nodeFunction,
-                    builder: (context, value, child) {
-                      return Column(
-                        children: getOutPorts(value, isDummy), // Get the children from getPorts() for the second column
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
 class OutputNode extends StatefulWidget {
   final bool isDummy;
-  final Color accentColor;
-  final Color color;
-  final String? nodeName;
-  final String? svgIconString;
-  final FunctionNode? nodeFunction;
+  final ValueNotifier<NodeDNA> nodeDNA;
 
   // Constructor for OutputNode
-  const OutputNode({
-    super.key,
-    this.isDummy = false,
-    this.accentColor = Colors.lightBlue,
-    this.color = Colors.lightBlueAccent,
-    this.nodeName,
-    this.svgIconString,
-    this.nodeFunction,
-  });
+  const OutputNode({super.key, this.isDummy = false, required this.nodeDNA});
 
   @override
   _OutputNodeState createState() => _OutputNodeState();
 }
 
 class _OutputNodeState extends State<OutputNode> {
-  List<Widget> getOutPorts(FunctionNode nodeFunction, bool isDummy) {
+  List<Widget> getOutPorts(NodeFunction nodeFunction, bool isDummy) {
     // List of widgets for outports
     List<Widget> outPortWidgets = [];
 
@@ -615,7 +593,7 @@ class _OutputNodeState extends State<OutputNode> {
         child: Row(
           children: [
             // Text on the right
-            Expanded(
+            const Expanded(
               child: Align(
                 alignment: Alignment.centerRight,
                 child: Text(
@@ -630,9 +608,10 @@ class _OutputNodeState extends State<OutputNode> {
             ),
             // Rectangle that sticks out
             Transform.translate(
-              offset: Offset(2, 0), // Move 2 pixels to the right
+              offset: const Offset(2, 0), // Move 2 pixels to the right
               child: MouseRegion(
-                cursor: SystemMouseCursors.click, // Change cursor to 'click' style
+                cursor:
+                    SystemMouseCursors.click, // Change cursor to 'click' style
                 child: GestureDetector(
                   child: generateOutPort(isDummy: isDummy, name: "Trigger Out"),
                 ),
@@ -648,101 +627,127 @@ class _OutputNodeState extends State<OutputNode> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: widget.color, // Background color
-        borderRadius: const BorderRadius.all(Radius.circular(8)),
-      ),
-      child: Column(
-        children: [
-          // First container: Transparent container with spacing around the row
-          Container(
-            color: Colors.transparent, // Vivid color for the main container
-            height: 22,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return ValueListenableBuilder<NodeDNA>(
+        valueListenable: widget.nodeDNA,
+        builder: (context, nodeDNAValue, child) {
+          return Container(
+            decoration: BoxDecoration(
+              color: getNodeColor(
+                  widget.nodeDNA.value.nodeColor), // Background color
+              borderRadius: const BorderRadius.all(Radius.circular(8)),
+            ),
+            child: Column(
               children: [
-                // First item: SVG icon with square aspect ratio
+                // First container: Transparent container with spacing around the row
+                Container(
+                  color:
+                      Colors.transparent, // Vivid color for the main container
+                  height: 22,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // First item: SVG icon with square aspect ratio
+                      Container(
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            right: BorderSide(
+                              color: Colors.white, // White color for the border
+                              width: 1, // Border width of 1px
+                            ),
+                          ),
+                        ),
+                        child: Padding(
+                            padding: const EdgeInsets.all(
+                                3.0), // Padding for the first item
+                            child: Container(
+                              width: 16,
+                              alignment: Alignment.center,
+                              color: Colors
+                                  .transparent, // Debugging color for this container
+                              child: SvgPicture.string(
+                                widget.nodeDNA.value.svgIconString,
+                                color: Colors.white,
+                              ),
+                            )),
+                      ),
+
+                      // Second item: Node name text in the center
+                      Text(
+                        widget.nodeDNA.value.nodeName,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.white,
+                          fontFamily: 'CascadiaCode',
+                        ),
+                      ),
+
+                      // Third item: Loading circle with square aspect ratio
+                      Padding(
+                        padding: const EdgeInsets.all(
+                            4.0), // Padding for the loading circle
+                        child: Container(
+                          width: 14,
+                          alignment: Alignment.center,
+                          color: Colors
+                              .transparent, // Debugging color for this container
+                          child: Builder(
+                            builder: (context) {
+                              switch (widget
+                                  .nodeDNA.value.nodeFunction.executionState) {
+                                case ExecutionState.executing:
+                                  return const CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  );
+                                case ExecutionState.pending:
+                                  return const Icon(
+                                    Icons.help_outline,
+                                    color: Colors.white,
+                                    size: 14,
+                                  );
+                                case ExecutionState.finished:
+                                  return const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 14,
+                                  );
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Second container: Empty transparent container
                 Container(
                   decoration: const BoxDecoration(
                     border: Border(
-                      right: BorderSide(
+                      top: BorderSide(
                         color: Colors.white, // White color for the border
                         width: 1, // Border width of 1px
                       ),
                     ),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(3.0), // Padding for the first item
-                    child: widget.svgIconString != null
-                        ? Container(
-                            width: 16,
-                            alignment: Alignment.center,
-                            color: Colors.transparent, // Debugging color for this container
-                            child: SvgPicture.string(
-                              widget.svgIconString!,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Container(
-                            width: 16,
-                            alignment: Alignment.center,
-                            color: Colors.transparent, // Debugging color for this container
-                            child: const Icon(Icons.image_not_supported, size: 16),
-                          ),
-                  ),
-                ),
-
-                // Second item: Node name text in the center
-                Text(
-                  widget.nodeName ?? "Unknown Node",
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.white,
-                    fontFamily: 'CascadiaCode',
-                  ),
-                ),
-
-                // Third item: Loading circle with square aspect ratio
-                Padding(
-                  padding: const EdgeInsets.all(4.0), // Padding for the loading circle
-                  child: Container(
-                    width: 14,
-                    alignment: Alignment.center,
-                    color: Colors.transparent, // Debugging color for this container
-                    child: const CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
+                  child: Row(
+                    children: [
+                      // First column
+                      Expanded(
+                        child: Column(
+                          children: getOutPorts(
+                              widget.nodeDNA.value.nodeFunction,
+                              widget
+                                  .isDummy), // Get the children from getPorts() for the second column
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ),
-
-          // Second container: Empty transparent container
-          Container(
-            decoration: const BoxDecoration(
-              border: Border(
-                top: BorderSide(
-                  color: Colors.white, // White color for the border
-                  width: 1, // Border width of 1px
-                ),
-              ),
-            ),
-            child: Row(
-              children: [
-                // First column
-                Expanded(
-                  child: Column(
-                    children: getOutPorts(widget.nodeFunction!, widget.isDummy), // Get the children from getPorts() for the second column
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+          );
+        });
   }
 }

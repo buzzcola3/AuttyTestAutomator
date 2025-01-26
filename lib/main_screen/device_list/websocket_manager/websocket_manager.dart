@@ -1,7 +1,6 @@
 import 'package:Autty/main.dart';
 import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/communication_handler.dart';
-import 'package:Autty/main_screen/device_list/websocket_manager/headers/websocket_datatypes.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/ip_scanner/ip_scanner.dart';
 import 'package:Autty/global_datatypes/ip_address.dart';
 

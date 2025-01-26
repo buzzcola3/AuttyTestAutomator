@@ -26,8 +26,7 @@ class NodeEditorWidgetController {
   }) {
     _nodeEditorWidgetState?.addNodeAtPosition(
       nodePosition: nodePosition,
-      nodeDNA: nodeDNA,
-      nodeWidget: nodeWidget,
+      nodeDNA: nodeDNA
     );
   }
 
@@ -38,7 +37,7 @@ class NodeEditorWidgetController {
 
 class NodeEditorWidget extends StatefulWidget {
   final NodeEditorController controller;
-  final Map<String, NodeDNA> nodesDNA;
+  final Map<String, NodeWithNotifiers> nodesDNA;
   final NodeEditorWidgetController customController;
   final PlaygroundFileInterface playgroundFileInterface;
 
@@ -60,8 +59,6 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
   Offset _currentDraggedPosition = const Offset(0, 0);
   String? _selectedNodeName;
   double dragStep = 20.0;
-
-  Map<String, NodeWithNotifiers> nodeNotifiers = {};
 
   @override
   void initState() {
@@ -131,9 +128,13 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
 
   void addNodeAtPosition(
       {required Offset nodePosition,
-      required NodeDNA nodeDNA,
-      required NodeWithNotifiers nodeWidget}) {
+      required NodeDNA nodeDNA}) {
     NodeDNA nodeDNACopy = NodeDNA.fromJson(nodeDNA.toJson());
+
+    NodeWithNotifiers nodeWithNotifiers = fabricateNode(
+      nodeDNA: nodeDNACopy,
+      isDummy: false,
+    );
 
     if (nodeDNACopy.nodeUuid == "") {
       // ignore: prefer_const_constructors
@@ -141,12 +142,11 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
       nodeDNACopy.nodeUuid = uuid.v1();
     }
 
-    widget.nodesDNA[nodeDNACopy.nodeUuid] = nodeDNACopy;
-    nodeNotifiers[nodeDNACopy.nodeUuid] = nodeWidget;
+    widget.nodesDNA[nodeDNACopy.nodeUuid] = nodeWithNotifiers;
 
     _controller.addNode(
-      generateNode(
-        nodeType: nodeWidget.node,
+      generateNodeCarrier(
+        nodeType: nodeWithNotifiers.node,
         nodeUuid: nodeDNACopy.nodeUuid,
         onPanStart: (details) {
           _currentDraggedNodeId = nodeDNACopy.nodeUuid;
@@ -200,8 +200,8 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
 
   List getNodeSettingList(String targetNode) {
     if (widget.nodesDNA[targetNode] != null) {
-      if (widget.nodesDNA[targetNode]!.nodeFunction.parameters != []) {
-        return widget.nodesDNA[targetNode]!.nodeFunction.parameters ?? [];
+      if (widget.nodesDNA[targetNode]!.notifierNodeDNA.value.nodeFunction.parameters != []) {
+        return widget.nodesDNA[targetNode]!.notifierNodeDNA.value.nodeFunction.parameters ?? [];
       }
     }
 
@@ -221,11 +221,10 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
           children: [
             GestureDetector(
               onPanUpdate: (details) => _playgroundScrollHandle(details.delta),
-              child: DragTarget<Json>(
+              child: DragTarget<NodeDNA>(
                 onAcceptWithDetails: (details) => addNodeAtPosition(
                   nodePosition: _calculateDropPosition(details),
-                  nodeDNA: details.data["nodeDNA"],
-                  nodeWidget: details.data["nodeWidget"],
+                  nodeDNA: details.data,
                 ),
                 builder: (context, candidateData, rejectedData) {
                   return MouseRegion(
@@ -273,7 +272,6 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
                             parameter: parameter,
                             selectedNodeName: _selectedNodeName!,
                             nodeDNA: widget.nodesDNA[_selectedNodeName]!,
-                            nodeWithNotifiers: nodeNotifiers[_selectedNodeName]!,
                         );
                       }),
                     ],
@@ -328,17 +326,15 @@ class NodeEditorWidgetState extends State<NodeEditorWidget> {
 }
 
 class ParameterWidget extends StatefulWidget {
-  final Parameter parameter;
+  final NodeParameter parameter;
   final String selectedNodeName;
-  final NodeDNA nodeDNA;
-  final NodeWithNotifiers nodeWithNotifiers;
+  final NodeWithNotifiers nodeDNA;
 
   const ParameterWidget({
     super.key,
     required this.parameter,
     required this.selectedNodeName,
     required this.nodeDNA,
-    required this.nodeWithNotifiers,
   });
 
   @override
@@ -356,10 +352,10 @@ class _ParameterWidgetState extends State<ParameterWidget> {
 
   void _updateHardSetParameter(String targetNode, String parameterName, String newParameterValue) {
     for (var parameter
-        in widget.nodeDNA.nodeFunction.parameters ?? []) {
+        in widget.nodeDNA.notifierNodeDNA.value.nodeFunction.parameters ?? []) {
       if (parameter.name == parameterName) {
         parameter.value = newParameterValue;
-        widget.nodeWithNotifiers.nodeFunctionNotifier.value = widget.nodeDNA.nodeFunction;
+        widget.nodeDNA.notifierNodeDNA.value = NodeDNA.fromJson(widget.nodeDNA.notifierNodeDNA.value.toJson()); //TODO do this smarter, for valueNotifier. the reference has to change!!!
         return;
       }
     }
@@ -367,12 +363,12 @@ class _ParameterWidgetState extends State<ParameterWidget> {
 
   void _setHardSet(String targetNode, String parameterName, bool isHardSet) {
     for (var parameter
-        in widget.nodeDNA.nodeFunction.parameters ?? []) {
+        in widget.nodeDNA.notifierNodeDNA.value.nodeFunction.parameters ?? []) {
       if (parameter.name == parameterName) {
         parameter.hardSet = isHardSet;
 
         
-        widget.nodeWithNotifiers.nodeFunctionNotifier.value = FunctionNode.fromJson(widget.nodeDNA.nodeFunction.toJson()); //TODO do this smarter, for valueNotifier. the reference has to change!!!
+        widget.nodeDNA.notifierNodeDNA.value = NodeDNA.fromJson(widget.nodeDNA.notifierNodeDNA.value.toJson());//TODO do this smarter, for valueNotifier. the reference has to change!!!
         return;
       }
     }
@@ -420,7 +416,7 @@ class _ParameterWidgetState extends State<ParameterWidget> {
           ],
         ),
       );
-    } else if (parameterType == HardSetOptionsType.directInput) {
+    } else if (true) {
       // Handling for String parameter type
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 4),
@@ -443,18 +439,16 @@ class _ParameterWidgetState extends State<ParameterWidget> {
                   border: const OutlineInputBorder(),
                   hintText: initialValue,
                 ),
-                enabled: !isHardSet,
+                enabled: isHardSet,
                 onSubmitted: (value) {
-                  _setHardSet(
-                      widget.selectedNodeName, parameterName, isHardSet);
+                  _updateHardSetParameter(
+                      widget.selectedNodeName, parameterName, value);
                 },
               ),
             ),
           ],
         ),
       );
-    } else {
-      return const SizedBox.shrink();
     }
   }
 }

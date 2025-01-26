@@ -8,7 +8,7 @@ part 'device_info.g.dart';
 class NodeDNA {
   String deviceUuid;
   String nodeUuid;
-  FunctionNode nodeFunction;
+  NodeFunction nodeFunction;
   String nodeName;
   String nodeColor;
   NodeType nodeType;
@@ -94,7 +94,7 @@ extension HardSetOptionsTypeExtension on HardSetOptionsType {
 }
 // Represents a parameter for a function
 @JsonSerializable()
-class Parameter {
+class NodeParameter {
   String name;
   NodeParameterType type;
   bool hardSet = false;
@@ -102,11 +102,11 @@ class Parameter {
   List<String> hardSetOptions = [];
   dynamic value;
 
-  Parameter({required this.name, required this.type, this.hardSet = false, this.hardSetOptionsType = HardSetOptionsType.directInput, this.hardSetOptions = const [], this.value});
+  NodeParameter({required this.name, required this.type, this.hardSet = false, this.hardSetOptionsType = HardSetOptionsType.directInput, this.hardSetOptions = const [], required this.value});
 
   // Factory constructor for creating a Parameter from JSON
-  factory Parameter.fromJson(Map<String, dynamic> json) {
-    return Parameter(
+  factory NodeParameter.fromJson(Map<String, dynamic> json) {
+    return NodeParameter(
       name: json['Name'],
       type: NodeParameterTypeExtension.fromJson(json['Type']),
       hardSet: json['HardSet'] ?? false,
@@ -131,8 +131,37 @@ class Parameter {
   }
 }
 
+
+
+@JsonEnum(alwaysCreate: true)
+enum ExecutionState {
+  pending,
+  executing,
+  finished
+}
+extension ExecutionStateExtension on ExecutionState {
+  String toJson() => _$ExecutionStateEnumMap[this]!;
+  static ExecutionState fromJson(String json) => _$ExecutionStateEnumMap.entries
+      .firstWhere((element) => element.value == json)
+      .key;
+}
+
+@JsonEnum(alwaysCreate: true)
+enum ExecutionResult {
+  success,
+  failure,
+  unknown
+}
+extension ExecutionResultExtension on ExecutionResult {
+  String toJson() => _$ExecutionResultEnumMap[this]!;
+  static ExecutionResult fromJson(String json) => _$ExecutionResultEnumMap.entries
+      .firstWhere((element) => element.value == json)
+      .key;
+}
+
+
 //function to validate if return type is valid
-bool isValidReturnType(NodeFunctionReturnType returnType, dynamic value) {
+bool validateReturnType(NodeFunctionReturnType returnType, dynamic value) {
   switch (returnType) {
     case NodeFunctionReturnType.string:
       return value is String;
@@ -160,27 +189,33 @@ extension NodeFunctionReturnTypeExtension on NodeFunctionReturnType {
 }
 // Represents a function associated with a node
 @JsonSerializable()
-class FunctionNode {
+class NodeFunction {
   String command;
   NodeFunctionReturnType returnType;
   String returnName;
-  List<Parameter>? parameters;
+  List<NodeParameter>? parameters;
+  ExecutionResult executionResult;
+  ExecutionState executionState;
 
-  FunctionNode({
+  NodeFunction({
     required this.command,
     required this.returnType,
     this.returnName = "return",
     this.parameters,
+    this.executionResult = ExecutionResult.unknown,
+    this.executionState = ExecutionState.pending,
   });
 
   // Factory constructor for creating a FunctionNode from JSON
-  factory FunctionNode.fromJson(Map<String, dynamic> json) {
+  factory NodeFunction.fromJson(Map<String, dynamic> json) {
     var paramList = json['Parameters'] as List<dynamic>? ?? [];
-    return FunctionNode(
+    return NodeFunction(
       command: json['Command'],
       returnType: NodeFunctionReturnTypeExtension.fromJson(json['ReturnType']),
       returnName: json['ReturnName'],
-      parameters: paramList.map((p) => Parameter.fromJson(p)).toList(),
+      parameters: paramList.map((p) => NodeParameter.fromJson(p)).toList(),
+      executionResult: ExecutionResultExtension.fromJson(json['ExecutionResult']),
+      executionState: ExecutionStateExtension.fromJson(json['ExecutionState']),
     );
   }
 
@@ -191,6 +226,8 @@ class FunctionNode {
       'ReturnType': returnType.toJson(), // Ensure toJson is called here
       'ReturnName': returnName,
       'Parameters': parameters?.map((p) => p.toJson()).toList(),
+      'ExecutionResult': executionResult.toJson(),
+      'ExecutionState': executionState.toJson(),
     };
   }
 }
@@ -215,7 +252,7 @@ class Node {
   NodeType type;
   String color;
   String svgIcon;
-  FunctionNode? function;
+  NodeFunction? function;
 
   Node({
     required this.name,
@@ -233,7 +270,7 @@ class Node {
       color: json['Color'],
       svgIcon: json['SvgIcon'],
       function: json['Function'] != null
-          ? FunctionNode.fromJson(json['Function'])
+          ? NodeFunction.fromJson(json['Function'])
           : null,
     );
   }

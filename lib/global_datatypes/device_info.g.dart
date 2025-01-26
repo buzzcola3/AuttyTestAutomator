@@ -10,7 +10,7 @@ NodeDNA _$NodeDNAFromJson(Map<String, dynamic> json) => NodeDNA(
       deviceUuid: json['deviceUuid'] as String,
       nodeUuid: json['nodeUuid'] as String,
       nodeFunction:
-          FunctionNode.fromJson(json['nodeFunction'] as Map<String, dynamic>),
+          NodeFunction.fromJson(json['nodeFunction'] as Map<String, dynamic>),
       nodeName: json['nodeName'] as String,
       nodeColor: json['nodeColor'] as String,
       nodeType: $enumDecode(_$NodeTypeEnumMap, json['nodeType']),
@@ -41,7 +41,7 @@ Map<String, dynamic> _$DeviceInfoToJson(DeviceInfo instance) =>
       'devInfoMessage': instance.devInfoMessage,
     };
 
-Parameter _$ParameterFromJson(Map<String, dynamic> json) => Parameter(
+NodeParameter _$ParameterFromJson(Map<String, dynamic> json) => NodeParameter(
       name: json['name'] as String,
       type: $enumDecode(_$NodeParameterTypeEnumMap, json['type']),
       hardSet: json['hardSet'] as bool? ?? false,
@@ -55,7 +55,7 @@ Parameter _$ParameterFromJson(Map<String, dynamic> json) => Parameter(
       value: json['value'],
     );
 
-Map<String, dynamic> _$ParameterToJson(Parameter instance) => <String, dynamic>{
+Map<String, dynamic> _$ParameterToJson(NodeParameter instance) => <String, dynamic>{
       'name': instance.name,
       'type': _$NodeParameterTypeEnumMap[instance.type]!,
       'hardSet': instance.hardSet,
@@ -77,22 +77,30 @@ const _$HardSetOptionsTypeEnumMap = {
   HardSetOptionsType.directInput: 'directInput',
 };
 
-FunctionNode _$FunctionNodeFromJson(Map<String, dynamic> json) => FunctionNode(
+NodeFunction _$NodeFunctionFromJson(Map<String, dynamic> json) => NodeFunction(
       command: json['command'] as String,
       returnType:
           $enumDecode(_$NodeFunctionReturnTypeEnumMap, json['returnType']),
       returnName: json['returnName'] as String? ?? "return",
       parameters: (json['parameters'] as List<dynamic>?)
-          ?.map((e) => Parameter.fromJson(e as Map<String, dynamic>))
+          ?.map((e) => NodeParameter.fromJson(e as Map<String, dynamic>))
           .toList(),
+      executionResult: $enumDecodeNullable(
+              _$ExecutionResultEnumMap, json['executionResult']) ??
+          ExecutionResult.unknown,
+      executionState: $enumDecodeNullable(
+              _$ExecutionStateEnumMap, json['executionState']) ??
+          ExecutionState.pending,
     );
 
-Map<String, dynamic> _$FunctionNodeToJson(FunctionNode instance) =>
+Map<String, dynamic> _$NodeFunctionToJson(NodeFunction instance) =>
     <String, dynamic>{
       'command': instance.command,
       'returnType': _$NodeFunctionReturnTypeEnumMap[instance.returnType]!,
       'returnName': instance.returnName,
       'parameters': instance.parameters,
+      'executionResult': _$ExecutionResultEnumMap[instance.executionResult]!,
+      'executionState': _$ExecutionStateEnumMap[instance.executionState]!,
     };
 
 const _$NodeFunctionReturnTypeEnumMap = {
@@ -102,6 +110,18 @@ const _$NodeFunctionReturnTypeEnumMap = {
   NodeFunctionReturnType.none: 'none',
 };
 
+const _$ExecutionResultEnumMap = {
+  ExecutionResult.success: 'success',
+  ExecutionResult.failure: 'failure',
+  ExecutionResult.unknown: 'unknown',
+};
+
+const _$ExecutionStateEnumMap = {
+  ExecutionState.pending: 'pending',
+  ExecutionState.executing: 'executing',
+  ExecutionState.finished: 'finished',
+};
+
 Node _$NodeFromJson(Map<String, dynamic> json) => Node(
       name: json['name'] as String,
       type: $enumDecode(_$NodeTypeEnumMap, json['type']),
@@ -109,7 +129,7 @@ Node _$NodeFromJson(Map<String, dynamic> json) => Node(
       svgIcon: json['svgIcon'] as String,
       function: json['function'] == null
           ? null
-          : FunctionNode.fromJson(json['function'] as Map<String, dynamic>),
+          : NodeFunction.fromJson(json['function'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$NodeToJson(Node instance) => <String, dynamic>{

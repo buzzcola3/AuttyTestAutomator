@@ -3,7 +3,6 @@ import 'package:Autty/main_screen/device_list/websocket_manager/communication_ha
 import 'package:Autty/main_screen/device_list/websocket_manager/websocket_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:Autty/main_screen/device_list/node_generation/node_generator.dart';
-import 'package:Autty/global_datatypes/json.dart';
 
 class NodePreview extends StatefulWidget {
   final VoidCallback onClose;
@@ -199,29 +198,16 @@ Widget _buildNodeList() {
       );
 
       NodeWithNotifiers? fabricatedDummyNode = fabricateNode( //TODO NodeDNA as input
-          nodeName: singleNode.name,
-          nodeColor: singleNode.color,
-          nodeType: singleNode.type,
-          svgIconString: singleNode.svgIcon,
-          nodeFunction: singleNode.function!,
+          nodeDNA: nodeDNA,
           isDummy: true
-        );
-
-      NodeWithNotifiers? fabricatedNode = fabricateNode(
-          nodeName: singleNode.name,
-          nodeColor: singleNode.color,
-          nodeType: singleNode.type,
-          svgIconString: singleNode.svgIcon,
-          nodeFunction: singleNode.function!,
-          isDummy: false
         );
 
       return Padding(
         padding: const EdgeInsets.only(top: 4.0),
         child: Center(  // Wrap each node in a Center to avoid stretching
           child: SizedBox(
-            child: Draggable<Json>(
-              data: {"nodeDNA": nodeDNA, "nodeWidget": fabricatedNode},
+            child: Draggable<NodeDNA>(
+              data: nodeDNA,
               feedback: Material(
                 color: Colors.transparent,
                 child: Opacity(
