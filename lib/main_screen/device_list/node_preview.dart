@@ -148,11 +148,17 @@ Widget _buildHelpContent() {
 
 // Builds the command list from device data
 Widget _buildCommandList() {
-  if (widget.deviceData == null) {
+  List<String> commands = [];
+  for(Node node in widget.deviceData!.deviceInfo.deviceAvailableNodes.nodes){
+    if(node.function != null && node.function!.parameters != null && node.function!.parameters!.isEmpty){
+      if(widget.deviceData!.deviceInfo.deviceUniqueId != "internal"){
+        commands.add(node.function!.command);
+      }
+    }
+  }
+  if (commands.isEmpty) {
     return const Center(child: Text('No commands available.'));
   }
-  List<String> commands = [];
-  
   return ListView.builder(
       itemCount: commands.length,
       itemBuilder: (context, index) {

@@ -60,6 +60,20 @@ class RemoteDevice {
         _rpcClient.close();
     }
 
+    Future<void> checkAlive() async {
+        try {
+          final time = await roundtripTime();
+          print("device alive, ping: ${time.toInt()} ms");
+          print(state);
+          state = RemoteDeviceState.open;
+        } catch (e) {
+          print(state);
+          print("device DEAD");
+          state = RemoteDeviceState.closed;
+          // Handle the error, e.g., remove the device from the list if it is not responding
+        }
+    }
+
     Future<bool> refetchDeviceInfo() async {
       if (state != RemoteDeviceState.open) {
         throw StateError('Cannot call remote function: Device is not in the open state.');

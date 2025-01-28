@@ -147,6 +147,10 @@ class PlaygroundExecutor {
     executingFile = file;
     file.executionData = []; //clear the old execution data
 
+    //check if all devices are alive TODO
+    
+
+
     debugConsoleController.addInternalTabMessage(
         "Started execution", MessageType.info);
     debugConsoleController.clearTabMessages(ConsoleTab.execute);
@@ -154,6 +158,26 @@ class PlaygroundExecutor {
 
     // Decode the nodes using the controller
     _decodeNodes();
+    List<String> requiredRemoteDevices = [];
+
+    for (var nodeKey in allNodes.keys) {
+      // Retrieve the list of required remote devices for the current node
+      final uuid = allNodes[nodeKey]!.deviceUuid;
+      if(uuid != "internal"){
+        requiredRemoteDevices.add(uuid);
+      }
+    }
+
+    websocketManager.disableAliveTest();
+    if(!(await websocketManager.requiredDevicesAvailable(requiredRemoteDevices))){
+      websocketManager.enableAliveTest();
+      print("(one or more) some required devices not available.");
+      debugConsoleController.addInternalTabMessage(
+          "Execution aborted, (one or more) some required devices are not available.", MessageType.error);
+      return false;
+    }
+    
+
 
     // Find the start node with deviceUniqueId = "internal" and nodeCommand = "{RUN}"
     ExecutableNode? startNode = _findStartNode();
@@ -163,9 +187,13 @@ class PlaygroundExecutor {
       return false;
     }
 
+    websocketManager.enableAliveTest();
+
     _resetNodeExecutionStates();
 
     await _beginExecution(startNode);
+
+    
 
     for (var node in allNodes.values){
       print(node.executionResult.toJson());

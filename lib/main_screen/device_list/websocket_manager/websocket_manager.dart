@@ -1,4 +1,5 @@
 import 'package:Autty/main.dart';
+import 'dart:async';
 import 'package:Autty/main_screen/communication_panel/communication_panel.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/communication_handler.dart';
 import 'package:Autty/main_screen/device_list/websocket_manager/ip_scanner/ip_scanner.dart';
@@ -11,9 +12,14 @@ class WebsocketManager {
 
   List<Function()> deviceListChangeCallbacks = [];
 
+  bool aliveTest = false;
+  Timer? _aliveTestTimer;
+
   WebsocketManager() {
 
     ipScanner = IPScanner(notifyChangeIPScanner: ipScannerChangeHandle);
+
+    enableAliveTest();
   }
 
   void ipScannerChangeHandle(){
@@ -63,23 +69,87 @@ class WebsocketManager {
 
   }
 
-  void disconnectDevice(){
+void _startAliveTest() {
+  int currentIndex = 0;
+  Set<String> activeDevices = {}; // Track devices currently being checked
+  _aliveTestTimer = Timer.periodic(Duration(seconds: 2), (timer) async {
+    List<String> deviceKeys = deviceList.keys.toList();
+    if (deviceKeys.isNotEmpty) {
+      currentIndex = currentIndex % deviceKeys.length;
+      var deviceKey = deviceKeys[currentIndex];
+      currentIndex = (currentIndex + 1) % deviceKeys.length;
 
+      // Skip devices already being checked
+      if (!activeDevices.contains(deviceKey)) {
+        activeDevices.add(deviceKey); // Mark as active
+        try {
+          await deviceList[deviceKey]?.checkAlive();
+
+          // Handle closed state
+          if (deviceList[deviceKey]?.state == RemoteDeviceState.closed) {
+            deviceList.remove(deviceKey);
+            for (var callback in deviceListChangeCallbacks) {
+              callback(); // Notify callbacks
+            }
+            print("removed unresponsive device");
+          }
+        } catch (e) {
+          print("Error checking device $deviceKey: $e");
+        } finally {
+          activeDevices.remove(deviceKey); // Mark as inactive
+        }
+      }else{print("skip");}
+    }
+  });
+}
+
+Future<bool> requiredDevicesAvailable(List<String> requiredDeviceUuids) async {
+  for (var requiredUuid in requiredDeviceUuids) {
+    // Find the matching device in the deviceList
+    RemoteDevice? matchingDevice;
+    try {
+      matchingDevice = deviceList.values.firstWhere(
+        (device) =>
+            device.deviceInfo.deviceUniqueId == requiredUuid &&
+            device.state != RemoteDeviceState.closed,
+      );
+    } catch (e) {
+      // Handle the case where no matching device is found
+      print("No matching device found");
+      // You can add additional logic here if needed
+    }
+
+    if (matchingDevice != null) {
+      // If the device exists, perform the checkAlive call
+      await matchingDevice.checkAlive();
+      if(matchingDevice.state == RemoteDeviceState.closed){
+        return false;
+      }
+
+    } else {
+      // If the device does not exist, return false
+      return false;
+    }
   }
 
-  void loadRespondingDevices(){
-    
+  // If all required devices are available and alive, return true
+  return true;
+}
+
+
+
+  void enableAliveTest() {
+    if (!aliveTest) {
+      aliveTest = true;
+      _startAliveTest();
+    }
   }
 
-  void saveRespondingDevices(){
-
+  void disableAliveTest() {
+    if (aliveTest) {
+      aliveTest = false;
+      _aliveTestTimer?.cancel();
+    }
   }
 
-  void sendMessage(){
-
-  }
-
-  void sendRequest(){
-
-  }
 }
