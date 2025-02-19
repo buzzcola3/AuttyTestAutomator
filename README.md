@@ -2,6 +2,8 @@
 
 A Fairly simple automation tool to automate repetative tasks on multiple levels. It can execute methods over WebSocketRPC or local PC, or even any device on LAN. That may be another computer, or even an ESP32
 
+![My Image](./autty.png)
+
 ## Getting Started
 
 Just import the project in Flutter, and run the main.dart file. 
