@@ -133,18 +133,15 @@ Node(
           command: "USER CONFIRM",
           returnType: NodeFunctionReturnType.none,
           returnName: "User Confirm",
-        )
-      ),
-
-      Node(
-        name: "User Decide",
-        type: NodeType.basicNode,
-        color: "cyan",
-        svgIcon: startNodeIcon,
-        function: NodeFunction(
-          command: "USER DECIDE",
-          returnType: NodeFunctionReturnType.none,
-          returnName: "void",
+          parameters: [
+            NodeParameter(
+              name: "Prompt text",
+              type: NodeParameterType.string,
+              hardSet: true,
+              value: "Do you confirm this decision?",
+              hardSetOptionsType: HardSetOptionsType.directInput
+            )
+          ]
         )
       ),
     ]
@@ -165,7 +162,7 @@ Future<dynamic> internalDeviceCommandProcessor(String command, Map<String, dynam
   print(command);
   print(params);
 
-  dynamic result = null;
+  dynamic result = "error";
 
   
   if(command == "DELAY"){
@@ -265,26 +262,20 @@ else if (command == "USER CONFIRM") {
     context: alertDialogManager.navigatorKey.currentState!.context,
     builder: (BuildContext context) {
       return AlertDialog(
-        title: Text(params["Text"], style: TextStyle(fontSize: 16)), // Title is params[0]
+        title: Text(params["Prompt text"], style: TextStyle(fontSize: 16)), // Title is params[0]
         content: const Text("Do you confirm this decision?"), // Prompt text
         actions: [
           TextButton(
             onPressed: () {
               // When "Fail" is clicked, set the result accordingly
-              result["RESPONSE"] = "Fail";
-              result["OUTCOME"] = "ERROR"; // Outcome is "ERROR" if Fail
-  
-              // Close the dialog
               Navigator.of(context).pop();
+              result = "User did not confirm";
+              throw "User did not confirm";
             },
             child: const Text("Fail"),
           ),
           ElevatedButton(
             onPressed: () {
-              // When "Pass" is clicked, set the result accordingly
-              result["RESPONSE"] = "Pass";
-              result["OUTCOME"] = "SUCCESS"; // Outcome is "SUCCESS" if Pass
-  
               // Close the dialog
               Navigator.of(context).pop();
             },

@@ -277,7 +277,7 @@ class PlaygroundExecutor {
     
 
     for(ExecutableNode nextNode in node.nodesToTrigger){
-      await _beginExecution(nextNode);
+      _beginExecution(nextNode);
     }
   }
 
