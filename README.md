@@ -1,18 +1,16 @@
 # Autty
 
-A new Flutter project.
+A Fairly simple automation tool to automate repetative tasks on multiple levels. It can execute methods over WebSocketRPC or local PC, or even any device on LAN. That may be another computer, or even an ESP32
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+Just import the project in Flutter, and run the main.dart file. 
 
 TODO:
 - implement: make status colors on files and message type colors be vertical pill shaped color dots
 - implement: detection of weird loops and impossible connections
 - implement: predefined value node (with just outport)
 
-- fix: device reconnection
-- fix: IU error when device disconnects
 - fix: overflow in manual device add menu on some screens
 
 - implement: device list svg icon
