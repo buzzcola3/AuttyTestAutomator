@@ -6,7 +6,9 @@ A Fairly simple automation tool to automate repetative tasks on multiple levels.
 
 ## Getting Started
 
-Just import the project in Flutter, and run the main.dart file. 
+1. Import the project in Flutter
+2. Run "dart run sqflite_common_ffi_web:setup"
+3. Run the main.dart file. 
 
 TODO:
 - implement: make status colors on files and message type colors be vertical pill shaped color dots
