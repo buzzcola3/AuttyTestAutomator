@@ -41,3 +41,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Generated library dependencies
+/web/sqlite_sw.js
+/web/sqlite3.wasm
