@@ -175,13 +175,16 @@ Future<dynamic> internalDeviceCommandProcessor(String command, Map<String, dynam
   print(command);
   print(params);
 
-  dynamic result = "error";
+  dynamic result = null;
+  bool fail = true;
 
   
   if(command == "DELAY"){
+    fail = false;
     await Future.delayed(Duration(milliseconds: int.parse(params["Delay(ms)"])));
   }
   else if(command == "RUN"){
+    fail = false;
   }
   else if(command == "COMPARE NUMBER"){
     double? measuredValue = double.parse(params["first value"] ?? '');
@@ -228,6 +231,7 @@ Future<dynamic> internalDeviceCommandProcessor(String command, Map<String, dynam
         throw Exception("Comparison failed");
       }
     }
+    fail = false;
   }
 else if (command == "USER INPUT") {
   String userInput = ""; // To store user input from the TextField
@@ -258,6 +262,7 @@ else if (command == "USER INPUT") {
             onPressed: () {
               // When "OK" is clicked, update the result map
               result = userInput;
+              fail = false;
   
               // Close the dialog
               Navigator.of(context).pop();
@@ -283,13 +288,13 @@ else if (command == "USER CONFIRM") {
               // When "Fail" is clicked, set the result accordingly
               Navigator.of(context).pop();
               result = "User did not confirm";
-              throw "User did not confirm";
             },
             child: const Text("Fail"),
           ),
           ElevatedButton(
             onPressed: () {
               // Close the dialog
+              fail = false;
               Navigator.of(context).pop();
             },
             child: const Text("Pass"),
@@ -299,42 +304,7 @@ else if (command == "USER CONFIRM") {
     },
   );
 }
-//else if (command == "USER DECIDE") {
-//  // Display a confirmation dialog with Pass/Fail buttons
-//  await showDialog(
-//    context: alertDialogManager.navigatorKey.currentState!.context,
-//    builder: (BuildContext context) {
-//      return AlertDialog(
-//        title: Text(params["Text"], style: TextStyle(fontSize: 16)), // Title is params[0]
-//        content: Text(dependencyResult["RESPONSE"] ?? "No response"), // Text is from dependencyResult["RESPONSE"]
-//        actions: [
-//          TextButton(
-//            onPressed: () {
-//              // When "Fail" is clicked, set the result accordingly
-//              result["RESPONSE"] = "Fail";
-//              result["OUTCOME"] = "ERROR"; // Outcome is "ERROR" if Fail
-//  
-//              // Close the dialog
-//              Navigator.of(context).pop();
-//            },
-//            child: const Text("Fail"),
-//          ),
-//          ElevatedButton(
-//            onPressed: () {
-//              // When "Pass" is clicked, set the result accordingly
-//              result["RESPONSE"] = "Pass";
-//              result["OUTCOME"] = "SUCCESS"; // Outcome is "SUCCESS" if Pass
-//  
-//              // Close the dialog
-//              Navigator.of(context).pop();
-//            },
-//            child: const Text("Pass"),
-//          ),
-//        ],
-//      );
-//    },
-//  );
-//}
 
-  return result;
+if (fail) throw result;
+return result;
 }

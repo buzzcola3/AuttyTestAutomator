@@ -184,7 +184,7 @@ bool validateReturnType(NodeFunctionReturnType returnType, dynamic value) {
     case NodeFunctionReturnType.boolean:
       return value is bool;
     case NodeFunctionReturnType.none:
-      return value == null;
+      return true; //can be anything, good? not good? TODO
   }
 }
 
